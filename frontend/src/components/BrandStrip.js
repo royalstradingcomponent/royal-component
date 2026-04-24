@@ -2,20 +2,20 @@
 
 const brands = [
   { name: "ABB", logo: "/brands/abb.jpg" },
-  { name: "Panasonic", logo: "/brands/panasonic.jpg" },
+  { name: "Panasonic", logo: "/brands/Panasonic.jpg" },
   { name: "Texas Instruments", logo: "/brands/texas-instruments.jpg" },
   { name: "3M", logo: "/brands/3m.jpg" },
-  { name: "Fluke", logo: "/brands/fluke.jpg" },
-  { name: "Siemens", logo: "/brands/siemens.jpg" },
+  { name: "Fluke", logo: "/brands/Fluke.jpg" },
+  { name: "Siemens", logo: "/brands/Siemens.jpg" },
   { name: "Schneider Electric", logo: "/brands/schneider-electric.jpg" },
-  { name: "SMC", logo: "/brands/smc.jpg" },
-  { name: "STMicroelectronics", logo: "/brands/stmicroelectronics.jpg" },
-  { name: "Arduino", logo: "/brands/arduino.jpg" },
-  { name: "Omron", logo: "/brands/omron.jpg" },
-  { name: "RS Pro", logo: "/brands/rs-pro.jpg" },
-  { name: "SKF", logo: "/brands/skf.jpg" },
-  { name: "Henkel", logo: "/brands/henkel.jpg" },
-  { name: "Molex", logo: "/brands/molex.jpg" },
+  { name: "SMC", logo: "/brands/SMC.jpg" },
+  { name: "STMicroelectronics", logo: "/brands/STMicroelectronics.jpg" },
+  { name: "Arduino", logo: "/brands/Arduino.jpg" },
+  { name: "Omron", logo: "/brands/Omron.jpg" },
+  { name: "RS Pro", logo: "/brands/RS-Pro.jpg" },
+  { name: "SKF", logo: "/brands/SKF.jpg" },
+  { name: "Henkel", logo: "/brands/Henkel.jpg" },
+  { name: "Molex", logo: "/brands/Molex.jpg" },
 ];
 
 export default function BrandStrip() {
@@ -23,9 +23,7 @@ export default function BrandStrip() {
     <section className="bg-[#f8fbff] py-16">
       <div className="container-royal">
         <div className="mb-12 text-center">
-          <h2 className="heading-section text-[#102033]">
-            Trusted Brands
-          </h2>
+          <h2 className="heading-section text-[#102033]">Trusted Brands</h2>
           <p className="section-subtitle text-[#0054a6]">
             Top industrial & electronics brands we support
           </p>
