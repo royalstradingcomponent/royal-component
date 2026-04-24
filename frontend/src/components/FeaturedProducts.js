@@ -5,7 +5,8 @@ import Link from "next/link";
 import ProductCard from "./ProductCard";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://royal-component-backend.onrender.com";
 
 export default function FeaturedProducts() {
   const [products, setProducts] = useState([]);
@@ -16,18 +17,19 @@ export default function FeaturedProducts() {
       try {
         const res = await fetch(
           `${API_BASE}/api/products?category=semiconductors&limit=8`,
-          {
-            cache: "no-store",
-          }
+          { cache: "no-store" }
         );
 
         const data = await res.json();
 
         if (data?.success) {
           setProducts(data.products || []);
+        } else {
+          setProducts([]);
         }
       } catch (error) {
         console.error("Semiconductor products fetch error:", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }

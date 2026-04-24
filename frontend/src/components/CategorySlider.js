@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ChevronRight, Layers3 } from "lucide-react";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://royal-component-backend.onrender.com";
 
 function getImageUrl(url) {
   if (!url) return "/service-icons/ezbill.png";

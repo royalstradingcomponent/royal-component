@@ -224,7 +224,7 @@ export default function RegisterModal({ isOpen, onClose, openLogin }) {
 
             <AuthDivider />
 
-            <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+            <GoogleLoginButton mode="register" onSuccess={handleGoogleSuccess} />
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">

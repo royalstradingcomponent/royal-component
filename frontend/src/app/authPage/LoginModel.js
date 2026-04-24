@@ -110,7 +110,7 @@ export function AuthDivider() {
 }
 
 /* ================= GOOGLE LOGIN BUTTON ================= */
-export function GoogleLoginButton({ onSuccess }) {
+export function GoogleLoginButton({ onSuccess, mode = "login" }) {
   const { startAuthTransition, stopAuthTransition } = useAuth();
   const wrapperRef = useRef(null);
   const [buttonWidth, setButtonWidth] = useState(0);
@@ -140,7 +140,7 @@ export function GoogleLoginButton({ onSuccess }) {
     <div
       ref={wrapperRef}
       className="w-full rounded-[18px] border border-[#d8e8f8] bg-white p-[1px] shadow-[0_8px_20px_rgba(36,84,181,0.08)]"
-      >
+    >
       <div className="w-full overflow-hidden rounded-[17px]">
         {buttonWidth > 0 ? (
           <GoogleLogin
@@ -150,11 +150,15 @@ export function GoogleLoginButton({ onSuccess }) {
               try {
                 const res = await axios.post(`${API_BASE}/api/auth/google`, {
                   credential: credentialResponse.credential,
+                  mode, // ✅ IMPORTANT LINE
                 });
+
                 onSuccess(res);
               } catch (error) {
                 stopAuthTransition();
-                toast.error(error.response?.data?.message || "Google login failed");
+                toast.error(
+                  error.response?.data?.message || "Google login failed"
+                );
               }
             }}
             onError={() => {

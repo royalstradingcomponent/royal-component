@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Heart, Star, ShoppingCart } from "lucide-react";
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://royal-component-backend.onrender.com";
+  
 const getImageUrl = (url) => {
   if (!url) return "https://via.placeholder.com/500x500?text=No+Image";
   if (url.startsWith("http")) return url;

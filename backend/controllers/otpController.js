@@ -5,9 +5,8 @@ const Otp = require("../models/Otp");
 const User = require("../models/User");
 
 /* =====================================================
-   🔐 RESEND INITIALIZATION (Safe Mode)
+   🔐 RESEND INITIALIZATION
 ===================================================== */
-
 let resend;
 
 if (!process.env.RESEND_API_KEY) {
@@ -17,7 +16,9 @@ if (!process.env.RESEND_API_KEY) {
 }
 
 /* =====================================================
-   POST /api/otp/send   (EMAIL + MOBILE SUPPORT)
+   POST /api/otp/send
+   EMAIL + PHONE SUPPORT
+   REGISTER DUPLICATE CHECK
 ===================================================== */
 exports.sendOTP = async (req, res) => {
   try {
@@ -26,17 +27,42 @@ exports.sendOTP = async (req, res) => {
     if (!email && !phone) {
       return res.status(400).json({
         success: false,
-        message: "Email ya phone zaroori hai",
+        message: "Email or phone number is required",
       });
+    }
+
+    const userEmail = email ? email.toLowerCase().trim() : null;
+    const cleanPhone = phone ? phone.trim() : null;
+
+    /* ================= DUPLICATE USER CHECK ================= */
+    if (userEmail) {
+      const existingEmailUser = await User.findOne({ email: userEmail });
+
+      if (existingEmailUser) {
+        return res.status(409).json({
+          success: false,
+          message: "This email is already registered. Please login instead.",
+        });
+      }
+    }
+
+    if (cleanPhone) {
+      const existingPhoneUser = await User.findOne({ phone: cleanPhone });
+
+      if (existingPhoneUser) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This phone number is already registered. Please login instead.",
+        });
+      }
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     /* ================= EMAIL OTP ================= */
-    if (email) {
-      const userEmail = email.toLowerCase().trim();
-
+    if (userEmail) {
       console.log(`🔐 EMAIL OTP for ${userEmail}: ${otp}`);
 
       await Otp.findOneAndUpdate(
@@ -60,10 +86,10 @@ exports.sendOTP = async (req, res) => {
       await resend.emails.send({
         from: process.env.OTP_FROM_EMAIL,
         to: [userEmail],
-        subject: "Your Royal Trading Component verification code",
+        subject: "Your Royal Component verification code",
         html: `
-          <div style="font-family: Arial; padding:20px;">
-            <h2 style="color:#E91E63;">Royal Trading Component</h2>
+          <div style="font-family: Arial, sans-serif; padding:20px;">
+            <h2 style="color:#2454b5;">Royal Component</h2>
             <p>Your verification code is:</p>
             <h1 style="letter-spacing:4px;">${otp}</h1>
             <p style="font-size:12px;color:#555;">
@@ -74,12 +100,12 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
-    /* ================= MOBILE OTP ================= */
-    if (phone) {
-      console.log(`📱 MOBILE OTP for ${phone}: ${otp}`);
+    /* ================= PHONE OTP ================= */
+    if (cleanPhone) {
+      console.log(`📱 MOBILE OTP for ${cleanPhone}: ${otp}`);
 
       await Otp.findOneAndUpdate(
-        { phone },
+        { phone: cleanPhone },
         {
           otp,
           expiresAt,
@@ -89,14 +115,13 @@ exports.sendOTP = async (req, res) => {
         { upsert: true, new: true }
       );
 
-      // ⚠️ Yaha future me SMS integration laga sakte ho
+      // Future SMS integration can be added here.
     }
 
     return res.status(200).json({
       success: true,
       message: "OTP sent successfully",
     });
-
   } catch (error) {
     console.error("❌ OTP SEND ERROR:", error);
     return res.status(500).json({
@@ -116,7 +141,7 @@ exports.verifyOTP = async (req, res) => {
     if ((!email && !phone) || !otp) {
       return res.status(400).json({
         success: false,
-        message: "Email/phone aur OTP zaroori hain",
+        message: "Email/phone and OTP are required",
       });
     }
 
@@ -128,13 +153,14 @@ exports.verifyOTP = async (req, res) => {
     }
 
     if (phone) {
-      record = await Otp.findOne({ phone });
+      const cleanPhone = phone.trim();
+      record = await Otp.findOne({ phone: cleanPhone });
     }
 
     if (!record) {
       return res.status(400).json({
         success: false,
-        message: "OTP nahi mila",
+        message: "OTP not found",
       });
     }
 
@@ -142,14 +168,14 @@ exports.verifyOTP = async (req, res) => {
       await record.deleteOne();
       return res.status(400).json({
         success: false,
-        message: "OTP expire ho chuka hai",
+        message: "OTP has expired",
       });
     }
 
     if (String(record.otp) !== String(otp)) {
       return res.status(400).json({
         success: false,
-        message: "Galat OTP",
+        message: "Invalid OTP",
       });
     }
 
@@ -159,19 +185,17 @@ exports.verifyOTP = async (req, res) => {
       success: true,
       message: "OTP verified successfully",
     });
-
   } catch (error) {
     console.error("❌ OTP VERIFY ERROR:", error);
     return res.status(500).json({
       success: false,
-      message: "OTP verify failed",
+      message: "OTP verification failed",
     });
   }
 };
 
 /* =====================================================
    VERIFY OTP FOR PASSWORD RESET
-   RETURNS resetToken
 ===================================================== */
 exports.verifyResetOTP = async (req, res) => {
   try {
@@ -180,7 +204,7 @@ exports.verifyResetOTP = async (req, res) => {
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        message: "Email aur OTP zaroori hain",
+        message: "Email and OTP are required",
       });
     }
 
@@ -198,7 +222,7 @@ exports.verifyResetOTP = async (req, res) => {
       await record.deleteOne();
       return res.status(400).json({
         success: false,
-        message: "OTP expired",
+        message: "OTP has expired",
       });
     }
 
@@ -221,7 +245,6 @@ exports.verifyResetOTP = async (req, res) => {
       success: true,
       resetToken,
     });
-
   } catch (error) {
     console.error("❌ RESET OTP VERIFY ERROR:", error);
     return res.status(500).json({

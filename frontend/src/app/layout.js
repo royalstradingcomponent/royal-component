@@ -14,7 +14,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  console.log("GOOGLE CLIENT ID:", googleClientId);
+  // optional safety check
+  if (!googleClientId) {
+    console.error("❌ GOOGLE CLIENT ID missing");
+  }
 
   return (
     <html lang="en">

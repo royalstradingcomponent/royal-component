@@ -188,12 +188,18 @@ exports.loginUser = async (req, res) => {
 /* ======================================================
    GOOGLE LOGIN
 ====================================================== */
+/* ======================================================
+   GOOGLE LOGIN
+====================================================== */
 exports.googleLogin = async (req, res) => {
   try {
-    const { credential } = req.body;
+    const { credential, mode = "login" } = req.body;
 
     if (!credential) {
-      return res.status(400).json({ message: "Google credential required" });
+      return res.status(400).json({
+        success: false,
+        message: "Google credential required",
+      });
     }
 
     const ticket = await client.verifyIdToken({
@@ -202,9 +208,24 @@ exports.googleLogin = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
+
+    if (!payload?.email) {
+      return res.status(400).json({
+        success: false,
+        message: "Google email not found",
+      });
+    }
+
     const userEmail = payload.email.toLowerCase().trim();
 
     let user = await User.findOne({ email: userEmail });
+
+    if (user && mode === "register") {
+      return res.status(409).json({
+        success: false,
+        message: "This email is already registered. Please login instead.",
+      });
+    }
 
     if (!user) {
       user = await User.create({
@@ -215,16 +236,20 @@ exports.googleLogin = async (req, res) => {
     }
 
     return res.status(200).json({
+      success: true,
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       token: generateToken(user._id),
     });
-
   } catch (error) {
     console.error("GOOGLE LOGIN ERROR:", error.message);
-    return res.status(500).json({ message: "Google login failed" });
+    return res.status(500).json({
+      success: false,
+      message: "Google login failed",
+    });
   }
 };
 

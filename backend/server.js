@@ -8,7 +8,6 @@ const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
 
-
 dotenv.config();
 
 const app = express();
@@ -16,6 +15,8 @@ connectDB();
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://royalsmd.com",
+  "https://www.royalsmd.com",
   "http://localhost:3000",
   "http://127.0.0.1:3000",
 ].filter(Boolean);
@@ -45,6 +46,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -93,7 +95,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ROUTES
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
