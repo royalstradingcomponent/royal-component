@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
   Download,
@@ -14,7 +14,6 @@ import {
   Building2,
   CreditCard,
   BadgeCheck,
-  Headphones,
   CircleHelp,
   Clock3,
   Wallet,
@@ -25,13 +24,17 @@ import {
   PackageCheck,
   Layers3,
   NotebookTabs,
+  Heart,
+  AlertCircle,
 } from "lucide-react";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { API_BASE } from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import LoginModal from "@/app/authPage/LoginModel";
+import { useWishlist } from "@/context/WishlistContext";
 
 const formatCurrency = (value) =>
   `₹ ${Number(value || 0).toLocaleString("en-IN", {
@@ -43,6 +46,102 @@ function getImageUrl(url) {
   if (!url) return "https://via.placeholder.com/200x200?text=No+Image";
   if (url.startsWith("http")) return url;
   return `${API_BASE}${url}`;
+}
+
+function cleanQuantity(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 1) return 1;
+  return Math.floor(number);
+}
+
+function QuantityInput({ item, updateQty, disabled }) {
+  const [qty, setQty] = useState(String(item.quantity || 1));
+
+  useEffect(() => {
+    setQty(String(item.quantity || 1));
+  }, [item.quantity]);
+
+  const commitQty = async (value) => {
+    const finalQty = cleanQuantity(value);
+    setQty(String(finalQty));
+
+    if (finalQty !== Number(item.quantity)) {
+      await updateQty(item.id, finalQty);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[13px] font-semibold text-[#607287]">
+          Enter any wholesale quantity
+        </p>
+        <span className="rounded-full bg-[#eef4ff] px-3 py-1 text-[11px] font-bold text-[#2454b5]">
+          Bulk allowed
+        </span>
+      </div>
+
+      <div className="flex h-[48px] w-full overflow-hidden rounded-[8px] border border-[#cfd4dc] bg-white">
+        <button
+          type="button"
+          onClick={() => commitQty(Math.max(1, cleanQuantity(qty) - 1))}
+          disabled={disabled || cleanQuantity(qty) <= 1}
+          className="w-[48px] border-r border-[#cfd4dc] text-[22px] font-bold text-[#2454b5] hover:bg-[#f3f8ff] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          −
+        </button>
+
+        <input
+          type="number"
+          min="1"
+          inputMode="numeric"
+          value={qty}
+          onChange={(e) => {
+            const value = e.target.value;
+
+            if (value === "") {
+              setQty("");
+              return;
+            }
+
+            const onlyNumbers = value.replace(/[^\d]/g, "");
+            setQty(onlyNumbers);
+          }}
+          onBlur={() => commitQty(qty)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+          disabled={disabled}
+          className="w-full text-center text-[17px] font-bold text-[#111827] outline-none disabled:bg-[#f8fafc] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+
+        <button
+          type="button"
+          onClick={() => commitQty(cleanQuantity(qty) + 1)}
+          disabled={disabled}
+          className="w-[48px] border-l border-[#cfd4dc] text-[22px] font-bold text-[#2454b5] hover:bg-[#f3f8ff] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          +
+        </button>
+      </div>
+
+      <div className="mt-2 grid grid-cols-4 gap-2">
+        {[10, 50, 100, 500].map((quickQty) => (
+          <button
+            key={quickQty}
+            type="button"
+            onClick={() => commitQty(quickQty)}
+            disabled={disabled}
+            className="rounded-[8px] border border-[#dbe5f0] bg-[#f8fafc] px-2 py-2 text-xs font-bold text-[#2454b5] hover:bg-[#eef4ff] disabled:opacity-50"
+          >
+            {quickQty}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const serviceHighlights = [
@@ -70,9 +169,9 @@ const serviceHighlights = [
 
 const faqItems = [
   {
-    question: "Can I place a wholesale order without logging in?",
+    question: "Can I type any quantity?",
     answer:
-      "You can add products to the basket as a guest and review quantities, but login is required before proceeding with final wholesale checkout.",
+      "Yes. Hardware and wholesale orders can use custom quantities like 25, 100, 500, 1000 or more.",
   },
   {
     question: "Can I request custom pricing for higher quantities?",
@@ -104,13 +203,33 @@ export default function CartPage() {
   } = useCart();
 
   const { user } = useAuth();
+  const { toggleWishlist } = useWishlist();
 
   const [promoCode, setPromoCode] = useState("");
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
+  const handleMoveToWishlist = async (item) => {
+    if (!user?.token) {
+      setIsLoginOpen(true);
+      return;
+    }
+
+    await toggleWishlist({
+      _id: item.productId,
+      name: item.name,
+      brand: item.brand,
+      thumbnail: item.image,
+      price: item.price,
+      mrp: item.mrp,
+      slug: item.slug,
+    });
+
+    await removeItem(item.id);
+  };
+
   const itemCountLabel = useMemo(() => {
     const count = cartSummary?.itemCount || 0;
-    return `${count} item${count !== 1 ? "s" : ""}`;
+    return `${count} unit${count !== 1 ? "s" : ""}`;
   }, [cartSummary]);
 
   const uniqueBrands = useMemo(() => {
@@ -176,7 +295,7 @@ export default function CartPage() {
       `Basket subtotal (Ex. GST): ${formatCurrency(cartSummary?.subtotalExGst || 0)}`,
       `Estimated GST on current basket: ${formatCurrency(cartSummary?.gstTotal || 0)}`,
       `Current total basket value: ${formatCurrency(cartSummary?.grandTotal || 0)}`,
-      `Average item value based on selected quantity: ${formatCurrency(averageItemValue)}`,
+      `Average unit value based on selected quantity: ${formatCurrency(averageItemValue)}`,
     ];
   }, [cartSummary, averageItemValue]);
 
@@ -207,7 +326,7 @@ export default function CartPage() {
             ? "You can proceed directly toward checkout"
             : "Login is required before placing the final order",
           "Pricing and GST are already visible for review",
-          "You can still update quantity before order confirmation",
+          "You can type any wholesale quantity before checkout",
           "Bulk quote support can be requested for higher volume buying",
         ],
       },
@@ -225,7 +344,7 @@ export default function CartPage() {
     return [
       {
         step: "01",
-        title: "Review basket quantity",
+        title: "Type wholesale quantity",
         desc: `${cartSummary?.itemCount || 0} unit(s) currently selected across ${cartItems.length} line item(s).`,
       },
       {
@@ -257,7 +376,7 @@ export default function CartPage() {
       return;
     }
 
-    window.location.href = "/checkout";
+    window.location.href = "/checkout/address";
   };
 
   return (
@@ -266,12 +385,16 @@ export default function CartPage() {
 
       <div className="mx-auto max-w-[1360px] px-4 py-6 lg:px-6">
         <div className="mb-5">
-          <h1 className="text-[48px] font-semibold leading-none text-[#202124]">
+          <h1 className="text-[44px] font-semibold leading-none text-[#202124] md:text-[48px]">
             Basket{" "}
-            <span className="text-[28px] font-normal text-[#6b7280]">
+            <span className="text-[24px] font-normal text-[#6b7280] md:text-[28px]">
               ({itemCountLabel})
             </span>
           </h1>
+          <p className="mt-3 text-[16px] text-[#607287]">
+            Add any quantity you need for wholesale, hardware supply, project
+            procurement or repeat industrial buying.
+          </p>
         </div>
 
         {isGuestCart ? (
@@ -280,6 +403,22 @@ export default function CartPage() {
             Please log in before placing your wholesale order.
           </div>
         ) : null}
+
+        <div className="mb-5 rounded-[12px] border border-[#dbe5f0] bg-white p-4 shadow-sm">
+          <div className="flex gap-3">
+            <AlertCircle size={22} className="mt-1 shrink-0 text-[#2454b5]" />
+            <div>
+              <p className="font-bold text-[#102033]">
+                Wholesale quantity is open
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[#607287]">
+                Aap 1, 10, 100, 500, 1000 ya custom quantity type karke cart
+                update kar sakte ho. Final availability aur dispatch time order
+                confirmation par verify hoga.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="mb-5 flex flex-wrap gap-3">
           <button className="border border-[#2454b5] bg-white px-5 py-3 text-[15px] font-semibold text-[#2454b5] transition hover:bg-[#f3f8ff]">
@@ -291,7 +430,8 @@ export default function CartPage() {
 
           <button
             onClick={clearCart}
-            className="border border-[#2454b5] bg-white px-5 py-3 text-[15px] font-semibold text-[#2454b5] transition hover:bg-[#f3f8ff]"
+            disabled={cartActionLoading || cartItems.length === 0}
+            className="border border-[#2454b5] bg-white px-5 py-3 text-[15px] font-semibold text-[#2454b5] transition hover:bg-[#f3f8ff] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Remove all items
           </button>
@@ -325,7 +465,8 @@ export default function CartPage() {
         </div>
 
         <div className="mb-5 rounded-[8px] bg-[#cfeff4] px-5 py-4 text-[18px] text-[#1f2937]">
-          Note: All delivery dates are estimates and may vary by 1-2 days
+          Note: All delivery dates are estimates and may vary by 1-2 days.
+          Higher quantity orders may need stock confirmation.
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_430px]">
@@ -357,28 +498,41 @@ export default function CartPage() {
                     key={item.id}
                     className="rounded-[10px] border border-[#dbe5f0] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
                   >
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4 flex items-center justify-between gap-3">
                       <span className="inline-flex rounded-full bg-[#ede3ff] px-4 py-2 text-[14px] font-semibold text-[#6b33c7]">
-                        {item.stockLabel}
+                        {item.stockLabel || "Stock check required"}
                       </span>
 
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        disabled={cartActionLoading}
-                        className="text-[#2454b5]"
-                      >
-                        <Trash2 size={20} />
-                      </button>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => handleMoveToWishlist(item)}
+                          disabled={cartActionLoading}
+                          className="inline-flex items-center gap-2 text-[#2454b5] transition hover:text-[#ef4444] disabled:opacity-60"
+                        >
+                          <Heart size={20} />
+                          <span className="hidden sm:inline">
+                            Move to wishlist
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          disabled={cartActionLoading}
+                          className="text-[#2454b5] transition hover:text-[#ef4444] disabled:opacity-60"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="mb-4 border-b border-[#e5e7eb] pb-4 text-[18px] text-[#374151]">
                       • Estimated delivery for {item.quantity} unit(s):{" "}
                       <span className="font-semibold text-[#5b2ca5]">
-                        {item.estimatedDelivery}
+                        {item.estimatedDelivery || "To be confirmed"}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-[140px_minmax(0,1fr)_220px]">
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-[140px_minmax(0,1fr)_260px]">
                       <div>
                         <Link href={`/product/${item.slug}`}>
                           <img
@@ -399,9 +553,16 @@ export default function CartPage() {
                         <div className="mt-3 space-y-2 text-[16px] text-[#374151]">
                           {item.sku ? <p>RS Stock No.: {item.sku}</p> : null}
                           {item.brand ? <p>Brand: {item.brand}</p> : null}
-                          {item.mpn ? <p>Manufacturers Part No.: {item.mpn}</p> : null}
+                          {item.mpn ? (
+                            <p>Manufacturers Part No.: {item.mpn}</p>
+                          ) : null}
                           {item.hsnCode ? <p>HSN Code: {item.hsnCode}</p> : null}
-                          <p>GST Tax Type: {item.gstPercent}% GST</p>
+                          <p>GST Tax Type: {item.gstPercent || 18}% GST</p>
+                        </div>
+
+                        <div className="mt-4 rounded-[10px] bg-[#f8fafc] p-3 text-sm text-[#607287]">
+                          Large quantity? Type required quantity directly.
+                          Procurement team can confirm stock before dispatch.
                         </div>
                       </div>
 
@@ -419,17 +580,11 @@ export default function CartPage() {
                         </div>
 
                         <div className="mt-4">
-                          <select
-                            value={item.quantity}
-                            onChange={(e) => updateQty(item.id, Number(e.target.value))}
-                            className="h-[46px] w-full rounded-[6px] border border-[#cfd4dc] px-4 text-[16px] outline-none"
-                          >
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((qty) => (
-                              <option key={qty} value={qty}>
-                                {qty}
-                              </option>
-                            ))}
-                          </select>
+                          <QuantityInput
+                            item={item}
+                            updateQty={updateQty}
+                            disabled={cartActionLoading}
+                          />
                         </div>
                       </div>
                     </div>
@@ -439,7 +594,7 @@ export default function CartPage() {
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 lg:sticky lg:top-5 lg:self-start">
             <div className="rounded-[10px] border border-[#dbe5f0] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
               <h2 className="mb-4 text-[22px] font-semibold text-[#202124]">
                 Delivery
@@ -471,7 +626,9 @@ export default function CartPage() {
                     <div className="font-semibold">
                       {formatCurrency(cartSummary?.shipping)}
                     </div>
-                    <div className="text-[16px] text-[#6b7280]">FREE delivery</div>
+                    <div className="text-[16px] text-[#6b7280]">
+                      FREE delivery
+                    </div>
                   </div>
                 </div>
 
@@ -493,8 +650,8 @@ export default function CartPage() {
                   type="text"
                   placeholder="Promotional code"
                   value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  className="h-[46px] flex-1 rounded-[6px] border border-[#cfd4dc] px-4 text-[16px] outline-none"
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  className="h-[46px] flex-1 rounded-[6px] border border-[#cfd4dc] px-4 text-[16px] uppercase outline-none"
                 />
                 <button className="h-[46px] rounded-[6px] bg-[#dce8ff] px-6 text-[16px] font-semibold text-[#2454b5]">
                   Apply
@@ -510,16 +667,16 @@ export default function CartPage() {
 
               {!user?.token ? (
                 <p className="mt-3 text-[14px] text-[#6b7280]">
-                  Your basket items are already saved. Login is required before placing
-                  a wholesale order.
+                  Your basket items are already saved. Login is required before
+                  placing a wholesale order.
                 </p>
               ) : null}
 
               <div className="mt-5 space-y-3 text-[16px] text-[#1f2937]">
+                <p>✔ Any custom wholesale quantity allowed</p>
                 <p>✔ Faster re-ordering and checkout</p>
                 <p>✔ Save and manage your Parts list</p>
                 <p>✔ View your previous orders</p>
-                <p>✔ Manage shipping & billing information</p>
               </div>
 
               <div className="mt-6 border-t border-[#e5e7eb] pt-5 text-center">
@@ -558,8 +715,9 @@ export default function CartPage() {
                   Your current basket at a glance
                 </h2>
                 <p className="mt-4 text-[16px] leading-8 text-[#4f6478]">
-                  These details are generated from the products currently added to your basket,
-                  so the section updates automatically with real cart data.
+                  These details are generated from the products currently added
+                  to your basket, so the section updates automatically with real
+                  cart data.
                 </p>
               </div>
 
@@ -642,8 +800,9 @@ export default function CartPage() {
                     Need quotation, alternate part or large quantity pricing?
                   </h2>
                   <p className="mt-4 text-[16px] leading-8 text-white/90">
-                    This block can be made fully admin-dynamic later, but right now it is
-                    shown based on your basket state and is useful for wholesale buying.
+                    For very high quantities, OEM sourcing or project-wise
+                    procurement, our team can verify stock and pricing before
+                    final dispatch.
                   </p>
 
                   <div className="mt-6 flex flex-wrap gap-3">
@@ -667,7 +826,9 @@ export default function CartPage() {
                         <div className="mb-3 inline-flex rounded-full bg-white/15 p-2">
                           <Icon size={20} />
                         </div>
-                        <h3 className="text-[17px] font-semibold">{item.title}</h3>
+                        <h3 className="text-[17px] font-semibold">
+                          {item.title}
+                        </h3>
                         <p className="mt-2 text-[14px] leading-6 text-white/85">
                           {item.desc}
                         </p>
@@ -688,7 +849,8 @@ export default function CartPage() {
                     How this order process works
                   </h2>
                   <p className="mt-2 text-[15px] leading-7 text-[#5d7287]">
-                    These next steps also adapt based on basket totals and login state.
+                    These next steps also adapt based on basket totals and login
+                    state.
                   </p>
                 </div>
               </div>
@@ -723,7 +885,10 @@ export default function CartPage() {
                 </h3>
                 <ul className="mt-4 space-y-3 text-[15px] leading-7 text-[#5d7287]">
                   <li>• Estimated delivery is currently shown for selected items.</li>
-                  <li>• Delivery cost in basket: {formatCurrency(cartSummary?.shipping || 0)}</li>
+                  <li>
+                    • Delivery cost in basket:{" "}
+                    {formatCurrency(cartSummary?.shipping || 0)}
+                  </li>
                   <li>• Current in-stock line items: {inStockCount}</li>
                   <li>• Final dispatch timing may vary based on order size.</li>
                 </ul>
@@ -798,9 +963,9 @@ export default function CartPage() {
                 </span>
               </div>
               <p className="mt-5 text-[16px] leading-8 text-[#5d7287]">
-                Use online payment for faster order processing, or continue with a
-                quotation / bank transfer-oriented flow for commercial purchasing
-                requirements.
+                Use online payment for faster order processing, or continue with
+                a quotation / bank transfer-oriented flow for commercial
+                purchasing requirements.
               </p>
             </div>
 
@@ -813,8 +978,9 @@ export default function CartPage() {
                   Excluding GST / Including GST
                 </p>
                 <p className="mt-3 text-[15px] leading-7 text-[#5d7287]">
-                  Pricing visibility is structured for business buyers who compare base
-                  cost, tax impact and final payable amount during procurement review.
+                  Pricing visibility is structured for business buyers who
+                  compare base cost, tax impact and final payable amount during
+                  procurement review.
                 </p>
               </div>
             </div>

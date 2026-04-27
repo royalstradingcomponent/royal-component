@@ -7,6 +7,7 @@ const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
+const couponRoutes = require("./routes/couponRoutes");
 
 dotenv.config();
 
@@ -98,10 +99,14 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/users/address", require("./routes/addressRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));
+app.use("/api/orders", require("./routes/orderRoutes"));
+app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/categories", categoryRoutes);
+app.use("/api/coupons", couponRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -23,6 +23,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import LoginModal from "@/app/authPage/LoginModel";
 import RegisterModal from "@/app/authPage/RegisterModel";
 import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 const categories = [
   { name: "Semiconductors", href: "/products?category=semiconductors" },
@@ -35,46 +37,14 @@ const categories = [
 ];
 
 const accountMenuItems = [
-  {
-    label: "My Orders",
-    href: "/orders",
-    icon: Package,
-  },
-  {
-    label: "Buy Again",
-    href: "/buy-again",
-    icon: RotateCcw,
-  },
-  {
-    label: "My Account",
-    href: "/account",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Wishlist",
-    href: "/wishlist",
-    icon: Heart,
-  },
-  {
-    label: "My Coupons",
-    href: "/coupons",
-    icon: TicketPercent,
-  },
-  {
-    label: "Contact Us",
-    href: "/contact",
-    icon: Phone,
-  },
-  {
-    label: "About Us",
-    href: "/about",
-    icon: Info,
-  },
-  {
-    label: "FAQ",
-    href: "/faq",
-    icon: CircleHelp,
-  },
+  { label: "My Orders", href: "/orders", icon: Package },
+  { label: "Buy Again", href: "/orders", icon: RotateCcw },
+  { label: "My Account", href: "/account", icon: LayoutDashboard },
+  { label: "Wishlist", href: "/wishlist", icon: Heart },
+  { label: "My Coupons", href: "/account/coupons", icon: TicketPercent },
+  { label: "Contact Us", href: "/contact", icon: Phone },
+  { label: "About Us", href: "/about", icon: Info },
+  { label: "FAQ", href: "/contact#faq", icon: CircleHelp },
 ];
 
 export default function Navbar() {
@@ -84,12 +54,22 @@ export default function Navbar() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
   const { user, logout } = useAuth();
+  const { cartSummary, cartItems } = useCart();
+  const { wishlistItems } = useWishlist();
 
   const accountMenuRef = useRef(null);
 
+  const wishlistCount = (wishlistItems || []).length;
+
+  const cartCount =
+    Number(cartSummary?.itemCount || 0) ||
+    (cartItems || []).reduce(
+      (total, item) => total + Number(item.quantity || item.qty || 1),
+      0
+    );
+
   const userName = useMemo(() => {
-    const rawName = user?.name || user?.email || "My Account";
-    return String(rawName).trim();
+    return String(user?.name || user?.fullName || user?.email || "My Account").trim();
   }, [user]);
 
   const userEmail = useMemo(() => {
@@ -97,8 +77,7 @@ export default function Navbar() {
   }, [user]);
 
   const shortUserName = useMemo(() => {
-    if (!user?.name) return "My Account";
-    const name = String(user.name).trim();
+    const name = String(user?.name || user?.fullName || "My Account").trim();
     return name.length > 18 ? `${name.slice(0, 18)}...` : name;
   }, [user]);
 
@@ -113,9 +92,7 @@ export default function Navbar() {
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -246,10 +223,31 @@ export default function Navbar() {
               )}
 
               <Link
-                href="/cart"
-                className="flex h-[46px] items-center gap-2 rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff]"
+                href="/wishlist"
+                className="relative flex h-[46px] items-center justify-center rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff]"
               >
-                <ShoppingCart size={18} />
+                <span className="relative inline-flex">
+                  <Heart size={18} />
+                  {wishlistCount > 0 ? (
+                    <span className="absolute -right-3 -top-3 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[10px] font-bold text-white shadow">
+                      {wishlistCount}
+                    </span>
+                  ) : null}
+                </span>
+              </Link>
+
+              <Link
+                href="/checkout/cart"
+                className="relative flex h-[46px] items-center gap-2 rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff]"
+              >
+                <span className="relative inline-flex">
+                  <ShoppingCart size={18} />
+                  {cartCount > 0 ? (
+                    <span className="absolute -right-3 -top-3 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[10px] font-bold leading-none text-white shadow">
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </span>
                 <span className="hidden sm:inline">Cart</span>
               </Link>
             </div>
@@ -269,7 +267,7 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {mobileOpen && (
+        {mobileOpen ? (
           <div
             className="fixed inset-0 z-[60] bg-[#0f172a]/40 backdrop-blur-[2px] lg:hidden"
             onClick={() => setMobileOpen(false)}
@@ -281,7 +279,9 @@ export default function Navbar() {
               <div className="border-b border-[#e6f1f8] bg-gradient-to-r from-[#eaf7ff] to-[#f8fcff] px-4 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-lg font-extrabold text-[#0f172a]">Menu</p>
+                    <p className="text-lg font-extrabold text-[#0f172a]">
+                      Menu
+                    </p>
                     <p className="mt-1 text-xs text-[#6b879b]">
                       Browse categories and account options
                     </p>
@@ -387,18 +387,29 @@ export default function Navbar() {
                   ))}
 
                   <Link
-                    href="/cart"
+                    href="/wishlist"
                     className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
                     onClick={() => setMobileOpen(false)}
                   >
-                    <span>Cart</span>
+                    <span>
+                      Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ""}
+                    </span>
+                    <ChevronRight size={17} />
+                  </Link>
+
+                  <Link
+                    href="/checkout/cart"
+                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span>Cart {cartCount > 0 ? `(${cartCount})` : ""}</span>
                     <ChevronRight size={17} />
                   </Link>
                 </div>
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </header>
 
       <LoginModal

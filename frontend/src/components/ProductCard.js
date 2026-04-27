@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Heart, Star, ShoppingCart } from "lucide-react";
+import { Star, ShoppingCart } from "lucide-react";
+import WishlistToggleButton from "@/components/WishlistToggleButton";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://royal-component-backend.onrender.com";
-  
+
 const getImageUrl = (url) => {
   if (!url) return "https://via.placeholder.com/500x500?text=No+Image";
   if (url.startsWith("http")) return url;
@@ -51,13 +52,9 @@ export default function ProductCard({ product }) {
   return (
     <div className="group overflow-hidden rounded-[16px] border border-[#d8e2ec] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
       <div className="relative border-b border-[#edf2f7]">
-        <button
-          type="button"
-          aria-label="Wishlist"
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#56708a] shadow-sm ring-1 ring-[#d8e2ec] transition hover:text-sky-600"
-        >
-          <Heart size={18} />
-        </button>
+        <div className="absolute right-3 top-3 z-10">
+          <WishlistToggleButton product={product} />
+        </div>
 
         <Link href={productLink} className="block">
           <div className="flex h-[150px] items-center justify-center overflow-hidden bg-white p-3">
@@ -130,26 +127,17 @@ export default function ProductCard({ product }) {
           </div>
 
           <p className="mt-1 text-[11px] leading-5 text-[#6c8095]">
-            Bulk price • GST extra • MOQ applicable
+            Ex. GST • Bulk procurement ready
           </p>
         </div>
 
-        <div className="mt-3 flex gap-2">
-          <Link
-            href={productLink}
-            className="inline-flex h-[40px] flex-1 items-center justify-center rounded-full border border-[#f3bfd1] bg-[#fff2f7] px-4 text-[14px] font-bold text-[#d46b93] transition hover:bg-[#ffe7f0]"
-          >
-            View Details
-          </Link>
-
-          <button
-            type="button"
-            className="inline-flex h-[40px] min-w-[110px] items-center justify-center gap-2 rounded-full bg-sky-600 px-4 text-[14px] font-bold text-white transition hover:bg-sky-700"
-          >
-            <ShoppingCart size={15} />
-            Add
-          </button>
-        </div>
+        <Link
+          href={productLink}
+          className="mt-4 flex h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[#0f6cbd] text-[13px] font-bold text-white transition hover:bg-[#0b5a9e]"
+        >
+          <ShoppingCart size={16} />
+          View Details
+        </Link>
       </div>
     </div>
   );

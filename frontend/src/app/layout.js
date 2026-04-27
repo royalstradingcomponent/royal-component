@@ -2,6 +2,8 @@ import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { OrderProvider } from "@/context/OrderContext";
+import { AddressProvider } from "@/context/AddressContext";
 import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -12,22 +14,21 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-  // optional safety check
-  if (!googleClientId) {
-    console.error("❌ GOOGLE CLIENT ID missing");
-  }
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
   return (
     <html lang="en">
-      <body>
+      <body className="min-h-screen overflow-x-hidden">
         <GoogleOAuthProvider clientId={googleClientId}>
           <AuthProvider>
             <WishlistProvider>
               <CartProvider>
-                {children}
-                <Toaster position="top-right" richColors />
+                <OrderProvider>
+                  <AddressProvider>
+                    {children}
+                    <Toaster position="top-right" richColors />
+                  </AddressProvider>
+                </OrderProvider>
               </CartProvider>
             </WishlistProvider>
           </AuthProvider>

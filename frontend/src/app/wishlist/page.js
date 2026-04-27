@@ -1,22 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import { useWishlist } from "@/context/WishlistContext";
-import Image from "next/image";
-import { Trash2, Heart } from "lucide-react";
+import Link from "next/link";
+import { Heart, Trash2, ShoppingCart } from "lucide-react";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { API_BASE } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
+import { toast } from "sonner";
+
+function getImageUrl(product) {
+  const url =
+    product?.thumbnail ||
+    product?.images?.find((img) => img?.isPrimary)?.url ||
+    product?.images?.[0]?.url ||
+    product?.image ||
+    "";
+
+  if (!url) return "https://via.placeholder.com/500x500?text=No+Image";
+  if (url.startsWith("http")) return url;
+
+  return `${API_BASE}${url}`;
+}
+
+function formatCurrency(value) {
+  return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+}
 
 export default function WishlistPage() {
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [showSizeModal, setShowSizeModal] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(null);
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { user, loading: authLoading } = useAuth();
+  const { addToCart, cartActionLoading } = useCart();
 
   const {
     wishlist,
@@ -25,21 +43,43 @@ export default function WishlistPage() {
     clearWishlist,
   } = useWishlist();
 
-  /* ================= REDIRECT FIX ================= */
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !user?.token) {
       router.replace("/");
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user?.token, router]);
+
+  const handleMoveToCart = async (product) => {
+    const productId = product?._id || product?.id;
+
+    if (!productId) {
+      toast.error("Product ID missing");
+      return;
+    }
+
+    try {
+      const res = await addToCart({
+        productId,
+        qty: 1,
+      });
+
+      if (res?.success !== false) {
+        await removeFromWishlist(productId);
+        toast.success("Product moved to cart");
+      }
+    } catch (error) {
+      toast.error(error?.message || "Move to cart failed");
+    }
+  };
 
   if (authLoading) return null;
-  if (!user) return null;
-  /* ================= LOADING STATE ================= */
+  if (!user?.token) return null;
+
   if (wishlistLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-[#f4f8fc]">
         <Navbar />
-        <div className="flex items-center justify-center py-32 text-gray-500">
+        <div className="mx-auto max-w-7xl px-4 py-24 text-center text-[#64748b]">
           Loading wishlist...
         </div>
         <Footer />
@@ -47,27 +87,29 @@ export default function WishlistPage() {
     );
   }
 
-  /* ================= EMPTY STATE ================= */
-  if (wishlist.length === 0) {
+  if (!wishlist || wishlist.length === 0) {
     return (
-      <div className="bg-white min-h-screen">
+      <div className="min-h-screen bg-[#f4f8fc]">
         <Navbar />
 
-        <div className="max-w-7xl mx-auto px-4 py-24 flex flex-col items-center text-center">
-          <Heart size={90} className="text-pink-500 mb-6" />
+        <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-24 text-center">
+          <Heart size={80} className="mb-5 text-[#0f8fd8]" />
 
-          <h1 className="text-3xl font-semibold text-gray-900">
-            Your Save for later list is empty!
+          <h1 className="text-3xl font-extrabold text-[#102033]">
+            Your wishlist is empty
           </h1>
 
-          <p className="text-gray-500 mt-2">
-            Check out the wide range of products we offer
+          <p className="mt-3 max-w-xl text-[#607287]">
+            Save electronic, electrical and mechanical hardware components here
+            for quick repeat buying.
           </p>
 
-          <div className="mt-6 bg-gray-100 px-6 py-3 rounded text-sm text-gray-600">
-            Bras &nbsp;|&nbsp; Panties &nbsp;|&nbsp; Nightwear &nbsp;|&nbsp;
-            <span className="text-pink-600 font-semibold">Offers</span>
-          </div>
+          <Link
+            href="/products"
+            className="mt-7 rounded-full bg-[#0f8fd8] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#0b76b6]"
+          >
+            Browse Products
+          </Link>
         </div>
 
         <Footer />
@@ -75,235 +117,120 @@ export default function WishlistPage() {
     );
   }
 
-  /* ================= WISHLIST ITEMS ================= */
   return (
-    <div className="bg-white min-h-screen">
+    <div className="min-h-screen bg-[#f4f8fc]">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-xl font-semibold text-pink-600 flex items-center gap-2">
-            ❤️ YOUR WISHLIST ITEMS [{wishlist.length}]
-          </h1>
+      <main className="mx-auto max-w-7xl px-4 py-10">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-extrabold text-[#102033]">
+              <Heart className="fill-[#ef4444] text-[#ef4444]" size={26} />
+              Your Wishlist Items [{wishlist.length}]
+            </h1>
+
+            <p className="mt-2 text-sm text-[#607287]">
+              Save components for later and move them to cart whenever you are
+              ready to buy.
+            </p>
+          </div>
 
           <button
+            type="button"
             onClick={clearWishlist}
-            className="border border-gray-300 px-5 py-2 rounded hover:bg-red-50 hover:border-red-400 hover:text-red-500 transition text-sm"
+            className="rounded-lg border border-[#d2dce8] bg-white px-5 py-2 text-sm font-semibold text-[#42566d] transition hover:border-red-400 hover:bg-red-50 hover:text-red-600"
           >
             Delete All
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {wishlist.map((item) => {
-            const image =
-              item.thumbnail ||
-              item.variants?.[0]?.images?.[0]?.url ||
-              "/fallback.jpg";
+            const productId = item?._id || item?.id;
+            const price = item?.price || item?.minPrice || 0;
+            const mrp = item?.mrp || price;
+            const imageUrl = getImageUrl(item);
 
             return (
               <div
-                key={item._id}
-                className="border border-gray-200 bg-white relative group"
+                key={productId}
+                className="group overflow-hidden rounded-2xl border border-[#dbe5f0] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.05)] transition hover:-translate-y-1 hover:shadow-[0_14px_34px_rgba(15,23,42,0.10)]"
               >
-                {/* IMAGE */}
-                {/* IMAGE */}
-                <div className="relative w-full aspect-[3/4] overflow-hidden bg-[#f5f5f5]">
+                <div className="relative flex aspect-square items-center justify-center bg-[#f8fbff] p-5">
+                  <Link href={`/product/${item?.slug || productId}`}>
+                    <img
+                      src={imageUrl}
+                      alt={item?.name || "Product"}
+                      className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
+                    />
+                  </Link>
 
-                  <Image
-                    src={
-                      item.thumbnail ||
-                      item?.variants?.[0]?.images?.[0]?.url ||
-                      "/fallback.jpg"
-                    }
-                    alt={item.name}
-                    fill
-                    className="object-cover object-top"
-                    sizes="(max-width:768px) 50vw, (max-width:1200px) 33vw, 20vw"
-                  />
-
-                  {/* REMOVE BUTTON */}
                   <button
-                    onClick={() => removeFromWishlist(item._id)}
-                    className="absolute top-2 right-2 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow"
+                    type="button"
+                    onClick={() => removeFromWishlist(productId)}
+                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#42566d] shadow transition hover:bg-red-50 hover:text-red-600"
+                    aria-label="Remove from wishlist"
                   >
-                    ✕
+                    <Trash2 size={17} />
                   </button>
-
                 </div>
 
-                {/* DETAILS */}
-                <div className="p-3">
-                  <h3 className="text-sm truncate">{item.name}</h3>
+                <div className="p-4">
+                  <p className="mb-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#0f6cbd]">
+                    {item?.brand || "Generic"}
+                  </p>
 
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="font-bold">₹{item.minPrice}</span>
+                  <Link href={`/product/${item?.slug || productId}`}>
+                    <h3 className="line-clamp-2 min-h-[44px] text-[15px] font-extrabold leading-6 text-[#102033] hover:text-[#0f6cbd]">
+                      {item?.name}
+                    </h3>
+                  </Link>
 
-                    {item.mrp > item.minPrice && (
-                      <>
-                        <span className="text-xs text-gray-400 line-through">
-                          ₹{item.mrp}
-                        </span>
-                        <span className="text-xs text-pink-600">
-                          {item.discount > 0 && (
-                            <span className="text-orange-500 text-xs">
-                              ({item.discount}% OFF)
-                            </span>
-                          )}
-                        </span>
-                      </>
-                    )}
+                  <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-[#607287]">
+                    {item?.shortDescription ||
+                      item?.description ||
+                      "Industrial component for electronic, electrical and mechanical procurement."}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-lg font-extrabold text-[#102033]">
+                      {formatCurrency(price)}
+                    </span>
+
+                    {mrp > price ? (
+                      <span className="text-sm text-[#94a3b8] line-through">
+                        {formatCurrency(mrp)}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold">
+                    <span className="rounded-full bg-[#e2f5ea] px-3 py-1 text-[#067647]">
+                      {Number(item?.stock || 0) > 0 ? "In Stock" : "Check Stock"}
+                    </span>
+
+                    {item?.sku ? (
+                      <span className="rounded-full bg-[#eef4ff] px-3 py-1 text-[#2452c6]">
+                        SKU: {item.sku}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
-                {/* MOVE TO BAG */}
                 <button
-                  onClick={() => {
-                    setSelectedItem(item);
-                    setShowSizeModal(true);
-                  }}
-                  className="w-full border-t py-3 text-pink-600 font-semibold text-sm hover:bg-pink-50"
+                  type="button"
+                  onClick={() => handleMoveToCart(item)}
+                  disabled={cartActionLoading}
+                  className="flex w-full items-center justify-center gap-2 border-t border-[#e5edf5] bg-[#0f8fd8] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-[#0b76b6] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  MOVE TO BAG
+                  <ShoppingCart size={17} />
+                  Move to Cart
                 </button>
               </div>
             );
           })}
-
         </div>
-        {showSizeModal && selectedItem && (
-          <div className="fixed inset-0 bg-black/50 z-[999] flex items-center justify-center p-3">
-
-            {/* MODAL */}
-            <div className="
-      bg-white
-      w-full
-      max-w-[520px]
-      rounded-md
-      shadow-2xl
-      relative
-      overflow-hidden
-    ">
-
-              {/* CLOSE */}
-              <button
-                onClick={() => {
-                  setShowSizeModal(false);
-                  setSelectedSize(null);
-                }}
-                className="absolute top-4 right-4 text-gray-500 hover:text-black text-3xl leading-none"
-              >
-                ×
-              </button>
-
-              {/* HEADER */}
-              <div className="flex gap-3 p-5 sm:p-6">
-
-                <img
-                  src={
-                    selectedItem.thumbnail ||
-                    selectedItem?.variants?.[0]?.images?.[0]?.url
-                  }
-                  className="w-16 h-20 object-cover rounded-sm"
-                />
-
-                <div className="flex-1 pr-8">
-                  <h3 className="text-[24px] sm:text-[26px] font-medium text-[#282c3f] leading-6 line-clamp-2">
-                    {selectedItem.name}
-                  </h3>
-
-                  <div className="mt-2 flex items-center gap-2 text-[28px]">
-                    <span className="font-bold text-[#282c3f]">
-                      ₹{selectedItem.minPrice}
-                    </span>
-
-                    {selectedItem.mrp > selectedItem.minPrice && (
-                      <>
-                        <span className="text-gray-400 line-through text-[22px]">
-                          ₹{selectedItem.mrp}
-                        </span>
-                        <span className="text-[#ff905a] font-semibold text-[22px]">
-                          ({selectedItem.discount}% OFF)
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* DIVIDER */}
-              <div className="border-t border-gray-200" />
-
-              {/* SIZE SECTION */}
-              <div className="p-5 sm:p-6">
-
-                <h4 className="text-[40px] font-semibold text-[#282c3f] mb-4">
-                  Select Size
-                </h4>
-
-                <div className="flex flex-wrap gap-3">
-
-                  {selectedItem.variants?.[0]?.sizes?.map((s) => (
-                    <button
-                      key={s.size}
-                      onClick={() => setSelectedSize(s.size)}
-                      className={`
-                w-12 h-12 rounded-full border text-sm font-semibold
-                transition-all
-                ${selectedSize === s.size
-                          ? "border-[#ff3f6c] text-[#ff3f6c] bg-white"
-                          : "border-gray-300 text-gray-700 hover:border-[#ff3f6c]"
-                        }
-              `}
-                    >
-                      {s.size}
-                    </button>
-                  ))}
-
-                </div>
-
-                {/* DONE BUTTON */}
-                <button
-                  disabled={!selectedSize}
-                  onClick={() => {
-                    addToCart({
-                      productId: selectedItem._id,
-                      name: selectedItem.name,
-                      price: selectedItem.minPrice,
-                      image:
-                        selectedItem.thumbnail ||
-                        selectedItem?.variants?.[0]?.images?.[0]?.url,
-                      size: selectedSize,
-                      quantity: 1,
-                    });
-
-                    removeFromWishlist(selectedItem._id);
-                    setShowSizeModal(false);
-                    setSelectedSize(null);
-                  }}
-                  className="
-            mt-6
-            w-full
-            h-[52px]
-            rounded
-            text-white
-            text-lg
-            font-semibold
-            transition
-            bg-[#ff3f6c]
-            hover:bg-[#ff527b]
-            disabled:bg-gray-300
-            disabled:cursor-not-allowed
-          "
-                >
-                  Done
-                </button>
-
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      </main>
 
       <Footer />
     </div>
