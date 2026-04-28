@@ -1,4 +1,6 @@
+
 import Link from "next/link";
+
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -298,36 +300,36 @@ export default async function ProductDetailPage({ params }) {
     product?.specifications?.length > 0
       ? product.specifications
       : [
-          { key: "Brand", value: product?.brand || "Generic" },
-          {
-            key: "Product Type",
-            value:
-              product?.subCategory ||
-              product?.category ||
-              "Electronic Component",
-          },
-          { key: "Unit", value: product?.unit || "piece" },
-          {
-            key: "Country of Origin",
-            value: product?.countryOfOrigin || "India / Imported",
-          },
-        ];
+        { key: "Brand", value: product?.brand || "Generic" },
+        {
+          key: "Product Type",
+          value:
+            product?.subCategory ||
+            product?.category ||
+            "Electronic Component",
+        },
+        { key: "Unit", value: product?.unit || "piece" },
+        {
+          key: "Country of Origin",
+          value: product?.countryOfOrigin || "India / Imported",
+        },
+      ];
 
   const technicalDocs =
     product?.documents?.length > 0
       ? product.documents
       : [
-          {
-            label: "Product Datasheet",
-            url: "#",
-            type: "datasheet",
-          },
-          {
-            label: "Technical Overview",
-            url: "#",
-            type: "document",
-          },
-        ];
+        {
+          label: "Product Datasheet",
+          url: "#",
+          type: "datasheet",
+        },
+        {
+          label: "Technical Overview",
+          url: "#",
+          type: "document",
+        },
+      ];
 
   return (
     <div className="min-h-screen bg-[#f3f3f3] text-[#1f2937]">
@@ -592,21 +594,12 @@ export default async function ProductDetailPage({ params }) {
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-[170px_minmax(0,1fr)]">
-                <select
-                  defaultValue={String(product?.moq || 1)}
-                  className="h-[52px] rounded-sm border border-slate-300 bg-white px-4 text-[18px] text-[#111827] outline-none"
-                >
-                  {[1, 5, 10, 20, 50, 100].map((qty) => (
-                    <option key={qty} value={qty}>
-                      {qty}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="w-full">
-                  <AddToCartButton productId={product?._id} />
-                </div>
+              <div className="mt-5">
+                <AddToCartButton
+                  productId={product?._id}
+                  moq={product?.moq || 1}
+                  showQuantity={true}
+                />
               </div>
 
               <button

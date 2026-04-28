@@ -52,8 +52,8 @@ export default function HomePage() {
           <div className="mt-10 flex justify-center">
             <Link
               href="/products"
-              className="inline-flex rounded-full bg-sky-600 px-8 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
-            >
+              className="inline-flex rounded-full bg-[#d6ecff] px-8 py-3 text-sm font-extrabold text-[#000000] border border-[#b6dcff] transition hover:bg-[#c5e4ff]"
+              >
               Explore All Products
             </Link>
           </div>

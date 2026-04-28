@@ -382,6 +382,43 @@ export function CartProvider({ children }) {
       setCartActionLoading(false);
     }
   };
+  const applyCoupon = async (code) => {
+  try {
+    setCartActionLoading(true);
+
+    const couponCode = String(code || "").trim().toUpperCase();
+
+    if (!couponCode) {
+      return {
+        success: false,
+        message: "Please enter coupon code.",
+      };
+    }
+
+    if (!user?.token) {
+      return {
+        success: false,
+        needLogin: true,
+        message: "Login required to apply coupon.",
+      };
+    }
+
+    const data = await apiRequest("/api/cart/apply-coupon", {
+      method: "POST",
+      body: JSON.stringify({ code: couponCode }),
+    });
+
+    await fetchServerCart();
+    return data;
+  } catch (error) {
+    return {
+      success: false,
+      message: error?.message || "Coupon apply failed.",
+    };
+  } finally {
+    setCartActionLoading(false);
+  }
+};
 
   const cartCount = useMemo(
     () => cartSummary?.itemCount || 0,
@@ -401,6 +438,7 @@ export function CartProvider({ children }) {
         updateQty,
         removeItem,
         clearCart,
+        applyCoupon,
         mergeGuestCartToServer,
         isGuestCart: !user?.token,
       }}

@@ -1,5 +1,6 @@
 const Cart = require("../models/cart");
 const Product = require("../models/Product");
+const Coupon = require("../models/Coupon");
 
 const DEFAULT_GST_PERCENT = 18;
 
@@ -97,25 +98,49 @@ exports.getCart = async (req, res) => {
       .map((item) => formatCartItem(item, item.product));
 
     const subtotalExGst = formattedItems.reduce(
-      (sum, item) => sum + item.lineSubtotal,
-      0
-    );
-    const gstTotal = formattedItems.reduce((sum, item) => sum + item.gstAmount, 0);
-    const shipping = 0;
-    const grandTotal = subtotalExGst + gstTotal + shipping;
+  (sum, item) => sum + item.lineSubtotal,
+  0
+);
+
+const gstTotal = formattedItems.reduce(
+  (sum, item) => sum + item.gstAmount,
+  0
+);
+    
+
+    let shipping = 0;
+
+// 🔥 DELIVERY RULE
+if (subtotalExGst < 5000) {
+  shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
+} else {
+  shipping = 0;
+}
     const itemCount = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
 
+    const discount = cart.coupon?.isApplied
+      ? Math.min(Number(cart.coupon.discountAmount || 0), subtotalExGst)
+      : 0;
+
+    const grandTotal = Math.max(0, subtotalExGst + gstTotal + shipping - discount);
+
     return res.status(200).json({
-      success: true,
-      items: formattedItems,
-      summary: {
-        itemCount,
-        subtotalExGst,
-        gstTotal,
-        shipping,
-        grandTotal,
-      },
-    });
+  success: true,
+  items: formattedItems,
+  summary: {
+    itemCount,
+    subtotalExGst,
+    gstTotal,
+    shipping,
+    discount,
+    grandTotal,
+    deliveryMessage:
+      subtotalExGst >= 5000
+        ? "FREE delivery"
+        : "₹150 delivery charge (Free above ₹5000)",
+    coupon: cart.coupon || null,
+  },
+});
   } catch (error) {
     console.error("GET CART ERROR:", error);
     return res.status(500).json({
@@ -240,9 +265,11 @@ exports.mergeGuestCart = async (req, res) => {
 exports.updateQty = async (req, res) => {
   try {
     const { itemId } = req.params;
-    const { quantity } = req.body;
 
-    const qty = Math.max(1, toNumber(quantity, 1));
+    // 🔥 FIX: dono accept karo
+    const incomingQty = req.body.quantity ?? req.body.qty;
+
+    const qty = Math.max(1, toNumber(incomingQty, 1));
 
     const cart = await Cart.findOne({ user: req.user._id });
 
@@ -263,6 +290,7 @@ exports.updateQty = async (req, res) => {
     }
 
     item.qty = qty;
+
     await cart.save();
 
     return res.status(200).json({
@@ -330,6 +358,102 @@ exports.clearCart = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Clear cart failed",
+    });
+  }
+};
+exports.applyCouponToCart = async (req, res) => {
+  try {
+    const code = String(req.body.code || "").trim().toUpperCase();
+
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Coupon code required",
+      });
+    }
+
+    const cart = await Cart.findOne({ user: req.user._id });
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cart is empty",
+      });
+    }
+
+    const now = new Date();
+
+    const coupon = await Coupon.findOne({
+      code,
+      isActive: true,
+      $or: [{ expiresAt: null }, { expiresAt: { $gte: now } }],
+    });
+
+    if (!coupon) {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid or expired coupon",
+      });
+    }
+
+    const itemCount = cart.items.reduce(
+      (sum, item) => sum + Math.max(1, Number(item.qty || 1)),
+      0
+    );
+
+    const subtotalExGst = cart.items.reduce((sum, item) => {
+      const price = Number(item.priceSnapshot || 0);
+      const qty = Math.max(1, Number(item.qty || 1));
+      return sum + price * qty;
+    }, 0);
+
+    const minOrderAmount = Number(coupon.minOrderAmount || 0);
+
+    // आपकी condition: 500 items OR ₹10000+ shopping
+    if (itemCount < 500 && subtotalExGst < Math.max(10000, minOrderAmount)) {
+      return res.status(400).json({
+        success: false,
+        message: "Coupon 500+ units ya ₹10,000+ shopping par valid hai.",
+      });
+    }
+
+    let discountAmount = 0;
+
+    if (coupon.discountType === "percentage") {
+      discountAmount = (subtotalExGst * Number(coupon.discountValue || 0)) / 100;
+
+      if (Number(coupon.maxDiscount || 0) > 0) {
+        discountAmount = Math.min(discountAmount, Number(coupon.maxDiscount));
+      }
+    } else {
+      discountAmount = Number(coupon.discountValue || 0);
+    }
+
+    discountAmount = Math.min(discountAmount, subtotalExGst);
+
+    cart.coupon = {
+      couponId: coupon._id,
+      code: coupon.code,
+      title: coupon.title,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      discountAmount,
+      isApplied: true,
+      appliedAt: new Date(),
+    };
+
+    await cart.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `${coupon.code} coupon applied successfully`,
+      coupon: cart.coupon,
+    });
+  } catch (error) {
+    console.error("APPLY COUPON ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Coupon apply failed",
     });
   }
 };

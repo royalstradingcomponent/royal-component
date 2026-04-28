@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
+  Search,
   Download,
   Printer,
   Share2,
@@ -26,6 +27,7 @@ import {
   NotebookTabs,
   Heart,
   AlertCircle,
+  Copy,
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
@@ -55,15 +57,34 @@ function cleanQuantity(value) {
 }
 
 function QuantityInput({ item, updateQty, disabled }) {
+  const QUICK_QTY = [1, 5, 10, 20, 50, 100, 500, 1000, 10000];
+
   const [qty, setQty] = useState(String(item.quantity || 1));
+  const [open, setOpen] = useState(false);
+  const [searchQty, setSearchQty] = useState("");
 
   useEffect(() => {
     setQty(String(item.quantity || 1));
   }, [item.quantity]);
 
-  const commitQty = async (value) => {
-    const finalQty = cleanQuantity(value);
+  const cleanQty = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 1) return 1;
+    return Math.floor(num);
+  };
+
+  const filteredQty = useMemo(() => {
+    if (!searchQty) return QUICK_QTY;
+    return QUICK_QTY.filter((q) =>
+      String(q).includes(String(searchQty).trim())
+    );
+  }, [searchQty]);
+
+  const handleUpdate = async (value) => {
+    const finalQty = cleanQty(value);
     setQty(String(finalQty));
+    setOpen(false);
+    setSearchQty("");
 
     if (finalQty !== Number(item.quantity)) {
       await updateQty(item.id, finalQty);
@@ -71,74 +92,99 @@ function QuantityInput({ item, updateQty, disabled }) {
   };
 
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[13px] font-semibold text-[#607287]">
-          Enter any wholesale quantity
-        </p>
-        <span className="rounded-full bg-[#eef4ff] px-3 py-1 text-[11px] font-bold text-[#2454b5]">
-          Bulk allowed
-        </span>
-      </div>
+    <div className="relative w-full">
+      <p className="mb-2 text-xs font-semibold text-[#607287]">
+        Quantity type bhi kar sakte ho ya dropdown se select kar sakte ho.
+      </p>
 
-      <div className="flex h-[48px] w-full overflow-hidden rounded-[8px] border border-[#cfd4dc] bg-white">
-        <button
-          type="button"
-          onClick={() => commitQty(Math.max(1, cleanQuantity(qty) - 1))}
-          disabled={disabled || cleanQuantity(qty) <= 1}
-          className="w-[48px] border-r border-[#cfd4dc] text-[22px] font-bold text-[#2454b5] hover:bg-[#f3f8ff] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          −
-        </button>
-
-        <input
-          type="number"
-          min="1"
-          inputMode="numeric"
-          value={qty}
-          onChange={(e) => {
-            const value = e.target.value;
-
-            if (value === "") {
-              setQty("");
-              return;
-            }
-
-            const onlyNumbers = value.replace(/[^\d]/g, "");
-            setQty(onlyNumbers);
-          }}
-          onBlur={() => commitQty(qty)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.currentTarget.blur();
-            }
-          }}
-          disabled={disabled}
-          className="w-full text-center text-[17px] font-bold text-[#111827] outline-none disabled:bg-[#f8fafc] [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-        />
-
-        <button
-          type="button"
-          onClick={() => commitQty(cleanQuantity(qty) + 1)}
-          disabled={disabled}
-          className="w-[48px] border-l border-[#cfd4dc] text-[22px] font-bold text-[#2454b5] hover:bg-[#f3f8ff] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          +
-        </button>
-      </div>
-
-      <div className="mt-2 grid grid-cols-4 gap-2">
-        {[10, 50, 100, 500].map((quickQty) => (
-          <button
-            key={quickQty}
-            type="button"
-            onClick={() => commitQty(quickQty)}
+      <div className="relative w-[220px]">
+        <div className="flex h-[52px] w-full items-center rounded-[8px] border border-slate-300 bg-white px-4 transition focus-within:border-[#2454b5]">
+          <input
+            type="number"
+            min="1"
+            value={qty}
             disabled={disabled}
-            className="rounded-[8px] border border-[#dbe5f0] bg-[#f8fafc] px-2 py-2 text-xs font-bold text-[#2454b5] hover:bg-[#eef4ff] disabled:opacity-50"
+            onFocus={() => setOpen(true)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/[^\d]/g, "");
+              setQty(value);
+            }}
+            onBlur={() => setQty(String(cleanQty(qty)))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleUpdate(qty);
+              }
+            }}
+            className="h-full w-full bg-transparent text-[18px] font-semibold text-[#102033] outline-none"
+            placeholder="Type qty"
+          />
+
+          <button
+            type="button"
+            disabled={disabled}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setOpen((prev) => !prev)}
+            className="ml-2 shrink-0"
           >
-            {quickQty}
+            <ChevronDown
+              size={20}
+              className={`text-[#2454b5] transition ${open ? "rotate-180" : ""
+                }`}
+            />
           </button>
-        ))}
+        </div>
+
+        {open ? (
+          <div className="absolute left-0 top-[58px] z-50 w-full overflow-hidden rounded-[10px] border border-[#dbe5f0] bg-white shadow-[0_14px_35px_rgba(15,23,42,0.16)]">
+            <div className="flex h-[46px] items-center gap-2 border-b border-[#e5eaf0] px-3">
+              <Search size={17} className="text-[#607287]" />
+              <input
+                type="number"
+                min="1"
+                value={searchQty}
+                onChange={(e) =>
+                  setSearchQty(e.target.value.replace(/[^\d]/g, ""))
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchQty) {
+                    handleUpdate(searchQty);
+                  }
+                }}
+                placeholder="Search or type quantity..."
+                className="h-full w-full text-[15px] font-semibold outline-none"
+              />
+            </div>
+
+            <div className="max-h-[230px] overflow-y-auto py-1">
+              {searchQty ? (
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleUpdate(searchQty)}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left text-[15px] font-bold text-[#2454b5] hover:bg-[#eef4ff]"
+                >
+                  Add custom quantity
+                  <span>{searchQty}</span>
+                </button>
+              ) : null}
+
+              {filteredQty.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleUpdate(q)}
+                  className={`block w-full px-4 py-3 text-left text-[15px] font-semibold hover:bg-[#eef4ff] ${Number(qty) === q
+                    ? "bg-[#eef4ff] text-[#2454b5]"
+                    : "text-[#102033]"
+                    }`}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -206,7 +252,37 @@ export default function CartPage() {
   const { toggleWishlist } = useWishlist();
 
   const [promoCode, setPromoCode] = useState("");
+  const [couponMessage, setCouponMessage] = useState("");
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchCoupons = async () => {
+      try {
+        if (!user?.token) return;
+
+        const res = await fetch(`${API_BASE}/api/coupons/my`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (data?.success) {
+          setAvailableCoupons(data.coupons || []);
+        }
+      } catch (error) {
+        console.error("Coupons fetch error:", error);
+        setAvailableCoupons([]);
+      }
+    };
+
+    fetchCoupons();
+  }, [user?.token]);
 
   const handleMoveToWishlist = async (item) => {
     if (!user?.token) {
@@ -370,6 +446,41 @@ export default function CartPage() {
     ];
   }, [cartSummary, cartItems.length, user?.token]);
 
+  const handleApplyCoupon = async () => {
+    try {
+      const code = promoCode.trim().toUpperCase();
+
+      setCouponApplied(false);
+
+      if (!code) {
+        setCouponMessage("Please enter coupon code.");
+        return;
+      }
+
+      if (!user?.token) {
+        setIsLoginOpen(true);
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/cart/apply-coupon`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      const data = await res.json();
+
+      setCouponApplied(Boolean(data?.success));
+      setCouponMessage(data?.message || "Coupon checked.");
+    } catch (error) {
+      setCouponApplied(false);
+      setCouponMessage("Coupon apply failed.");
+    }
+  };
+
   const handleCheckout = () => {
     if (!user?.token) {
       setIsLoginOpen(true);
@@ -496,7 +607,7 @@ export default function CartPage() {
                 {cartItems.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-[10px] border border-[#dbe5f0] bg-white p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
+                    className="rounded-[14px] border border-[#dbe5f0] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]"
                   >
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <span className="inline-flex rounded-full bg-[#ede3ff] px-4 py-2 text-[14px] font-semibold text-[#6b33c7]">
@@ -525,20 +636,22 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    <div className="mb-4 border-b border-[#e5e7eb] pb-4 text-[18px] text-[#374151]">
+                    <div className="mb-4 border-b border-[#e5e7eb] pb-4 text-[20px] text-[#374151]">
                       • Estimated delivery for {item.quantity} unit(s):{" "}
                       <span className="font-semibold text-[#5b2ca5]">
                         {item.estimatedDelivery || "To be confirmed"}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-5 md:grid-cols-[140px_minmax(0,1fr)_260px]">
+                    
+
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-[180px_minmax(0,1fr)_300px]">
                       <div>
                         <Link href={`/product/${item.slug}`}>
                           <img
                             src={getImageUrl(item.image)}
                             alt={item.name}
-                            className="h-[120px] w-[120px] object-contain"
+                            className="h-[150px] w-[150px] object-contain"
                           />
                         </Link>
                       </div>
@@ -564,6 +677,8 @@ export default function CartPage() {
                           Large quantity? Type required quantity directly.
                           Procurement team can confirm stock before dispatch.
                         </div>
+                        
+                        
                       </div>
 
                       <div>
@@ -586,13 +701,103 @@ export default function CartPage() {
                             disabled={cartActionLoading}
                           />
                         </div>
+                        
                       </div>
+                      
                     </div>
                   </div>
+                  
                 ))}
+                
               </div>
             )}
+            {cartItems.length > 0 ? (
+  <div className="mt-5 rounded-[18px] border border-[#d8e8f8] bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+    <div className="flex items-start gap-4">
+      <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
+        <NotebookTabs size={24} />
+      </div>
+
+      <div>
+        <h2 className="text-[26px] font-extrabold text-[#102033]">
+          Quantity, checkout terms & order conditions
+        </h2>
+        <p className="mt-2 text-[15px] leading-7 text-[#607287]">
+          Yeh section aapke current basket quantity, delivery, GST aur bulk order rules ko clearly explain karta hai.
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+        <Boxes size={24} className="mb-3 text-[#2454b5]" />
+        <h3 className="text-[17px] font-extrabold text-[#102033]">
+          Selected quantity
+        </h3>
+        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+          Current basket me total{" "}
+          <span className="font-bold text-[#102033]">
+            {cartSummary?.itemCount || 0} unit(s)
+          </span>{" "}
+          selected hain. Aap quantity ko manually type karke ya dropdown se change kar sakte ho.
+        </p>
+      </div>
+
+      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+        <CircleDollarSign size={24} className="mb-3 text-[#2454b5]" />
+        <h3 className="text-[17px] font-extrabold text-[#102033]">
+          Price & GST condition
+        </h3>
+        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+          Product price, GST amount aur delivery charge checkout summary me clearly calculate hote hain. Final payable amount order place karne se pehle visible rahega.
+        </p>
+      </div>
+
+      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+        <Truck size={24} className="mb-3 text-[#2454b5]" />
+        <h3 className="text-[17px] font-extrabold text-[#102033]">
+          Delivery condition
+        </h3>
+        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+          Estimated delivery usually 2-5 business days hoti hai. Bulk quantity ya special stock items me dispatch se pehle confirmation ho sakta hai.
+        </p>
+      </div>
+
+      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+        <ShieldCheck size={24} className="mb-3 text-[#2454b5]" />
+        <h3 className="text-[17px] font-extrabold text-[#102033]">
+          Stock verification
+        </h3>
+        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+          High quantity order ke liye stock availability procurement team verify kar sakti hai. Isse wrong dispatch aur delay risk kam hota hai.
+        </p>
+      </div>
+
+      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+        <CreditCard size={24} className="mb-3 text-[#2454b5]" />
+        <h3 className="text-[17px] font-extrabold text-[#102033]">
+          Payment terms
+        </h3>
+        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+          Online payment, GST invoice aur quotation-based order flow business buyers ke liye supported hai. Payment confirmation ke baad order process hota hai.
+        </p>
+      </div>
+
+      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+        <BadgeCheck size={24} className="mb-3 text-[#2454b5]" />
+        <h3 className="text-[17px] font-extrabold text-[#102033]">
+          Bulk order terms
+        </h3>
+        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+          Large quantity, reseller purchase, project requirement ya repeat order ke liye custom quotation support available ho sakta hai.
+        </p>
+      </div>
+    </div>
+  </div>
+) : null}
+            
           </div>
+          
 
           <div className="space-y-4 lg:sticky lg:top-5 lg:self-start">
             <div className="rounded-[10px] border border-[#dbe5f0] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
@@ -600,7 +805,9 @@ export default function CartPage() {
                 Delivery
               </h2>
               <div className="flex items-center justify-between rounded-[6px] border-2 border-[#2454b5] bg-[#edf3ff] px-4 py-3 text-[18px]">
-                <span>FREE delivery</span>
+                <span>
+                  {Number(cartSummary?.shipping || 0) === 0 ? "FREE delivery" : "Delivery charge"}
+                </span>
                 <span className="font-semibold">
                   {formatCurrency(cartSummary?.shipping)}
                 </span>
@@ -627,7 +834,7 @@ export default function CartPage() {
                       {formatCurrency(cartSummary?.shipping)}
                     </div>
                     <div className="text-[16px] text-[#6b7280]">
-                      FREE delivery
+                      {cartSummary?.deliveryMessage || "Delivery calculated at checkout"}
                     </div>
                   </div>
                 </div>
@@ -638,6 +845,14 @@ export default function CartPage() {
                     {formatCurrency(cartSummary?.gstTotal)}
                   </span>
                 </div>
+                {Number(cartSummary?.discount || 0) > 0 ? (
+                  <div className="flex items-center justify-between text-green-700">
+                    <span>Coupon Discount</span>
+                    <span className="font-semibold">
+                      - {formatCurrency(cartSummary?.discount)}
+                    </span>
+                  </div>
+                ) : null}
 
                 <div className="flex items-center justify-between border-t border-[#e5e7eb] pt-5 text-[22px] font-semibold">
                   <span>Total</span>
@@ -645,17 +860,91 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Promotional code"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  className="h-[46px] flex-1 rounded-[6px] border border-[#cfd4dc] px-4 text-[16px] uppercase outline-none"
-                />
-                <button className="h-[46px] rounded-[6px] bg-[#dce8ff] px-6 text-[16px] font-semibold text-[#2454b5]">
-                  Apply
-                </button>
+              <div className="mt-6">
+                <label className="mb-2 block text-[14px] font-bold text-[#102033]">
+                  Coupon Code
+                </label>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ENTER COUPON CODE"
+                    value={promoCode}
+                    onChange={(e) => {
+                      setPromoCode(e.target.value.toUpperCase());
+                      setCouponMessage("");
+                      setCouponApplied(false);
+                    }}
+                    className="h-[46px] flex-1 rounded-[6px] border border-[#cfd4dc] px-4 text-[16px] font-semibold uppercase outline-none focus:border-[#2454b5]"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="h-[46px] rounded-[6px] border border-[#b6dcff] bg-[#d6ecff] px-6 text-[16px] font-extrabold text-black transition hover:bg-[#c5e4ff]"
+                  >
+                    Apply
+                  </button>
+                </div>
+
+                <p className="mt-2 text-[13px] font-semibold text-[#607287]">
+                  Dynamic rule: coupon 500+ units ya ₹10,000+ basket subtotal par apply hoga.
+                </p>
+
+                {availableCoupons.length > 0 ? (
+                  <div className="mt-4 rounded-[10px] border border-[#dbe5f0] bg-[#f8fbff] p-3">
+                    <p className="mb-3 text-[13px] font-extrabold text-[#102033]">
+                      Available Coupons
+                    </p>
+
+                    <div className="space-y-2">
+                      {availableCoupons.slice(0, 3).map((coupon) => (
+                        <div
+                          key={coupon._id}
+                          className="flex items-center justify-between gap-2 rounded-[8px] border border-[#cfe0f1] bg-white px-3 py-2"
+                        >
+                          <div>
+                            <p className="text-[14px] font-extrabold text-[#102033]">
+                              {coupon.code}
+                            </p>
+                            <p className="text-[12px] font-semibold text-[#607287]">
+                              Min order ₹{Number(coupon.minOrderAmount || 0).toLocaleString("en-IN")}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setPromoCode(coupon.code);
+                              setCouponMessage("");
+                              setCouponApplied(false);
+
+                              try {
+                                await navigator.clipboard.writeText(coupon.code);
+                                setCouponMessage(`${coupon.code} copied. Apply button dabao.`);
+                              } catch {
+                                setCouponMessage(`${coupon.code} selected. Apply button dabao.`);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 rounded-[8px] border border-[#b6dcff] bg-[#d6ecff] px-3 py-2 text-[12px] font-extrabold text-black hover:bg-[#c5e4ff]"
+                          >
+                            <Copy size={14} />
+                            Copy
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {couponMessage ? (
+                  <p
+                    className={`mt-2 text-[13px] font-bold ${couponApplied ? "text-green-700" : "text-red-600"
+                      }`}
+                  >
+                    {couponMessage}
+                  </p>
+                ) : null}
               </div>
 
               <button
@@ -680,15 +969,17 @@ export default function CartPage() {
               </div>
 
               <div className="mt-6 border-t border-[#e5e7eb] pt-5 text-center">
-                <p className="text-[16px] text-[#111827]">
-                  Don&apos;t have an account?{" "}
-                  <span
-                    onClick={() => setIsLoginOpen(true)}
-                    className="cursor-pointer font-semibold text-[#2454b5]"
-                  >
-                    Sign up / Login
-                  </span>
-                </p>
+                {!user?.token ? (
+                  <p className="text-[16px] text-[#111827]">
+                    Don&apos;t have an account?{" "}
+                    <span
+                      onClick={() => setIsLoginOpen(true)}
+                      className="cursor-pointer font-semibold text-[#2454b5]"
+                    >
+                      Sign up / Login
+                    </span>
+                  </p>
+                ) : null}
 
                 <div className="mt-6">
                   <p className="mb-3 text-[16px] text-[#374151]">We accept</p>
@@ -703,6 +994,75 @@ export default function CartPage() {
             </div>
           </div>
         </div>
+
+        {cartItems.length > 0 ? (
+  <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_430px]">
+    <div className="rounded-[18px] border border-[#d8e8f8] bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+      <div className="flex items-start gap-4">
+        <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
+          <Truck size={24} />
+        </div>
+
+        <div>
+          <h2 className="text-[26px] font-extrabold text-[#102033]">
+            Wholesale order support
+          </h2>
+          <p className="mt-2 text-[15px] leading-7 text-[#607287]">
+            Large quantity orders, stock confirmation, delivery timeline and bulk quotation support ke liye ye basket ready hai.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+          <PackageCheck size={24} className="mb-3 text-[#2454b5]" />
+          <h3 className="text-[17px] font-extrabold text-[#102033]">
+            Stock confirmation
+          </h3>
+          <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+            High quantity dispatch se pehle team stock verify kar sakti hai.
+          </p>
+        </div>
+
+        <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+          <NotebookTabs size={24} className="mb-3 text-[#2454b5]" />
+          <h3 className="text-[17px] font-extrabold text-[#102033]">
+            Quote ready basket
+          </h3>
+          <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+            Basket ko quotation / approval flow ke liye use kar sakte ho.
+          </p>
+        </div>
+
+        <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+          <ShieldCheck size={24} className="mb-3 text-[#2454b5]" />
+          <h3 className="text-[17px] font-extrabold text-[#102033]">
+            GST clarity
+          </h3>
+          <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+            Subtotal, GST, delivery aur discount clearly calculate ho rahe hain.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="rounded-[18px] border border-[#d8e8f8] bg-[#f8fbff] p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+      <h2 className="text-[22px] font-extrabold text-[#102033]">
+        Need help?
+      </h2>
+      <p className="mt-2 text-[14px] leading-7 text-[#607287]">
+        Bulk order, delivery, coupon ya quotation ke liye support le sakte ho.
+      </p>
+
+      <div className="mt-5 space-y-3 text-[15px] font-semibold text-[#102033]">
+        <p>✔ Bulk quantity verification</p>
+        <p>✔ Delivery timeline support</p>
+        <p>✔ GST invoice assistance</p>
+        <p>✔ Alternate part sourcing</p>
+      </div>
+    </div>
+  </section>
+) : null}
 
         {cartItems.length > 0 ? (
           <>
@@ -993,7 +1353,7 @@ export default function CartPage() {
       <LoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        openRegister={() => {}}
+        openRegister={() => { }}
       />
     </div>
   );

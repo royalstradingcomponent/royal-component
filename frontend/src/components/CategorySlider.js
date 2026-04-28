@@ -107,7 +107,7 @@ export default function CategorySlider() {
                   </p>
                 )}
 
-                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#d7ebf8] bg-[#f4fbff] px-4 py-2 text-sm font-semibold text-[#0f6cbd] transition-all duration-300 group-hover:border-[#b9e6fb] group-hover:bg-[#eaf7ff]">
+                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#b6dcff] bg-[#d6ecff] px-4 py-2 text-sm font-extrabold text-[#000000] transition-all duration-300 group-hover:border-[#9fd3ff] group-hover:bg-[#c5e4ff]">
                   View Category
                   <ChevronRight
                     size={16}

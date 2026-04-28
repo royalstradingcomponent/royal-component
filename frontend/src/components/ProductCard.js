@@ -133,9 +133,9 @@ export default function ProductCard({ product }) {
 
         <Link
           href={productLink}
-          className="mt-4 flex h-[42px] w-full items-center justify-center gap-2 rounded-full bg-[#0f6cbd] text-[13px] font-bold text-white transition hover:bg-[#0b5a9e]"
-        >
-          <ShoppingCart size={16} />
+          className="mt-4 flex h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[#d6ecff] text-[14px] font-extrabold text-[#000000] border border-[#b6dcff] transition hover:bg-[#c5e4ff]"
+          >
+          <ShoppingCart size={16} className="text-[#0b6aa2]" />
           View Details
         </Link>
       </div>
