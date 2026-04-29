@@ -6,7 +6,7 @@ const categorySchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 100,
+      maxlength: 150,
     },
 
     slug: {
@@ -22,7 +22,7 @@ const categorySchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true,
-      maxlength: 300,
+      maxlength: 1000,
     },
 
     image: {
@@ -32,6 +32,31 @@ const categorySchema = new mongoose.Schema(
     },
 
     iconAlt: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // main category: parentSlug = ""
+    // sub category: parentSlug = "semiconductors"
+    // child category: parentSlug = "audio-video-ics"
+    parentSlug: {
+      type: String,
+      default: "",
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+
+    group: {
+      type: String,
+      default: "",
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
+
+    countText: {
       type: String,
       default: "",
       trim: true,

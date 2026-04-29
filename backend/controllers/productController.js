@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
+const Category = require("../models/Category");
 
 const parseCsv = (value) =>
   String(value || "")
@@ -11,8 +12,17 @@ const slugify = (value = "") =>
   String(value)
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9 ]/g, "")
-    .replace(/\s+/g, "-");
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9- ]/g, "") // 🔥 dash allow kiya
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+    const normalizeSubCategoryFilter = (value = "") => {
+  return String(value)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]/g, ""); // 🔥 dash hata diya
+};
 
 const normalizeCategorySlug = (value = "") => {
   const raw = String(value || "").toLowerCase().trim();
@@ -85,7 +95,7 @@ const getCategoryAliases = (value = "") => {
   const normalized = normalizeCategorySlug(value);
 
   const aliases = {
-    semiconductors: ["semiconductors", "semiconductor"],
+    semiconductors: ["semiconductors", "semiconductor", "components", "component"],
 
     cableswires: [
       "cableswires",
@@ -176,7 +186,9 @@ const buildProductFilter = (query = {}) => {
   if (query.subCategory) {
     const subCategories = parseCsv(query.subCategory.toLowerCase());
     if (subCategories.length) {
-      filter.subCategory = { $in: subCategories.map((item) => slugify(item)) };
+      filter.subCategory = {
+  $in: subCategories.map((item) => normalizeSubCategoryFilter(item)),
+};
     }
   }
 
@@ -187,18 +199,20 @@ const buildProductFilter = (query = {}) => {
     }
   }
 
-  if (query.keyword) {
-    const regex = new RegExp(query.keyword, "i");
-    filter.$or = [
-      { name: regex },
-      { brand: regex },
-      { sku: regex },
-      { mpn: regex },
-      { shortDescription: regex },
-      { description: regex },
-      { subCategory: regex },
-    ];
-  }
+  const searchValue = query.keyword || query.search;
+
+if (searchValue) {
+  const regex = new RegExp(searchValue, "i");
+  filter.$or = [
+    { name: regex },
+    { brand: regex },
+    { sku: regex },
+    { mpn: regex },
+    { shortDescription: regex },
+    { description: regex },
+    { subCategory: regex },
+  ];
+}
 
   if (query.minPrice || query.maxPrice) {
     filter.price = {};
@@ -232,7 +246,19 @@ const buildProductFilter = (query = {}) => {
 };
 
 const makeImagePath = (fileName = "") => {
-  return `/uploads/new-products/${String(fileName).trim()}`;
+  const name = String(fileName).trim();
+
+  // Agar already full path diya hai (DB se)
+  if (name.startsWith("/uploads/")) {
+    return name;
+  }
+
+  // Auto detect folder
+  const newProductsPath = `/uploads/new-products/${name}`;
+  const oldProductsPath = `/uploads/products/${name}`;
+
+  // Default: new-products use karo
+  return newProductsPath;
 };
 
 const buildSeedProduct = (item) => {
@@ -246,7 +272,7 @@ const buildSeedProduct = (item) => {
     mpn: item.mpn || "",
     brand: item.brand || "Generic",
     category: normalizeCategorySlug(item.category),
-    subCategory: item.subCategory ? slugify(item.subCategory) : "",
+    subCategory: item.subCategory ? normalizeSubCategoryFilter(item.subCategory) : "",
     shortDescription: item.shortDescription || "",
     description: item.description || item.shortDescription || "",
     thumbnail: primaryFile ? makeImagePath(primaryFile) : "",
@@ -285,7 +311,7 @@ const dedupeAndInsert = async (products) => {
     slug: item.slug ? slugify(item.slug) : slugify(item.name),
     sku: item.sku ? String(item.sku).toUpperCase() : undefined,
     category: normalizeCategorySlug(item.category),
-    subCategory: item.subCategory ? slugify(item.subCategory) : "",
+    subCategory: item.subCategory ? normalizeSubCategoryFilter(item.subCategory) : "",
     status: item.status || "published",
     isActive: item.isActive !== false,
     isFeatured: item.isFeatured || false,
@@ -377,6 +403,9 @@ exports.getProducts = async (req, res) => {
     const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 500);
     const filter = buildProductFilter(req.query);
 
+    console.log("PRODUCT QUERY:", req.query);
+console.log("PRODUCT FILTER:", JSON.stringify(filter, null, 2));
+
     let sortOption = { createdAt: -1 };
 
     switch (req.query.sort) {
@@ -399,9 +428,55 @@ exports.getProducts = async (req, res) => {
         sortOption = { createdAt: -1 };
     }
 
-    const total = await Product.countDocuments(filter);
+    let total = await Product.countDocuments(filter);
 
-    const products = await Product.find(filter)
+/*
+  Fallback logic:
+  Agar exact child category me product nahi mila,
+  to us child ke parent + siblings bucket ke products dikhao.
+*/
+if (total === 0 && req.query.subCategory) {
+  const requestedSubCategory = normalizeSubCategoryFilter(req.query.subCategory);
+
+  const currentCategory = await Category.findOne({
+    slug: requestedSubCategory,
+    isActive: true,
+  }).lean();
+
+  if (currentCategory) {
+    const children = await Category.find({
+      parentSlug: currentCategory.slug,
+      isActive: true,
+    })
+      .select("slug")
+      .lean();
+
+    const siblings = currentCategory.parentSlug
+      ? await Category.find({
+          parentSlug: currentCategory.parentSlug,
+          isActive: true,
+        })
+          .select("slug")
+          .lean()
+      : [];
+
+    const fallbackSubCategories = [
+      requestedSubCategory,
+      normalizeSubCategoryFilter(currentCategory.slug),
+      normalizeSubCategoryFilter(currentCategory.parentSlug || ""),
+      ...children.map((item) => normalizeSubCategoryFilter(item.slug)),
+      ...siblings.map((item) => normalizeSubCategoryFilter(item.slug)),
+    ].filter(Boolean);
+
+    filter.subCategory = {
+      $in: [...new Set(fallbackSubCategories)],
+    };
+
+    total = await Product.countDocuments(filter);
+  }
+}
+
+const products = await Product.find(filter)
       .select(
         "name slug sku brand category subCategory thumbnail images price mrp discount stock moq unit shortDescription description isFeatured isBestSeller createdAt"
       )
@@ -716,7 +791,7 @@ exports.updateProduct = async (req, res) => {
       } else if (key === "category" && req.body[key]) {
         product[key] = normalizeCategorySlug(req.body[key]);
       } else if (key === "subCategory" && req.body[key]) {
-        product[key] = slugify(req.body[key]);
+        product[key] = normalizeSubCategoryFilter(req.body[key]);
       } else {
         product[key] = req.body[key];
       }

@@ -25,6 +25,7 @@ import RegisterModal from "@/app/authPage/RegisterModel";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import SearchBar from "@/components/SearchBar";
 
 const categories = [
   { name: "Semiconductors", href: "/products?category=semiconductors" },
@@ -137,17 +138,7 @@ export default function Navbar() {
             </div>
 
             <div className="hidden max-w-3xl flex-1 px-4 lg:flex">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Search product, part number or brand"
-                  className="h-[58px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-14 pr-5 text-[16px] text-[#0f172a] outline-none transition placeholder:text-[#8aa5b9] focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.12)]"
-                />
-                <Search
-                  size={20}
-                  className="absolute left-5 top-1/2 -translate-y-1/2 text-[#5f7d95]"
-                />
-              </div>
+              <SearchBar />
             </div>
 
             <div className="flex items-center gap-2 text-[#0f172a] sm:gap-3">
@@ -171,9 +162,8 @@ export default function Navbar() {
                     <span>{shortUserName}</span>
                     <ChevronDown
                       size={16}
-                      className={`transition-transform duration-200 ${
-                        isAccountMenuOpen ? "rotate-180" : ""
-                      }`}
+                      className={`transition-transform duration-200 ${isAccountMenuOpen ? "rotate-180" : ""
+                        }`}
                     />
                   </button>
 
@@ -299,16 +289,8 @@ export default function Navbar() {
               </div>
 
               <div className="p-4">
-                <div className="relative mb-5">
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    className="h-[50px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-12 pr-4 text-sm text-[#0f172a] outline-none placeholder:text-[#8aa5b9] focus:border-[#38bdf8]"
-                  />
-                  <Search
-                    size={18}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5f7d95]"
-                  />
+                <div className="mb-5">
+                  <SearchBar mobile onSearchDone={() => setMobileOpen(false)} />
                 </div>
 
                 {!user?.token ? (

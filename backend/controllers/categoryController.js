@@ -4,12 +4,28 @@ const slugify = (value = "") =>
   String(value)
     .toLowerCase()
     .trim()
+    .replace(/&/g, "and")
     .replace(/[^a-z0-9 ]/g, "")
     .replace(/\s+/g, "-");
 
+const normalizeOptionalSlug = (value = "") => {
+  if (!value) return "";
+  return slugify(value);
+};
+
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ isActive: true })
+    const filter = { isActive: true };
+
+    if (req.query.group) {
+      filter.group = slugify(req.query.group);
+    }
+
+    if (req.query.parentSlug !== undefined) {
+      filter.parentSlug = normalizeOptionalSlug(req.query.parentSlug);
+    }
+
+    const categories = await Category.find(filter)
       .sort({ order: 1, createdAt: 1 })
       .lean();
 
@@ -27,8 +43,10 @@ exports.getCategories = async (req, res) => {
 
 exports.getCategoryBySlug = async (req, res) => {
   try {
+    const slug = slugify(req.params.slug);
+
     const category = await Category.findOne({
-      slug: req.params.slug,
+      slug,
       isActive: true,
     }).lean();
 
@@ -39,9 +57,17 @@ exports.getCategoryBySlug = async (req, res) => {
       });
     }
 
+    const children = await Category.find({
+      parentSlug: category.slug,
+      isActive: true,
+    })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+
     res.status(200).json({
       success: true,
       category,
+      children,
     });
   } catch (error) {
     res.status(500).json({
@@ -64,18 +90,22 @@ exports.createCategory = async (req, res) => {
 
     const slug = data.slug ? slugify(data.slug) : slugify(data.name);
 
-    const existing = await Category.findOne({ slug });
-    if (existing) {
-      return res.status(400).json({
-        success: false,
-        message: "Category with same slug already exists",
-      });
-    }
-
-    const category = await Category.create({
-      ...data,
-      slug,
-    });
+    const category = await Category.findOneAndUpdate(
+      { slug },
+      {
+        $set: {
+          ...data,
+          slug,
+          parentSlug: normalizeOptionalSlug(data.parentSlug),
+          group: data.group ? slugify(data.group) : "",
+        },
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+      }
+    );
 
     res.status(201).json({
       success: true,
@@ -89,9 +119,66 @@ exports.createCategory = async (req, res) => {
   }
 };
 
+exports.bulkCreateCategories = async (req, res) => {
+  try {
+    const items = Array.isArray(req.body) ? req.body : req.body.categories;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "categories array is required",
+      });
+    }
+
+    const operations = items.map((item, index) => {
+      const slug = item.slug ? slugify(item.slug) : slugify(item.name);
+
+      return {
+        updateOne: {
+          filter: { slug },
+          update: {
+            $set: {
+              ...item,
+              slug,
+              parentSlug: normalizeOptionalSlug(item.parentSlug),
+              group: item.group ? slugify(item.group) : "",
+              order: item.order ?? index + 1,
+            },
+          },
+          upsert: true,
+        },
+      };
+    });
+
+    const result = await Category.bulkWrite(operations);
+
+    res.status(201).json({
+      success: true,
+      message: "Categories inserted/updated successfully",
+      result,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 exports.updateCategory = async (req, res) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const data = { ...req.body };
+
+    if (data.slug) data.slug = slugify(data.slug);
+    if (data.parentSlug !== undefined) {
+      data.parentSlug = normalizeOptionalSlug(data.parentSlug);
+    }
+    if (data.group) data.group = slugify(data.group);
+
+    const category = await Category.findByIdAndUpdate(req.params.id, data, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!category) {
       return res.status(404).json({
@@ -100,19 +187,9 @@ exports.updateCategory = async (req, res) => {
       });
     }
 
-    Object.keys(req.body).forEach((key) => {
-      category[key] = req.body[key];
-    });
-
-    if (req.body.name || req.body.slug) {
-      category.slug = slugify(req.body.slug || req.body.name);
-    }
-
-    const updatedCategory = await category.save();
-
     res.status(200).json({
       success: true,
-      category: updatedCategory,
+      category,
     });
   } catch (error) {
     res.status(400).json({

@@ -2,224 +2,170 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ProductCard from "@/components/ProductCard";
 import { apiRequest, API_BASE } from "@/lib/api";
-import {
-  getCategoryBySlug,
-  semiconductorSubcategories,
-} from "@/lib/categories";
+import { Search } from "lucide-react";
 
 function getImageUrl(url) {
-  if (!url) return "";
+  if (!url) return `${API_BASE}/uploads/categories/semiconductor.jpg`;
   if (url.startsWith("http")) return url;
   return `${API_BASE}${url}`;
 }
 
-async function getCategoryFromAPI(slug) {
+async function getCategoryTree(slug) {
   try {
-    const data = await apiRequest(`/api/categories/${slug}`, {
-      cache: "no-store",
-    });
-    return data?.category || null;
-  } catch (error) {
-    console.error("Category fetch error:", error);
+    return await apiRequest(`/api/categories/${slug}`, { cache: "no-store" });
+  } catch {
     return null;
   }
 }
 
-async function getCategoryProducts(slug, subCategory = "") {
-  try {
-    const query = new URLSearchParams();
-    query.set("limit", "500");
-    query.set("category", slug);
-
-    if (subCategory) {
-      query.set("subCategory", subCategory);
-    }
-
-    const data = await apiRequest(`/api/products?${query.toString()}`, {
-      cache: "no-store",
-    });
-
-    return data?.products || [];
-  } catch (error) {
-    console.error("Category products fetch error:", error);
-    return [];
-  }
-}
-
 export async function generateMetadata({ params }) {
-  const resolvedParams = await params;
-  const slug = resolvedParams?.slug;
-  const category = getCategoryBySlug(slug);
-
-  if (!category) {
-    return {
-      title: "Category Not Found | Royal Component",
-    };
-  }
+  const { slug } = await params;
+  const data = await getCategoryTree(slug);
 
   return {
-    title: `${category.name} | Royal Component`,
-    description: category.description,
+    title: data?.category?.seo?.metaTitle || `${data?.category?.name || "Category"} | Royal Component`,
+    description: data?.category?.seo?.metaDescription || data?.category?.description || "",
   };
 }
 
 export default async function CategoryPage({ params, searchParams }) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
+  const { slug } = await params;
+  const query = await searchParams;
 
-  const slug = resolvedParams?.slug;
-  const category = getCategoryBySlug(slug);
+  const selectedSubCategory = query?.subCategory || "";
+  // 🔥 normalize here also
+  const normalizeSubCategory = (sub) => {
+    const map = {
+      "sensor-ics": "sensor-ics",
+      "bluetooth": "communication-wireless-module-ics",
+    };
+    return map[sub] || sub;
+  };
 
-  if (!category) {
-    notFound();
-  }
+  const finalSubCategory = normalizeSubCategory(selectedSubCategory);
+  const productSubCategoryMap = {
+    "amplifier-modules": "op-amps",
+    "amplifiers-comparators": "op-amps",
+  };
 
-  const selectedSubCategory = resolvedSearchParams?.subCategory || "";
+  const keyword = query?.keyword || "";
 
-  const [products, categoryFromAPI] = await Promise.all([
-    getCategoryProducts(slug, selectedSubCategory),
-    getCategoryFromAPI(slug),
-  ]);
+  const mainData = await getCategoryTree(slug);
+  if (!mainData?.category) notFound();
 
-  const heroImage = categoryFromAPI?.image || "";
-  const isSemiconductor = slug === "semiconductors";
+  const activeData = finalSubCategory
+    ? await getCategoryTree(finalSubCategory)
+    : null;
 
-  const activeSubcategoryName =
-    semiconductorSubcategories.find((item) => item.slug === selectedSubCategory)?.name ||
-    "All";
+  const pageCategory = activeData?.category || mainData.category;
+  const cardsToShow = activeData?.children || mainData.children || [];
+
+  const filteredCards = keyword
+    ? cardsToShow.filter((item) =>
+      `${item.name} ${item.slug} ${item.countText}`
+        .toLowerCase()
+        .includes(String(keyword).toLowerCase())
+    )
+    : cardsToShow;
 
   return (
-    <div className="min-h-screen bg-[#f4f8fc]">
+    <div className="min-h-screen bg-[#f4f4f4]">
       <Navbar />
 
-      <section className="border-b border-[#dde7f1] bg-[linear-gradient(180deg,#eef5fb_0%,#e8f0f7_100%)] py-14 md:py-20">
+      <section className="bg-[#f3f3f3] py-8 md:py-10">
         <div className="container-royal">
-          <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
-            <div>
-              <div className="mb-5 flex flex-wrap items-center gap-2 text-[15px] font-medium text-[#607287]">
-                <Link href="/" className="transition hover:text-sky-700">
-                  Home
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-[15px] font-medium text-[#174ea6]">
+            <Link href="/" className="hover:underline">Home</Link>
+            <span className="text-[#64748b]">/</span>
+            <span>Electronic Components, Power & Connectors</span>
+            {selectedSubCategory ? (
+              <>
+                <span className="text-[#64748b]">/</span>
+                <Link href={`/category/${slug}`} className="hover:underline">
+                  {mainData.category.name}
                 </Link>
-                <span>/</span>
-                <span>{category.name}</span>
-                {selectedSubCategory ? (
-                  <>
-                    <span>/</span>
-                    <span>{activeSubcategoryName}</span>
-                  </>
-                ) : null}
-              </div>
-
-              <h1 className="max-w-4xl text-[44px] font-extrabold leading-[1.02] tracking-[-0.03em] text-[#102033] md:text-[64px]">
-                {category.name} Components
-              </h1>
-
-              <p className="mt-5 max-w-3xl text-[19px] leading-8 text-[#5f7388]">
-                {category.description}
-              </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <span className="rounded-full border border-[#d6e4f1] bg-white px-4 py-2 text-sm font-semibold text-[#24476b]">
-                  Industrial Grade
-                </span>
-                <span className="rounded-full border border-[#d6e4f1] bg-white px-4 py-2 text-sm font-semibold text-[#24476b]">
-                  Bulk Supply Ready
-                </span>
-                <span className="rounded-full border border-[#d6e4f1] bg-white px-4 py-2 text-sm font-semibold text-[#24476b]">
-                  Technical Procurement
-                </span>
-              </div>
-            </div>
-
-            {heroImage ? (
-              <div className="overflow-hidden rounded-[32px] border border-[#d7e2ee] bg-white p-6 shadow-[0_10px_35px_rgba(15,23,42,0.06)]">
-                <img
-                  src={getImageUrl(heroImage)}
-                  alt={categoryFromAPI?.iconAlt || category.name}
-                  className="h-[300px] w-full object-contain"
-                />
-              </div>
+              </>
             ) : null}
           </div>
-        </div>
-      </section>
 
-      {isSemiconductor ? (
-        <section className="border-b border-[#dfe8f1] bg-white py-7">
-          <div className="container-royal">
-            <div className="flex flex-wrap gap-4">
-              {semiconductorSubcategories.map((item) => {
-                const href = item.slug
-                  ? `/category/semiconductors?subCategory=${item.slug}`
-                  : `/category/semiconductors`;
+          <h1 className="text-[36px] font-extrabold tracking-[-0.03em] text-[#102033] md:text-[54px]">
+            {pageCategory.name}
+          </h1>
 
-                const isActive =
-                  item.slug === selectedSubCategory ||
-                  (!item.slug && !selectedSubCategory);
+          <p className="mt-5 max-w-6xl text-[17px] leading-8 text-[#172033]">
+            {pageCategory.description}
+          </p>
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={href}
-                    className={`inline-flex min-h-[56px] items-center justify-center rounded-full px-7 py-3 text-[18px] font-extrabold tracking-[-0.01em] transition ${
-                      isActive
-                        ? "bg-sky-600 text-white shadow-[0_8px_20px_rgba(2,132,199,0.25)]"
-                        : "border border-[#cad8e6] bg-white text-[#24476b] hover:border-sky-500 hover:text-sky-700"
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
-                );
-              })}
+          <Link
+            href={`/category/${slug}`}
+            className="mt-2 inline-flex text-[16px] font-semibold text-[#174ea6] hover:underline"
+          >
+            Read more
+          </Link>
+
+          <form action={`/category/${slug}`} className="relative mt-4 max-w-[540px]">
+            {selectedSubCategory ? (
+              <input type="hidden" name="subCategory" value={selectedSubCategory} />
+            ) : null}
+
+            <Search size={24} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748b]" />
+
+            <input
+              type="text"
+              name="keyword"
+              defaultValue={keyword}
+              placeholder={`Search within ${pageCategory.name}`}
+              className="h-[54px] w-full rounded-[4px] border border-[#c5cbd3] bg-white pl-12 pr-4 text-[17px] text-[#102033] outline-none focus:border-[#0f6cbd]"
+            />
+          </form>
+
+          {selectedSubCategory ? (
+            <div className="mt-4">
+              <Link
+                href={`/category/${slug}`}
+                className="text-[15px] font-semibold text-[#174ea6] hover:underline"
+              >
+                ← Back to all {mainData.category.name} categories
+              </Link>
             </div>
+          ) : null}
+
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {filteredCards.map((item) => {
+              const productSubCategory =
+                productSubCategoryMap[item.slug] || item.slug;
+
+              const href = selectedSubCategory
+                ? `/products?category=${slug}&subCategory=${productSubCategory}`
+                : `/category/${slug}?subCategory=${item.slug}`;
+
+              return (
+                <Link
+                  key={item._id || item.slug}
+                  href={href}
+                  className="group flex min-h-[120px] items-center justify-between gap-4 border border-[#e8edf3] bg-white px-5 py-5 transition-all duration-300 hover:border-[#b8d7ef] hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-[18px] font-semibold leading-6 text-[#102033]">
+                      {item.name}
+                    </h2>
+                    <p className="mt-2 text-[15px] text-[#52677d]">
+                      ({item.countText || "Shop products"})
+                    </p>
+                  </div>
+
+                  <div className="flex h-[88px] w-[118px] shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
+                    <img
+                      src={getImageUrl(item.image)}
+                      alt={item.iconAlt || `${item.name} category image`}
+                      className="max-h-[84px] max-w-[112px] object-contain transition duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        </section>
-      ) : null}
-
-      <section className="bg-[#f7fbff] py-14">
-        <div className="container-royal">
-          <div className="mb-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-[38px] font-extrabold tracking-[-0.03em] text-[#102033] md:text-[54px]">
-                Available Products
-              </h2>
-              <p className="mt-3 text-[18px] leading-8 text-[#607287]">
-                {selectedSubCategory
-                  ? `Explore wholesale-ready products under ${category.name} > ${activeSubcategoryName}.`
-                  : `Explore wholesale-ready products available under ${category.name}.`}
-              </p>
-            </div>
-
-            <Link
-              href="/products"
-              className="inline-flex h-[56px] items-center justify-center rounded-full border border-[#ccdae7] bg-white px-8 text-[17px] font-bold text-[#24476b] transition hover:border-sky-500 hover:text-sky-700"
-            >
-              View All Products
-            </Link>
-          </div>
-
-          {products.length > 0 ? (
-            <div className="grid gap-7 sm:grid-cols-2 xl:grid-cols-4">
-              {products.map((product) => (
-                <ProductCard
-                  key={product._id || product.slug}
-                  product={product}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-[30px] border border-[#d7e3ef] bg-white px-6 py-16 text-center shadow-sm">
-              <h3 className="text-[28px] font-extrabold text-[#102033]">
-                No products found
-              </h3>
-              <p className="mx-auto mt-4 max-w-3xl text-[18px] leading-8 text-[#6a7b90]">
-                Is section ke products abhi add nahi hue hain ya subCategory mapping
-                check karni hai.
-              </p>
-            </div>
-          )}
         </div>
       </section>
 
