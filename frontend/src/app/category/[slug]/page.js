@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { apiRequest, API_BASE } from "@/lib/api";
 import { Search } from "lucide-react";
+import SearchSuggestionBox from "@/components/SearchSuggestionBox";
 
 function getImageUrl(url) {
   if (!url) return `${API_BASE}/uploads/categories/semiconductor.jpg`;
@@ -70,10 +71,10 @@ export default async function CategoryPage({ params, searchParams }) {
     : cardsToShow;
 
   return (
-    <div className="min-h-screen bg-[#f4f4f4]">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       <Navbar />
 
-      <section className="bg-[#f3f3f3] py-8 md:py-10">
+      <section className="bg-[var(--color-bg)] py-8 md:py-10">
         <div className="container-royal">
           <div className="mb-6 flex flex-wrap items-center gap-2 text-[15px] font-medium text-[#174ea6]">
             <Link href="/" className="hover:underline">Home</Link>
@@ -104,21 +105,7 @@ export default async function CategoryPage({ params, searchParams }) {
             Read more
           </Link>
 
-          <form action={`/category/${slug}`} className="relative mt-4 max-w-[540px]">
-            {selectedSubCategory ? (
-              <input type="hidden" name="subCategory" value={selectedSubCategory} />
-            ) : null}
-
-            <Search size={24} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748b]" />
-
-            <input
-              type="text"
-              name="keyword"
-              defaultValue={keyword}
-              placeholder={`Search within ${pageCategory.name}`}
-              className="h-[54px] w-full rounded-[4px] border border-[#c5cbd3] bg-white pl-12 pr-4 text-[17px] text-[#102033] outline-none focus:border-[#0f6cbd]"
-            />
-          </form>
+          <SearchSuggestionBox defaultValue={keyword} />
 
           {selectedSubCategory ? (
             <div className="mt-4">

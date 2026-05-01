@@ -11,6 +11,8 @@ import {
   Truck,
   ReceiptText,
   MapPin,
+  Pencil,
+  MessageCircle,
   Phone,
   Mail,
   Building2,
@@ -30,6 +32,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { API_BASE } from "@/lib/api";
 import { useOrders } from "@/context/OrderContext";
+import AddressFormModal from "@/components/address/AddressFormModal";
 
 function formatCurrency(value) {
   return `₹ ${Number(value || 0).toLocaleString("en-IN", {
@@ -62,6 +65,7 @@ function getStatus(order) {
 }
 
 function getTotal(order) {
+
   return (
     order?.pricing?.totalAmount ||
     order?.pricing?.grandTotal ||
@@ -71,28 +75,35 @@ function getTotal(order) {
     0
   );
 }
-
-function getAddressText(order) {
-  const address = order?.shippingAddress || order?.deliveryAddress || {};
-  return [
-    address.address,
-    address.addressLine,
-    address.addressLine2,
-    address.landmark,
-    address.city,
-    address.state,
-    address.pincode,
-    address.country,
-  ]
-    .filter(Boolean)
-    .join(", ");
-}
-
 function formatPaymentMethod(method) {
   if (!method) return "Commercial Payment";
+
   return String(method)
     .replaceAll("-", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+
+
+function getAddressText(order) {
+  const addr =
+    order?.shippingAddress ||
+    order?.address ||
+    order?.userInfo ||
+    {};
+
+  return [
+    addr.name,
+    addr.companyName,
+    addr.addressLine1,
+    addr.addressLine2,
+    addr.city,
+    addr.state,
+    addr.pincode,
+    addr.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 function getItemName(item) {
@@ -156,12 +167,41 @@ export default function CheckoutOrderDetailPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelComment, setCancelComment] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    companyName: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    country: "India",
+  });
+  const [addressLoading, setAddressLoading] = useState(false);
 
   const loadOrder = async () => {
     try {
       setLoading(true);
       const data = await fetchOrderById(id);
-      setOrder(data?.order || data || null);
+      const currentOrder = data?.order || data || null;
+      setOrder(currentOrder);
+
+      const userInfo = currentOrder?.userInfo || {};
+      setAddressForm({
+        name: userInfo.name || "",
+        phone: userInfo.phone || "",
+        email: userInfo.email || "",
+        companyName: userInfo.companyName || "",
+        addressLine1: userInfo.addressLine1 || "",
+        addressLine2: userInfo.addressLine2 || "",
+        city: userInfo.city || "",
+        state: userInfo.state || "",
+        pincode: userInfo.pincode || "",
+        country: userInfo.country || "India",
+      });
     } catch (error) {
       console.error("Order details error:", error);
       setOrder(null);
@@ -192,6 +232,35 @@ export default function CheckoutOrderDetailPage() {
 
   const paymentMethod =
     order?.payment?.method || order?.paymentMethod || "bank-transfer";
+  const handleStartOrderChat = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = user?.token;
+
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/chat/start/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Chat start failed");
+      }
+
+      // redirect to chat page
+      window.location.href = `/chat/${data.chat._id}?orderId=${id}`;
+    } catch (error) {
+      toast.error(error.message || "Unable to start chat");
+    }
+  };
 
   const handleCancelOrder = async () => {
     if (!cancelReason) {
@@ -237,6 +306,54 @@ export default function CheckoutOrderDetailPage() {
       toast.error(error.message || "Failed to cancel order");
     } finally {
       setCancelLoading(false);
+    }
+  };
+  const handleUpdateAddress = async () => {
+    if (
+      !addressForm.name ||
+      !addressForm.phone ||
+      !addressForm.addressLine1 ||
+      !addressForm.city ||
+      !addressForm.state ||
+      !addressForm.pincode
+    ) {
+      toast.error("Please fill all required address fields");
+      return;
+    }
+
+    try {
+      setAddressLoading(true);
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = user?.token;
+
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/orders/update-address/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(addressForm),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "Address update failed");
+      }
+
+      toast.success("Delivery address updated");
+      setShowAddressModal(false);
+      await loadOrder();
+    } catch (error) {
+      toast.error(error.message || "Failed to update address");
+    } finally {
+      setAddressLoading(false);
     }
   };
 
@@ -355,11 +472,10 @@ export default function CheckoutOrderDetailPage() {
                       className="rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] p-4"
                     >
                       <div
-                        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${
-                          completed
-                            ? "bg-[#16a34a] text-white"
-                            : "bg-white text-[#94a3b8]"
-                        }`}
+                        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${completed
+                          ? "bg-[#16a34a] text-white"
+                          : "bg-white text-[#94a3b8]"
+                          }`}
                       >
                         {completed ? <Check size={18} /> : index + 1}
                       </div>
@@ -459,31 +575,60 @@ export default function CheckoutOrderDetailPage() {
             </section>
 
             <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm md:p-6">
-              <h2 className="text-2xl font-black text-[#102033]">
-                Need help with this order?
-              </h2>
-              <p className="mt-2 text-[#607287]">
-                For alternate part, delivery update, GST invoice or bulk quotation support,
-                contact Royal Component support team.
-              </p>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl bg-[#f8fbff] p-4">
-                  <CircleHelp className="mb-3 text-[#2454b5]" />
-                  <p className="font-extrabold text-[#102033]">Support</p>
-                  <p className="mt-1 text-sm text-[#607287]">Order related help.</p>
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-[#102033]">
+                    Need help with this order?
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-[#607287]">
+                    Ask about dispatch timeline, GST invoice, alternate part, bulk quotation,
+                    delivery update or product technical details.
+                  </p>
                 </div>
 
-                <div className="rounded-2xl bg-[#f8fbff] p-4">
-                  <ShieldCheck className="mb-3 text-[#2454b5]" />
+                <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-[420px]">
+                  <button
+                    type="button"
+                    onClick={handleStartOrderChat}
+                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-5 font-black text-white shadow-sm hover:bg-[#1e4695]"
+                  >
+                    <MessageCircle size={18} />
+                    Chat Support
+                  </button>
+
+                  <a
+                    href="tel:+919871147666"
+                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white px-5 font-black text-[#2454b5] hover:bg-[#eaf3ff]"
+                  >
+                    <Phone size={18} />
+                    Call Support
+                  </a>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
+                  <CircleHelp className="mb-3 text-[#2454b5]" size={26} />
+                  <p className="font-extrabold text-[#102033]">Order Support</p>
+                  <p className="mt-1 text-sm text-[#607287]">
+                    Dispatch, delivery and tracking help.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
+                  <ShieldCheck className="mb-3 text-[#2454b5]" size={26} />
                   <p className="font-extrabold text-[#102033]">GST Invoice</p>
-                  <p className="mt-1 text-sm text-[#607287]">Business-ready billing.</p>
+                  <p className="mt-1 text-sm text-[#607287]">
+                    Business billing and tax invoice support.
+                  </p>
                 </div>
 
-                <div className="rounded-2xl bg-[#f8fbff] p-4">
-                  <Clock3 className="mb-3 text-[#2454b5]" />
-                  <p className="font-extrabold text-[#102033]">Timeline</p>
-                  <p className="mt-1 text-sm text-[#607287]">Dispatch confirmation.</p>
+                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
+                  <Clock3 className="mb-3 text-[#2454b5]" size={26} />
+                  <p className="font-extrabold text-[#102033]">Procurement Timeline</p>
+                  <p className="mt-1 text-sm text-[#607287]">
+                    Stock verification and dispatch confirmation.
+                  </p>
                 </div>
               </div>
             </section>
@@ -518,6 +663,16 @@ export default function CheckoutOrderDetailPage() {
                   <MapPin className="shrink-0 text-[#2454b5]" size={20} />
                   <span>{getAddressText(order) || "Address not available"}</span>
                 </p>
+                {order?.canEditAddress ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressModal(true)}
+                    className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white text-sm font-extrabold text-[#2454b5] hover:bg-[#eaf3ff]"
+                  >
+                    <Pencil size={15} />
+                    Edit Delivery Address
+                  </button>
+                ) : null}
               </div>
             </section>
 
@@ -532,8 +687,8 @@ export default function CheckoutOrderDetailPage() {
                   <b className="text-[#102033]">
                     {formatCurrency(
                       order?.pricing?.subtotalExGst ||
-                        order?.pricing?.subtotal ||
-                        getTotal(order)
+                      order?.pricing?.subtotal ||
+                      getTotal(order)
                     )}
                   </b>
                 </div>
@@ -603,6 +758,114 @@ export default function CheckoutOrderDetailPage() {
         </div>
       </main>
 
+
+
+      {showAddressModal ? (
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-hidden bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
+          <div className="mt-6 max-h-[calc(100vh-120px)] w-full max-w-[760px] overflow-y-auto rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-[#102033]">
+                  Edit Delivery Address
+                </h2>
+                <p className="mt-2 text-sm text-[#607287]">
+                  Address can be changed before shipment.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAddressModal(false)}
+                className="rounded-full bg-[#f3f7fb] p-2 text-[#607287]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                ["name", "Full Name *"],
+                ["phone", "Phone *"],
+                ["email", "Email"],
+                ["companyName", "Company Name"],
+                ["city", "City *"],
+                ["state", "State *"],
+                ["pincode", "Pincode *"],
+                ["country", "Country"],
+              ].map(([key, label]) => (
+                <div key={key}>
+                  <label className="mb-2 block text-sm font-bold text-[#334155]">
+                    {label}
+                  </label>
+                  <input
+                    value={addressForm[key]}
+                    onChange={(e) =>
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        [key]: e.target.value,
+                      }))
+                    }
+                    className="h-12 w-full rounded-xl border border-[#cbd5e1] px-4 outline-none focus:border-[#2454b5]"
+                  />
+                </div>
+              ))}
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-bold text-[#334155]">
+                  Address Line 1 *
+                </label>
+                <textarea
+                  rows={3}
+                  value={addressForm.addressLine1}
+                  onChange={(e) =>
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      addressLine1: e.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#cbd5e1] px-4 py-3 outline-none focus:border-[#2454b5]"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-bold text-[#334155]">
+                  Address Line 2 / Landmark
+                </label>
+                <input
+                  value={addressForm.addressLine2}
+                  onChange={(e) =>
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      addressLine2: e.target.value,
+                    }))
+                  }
+                  className="h-12 w-full rounded-xl border border-[#cbd5e1] px-4 outline-none focus:border-[#2454b5]"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowAddressModal(false)}
+                className="h-[50px] flex-1 rounded-xl border border-[#dbe5f0] bg-white font-black text-[#334155]"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleUpdateAddress}
+                disabled={addressLoading}
+                className="h-[50px] flex-1 rounded-xl bg-[#2454b5] font-black text-white hover:bg-[#1e4695] disabled:opacity-60"
+              >
+                {addressLoading ? "Saving..." : "Save Address"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showCancelModal ? (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[rgba(15,23,42,0.45)] px-4 backdrop-blur-sm">
           <div className="w-full max-w-[560px] rounded-[28px] bg-white p-6 shadow-2xl">
@@ -632,11 +895,10 @@ export default function CheckoutOrderDetailPage() {
               {cancelReasons.map((reason) => (
                 <label
                   key={reason}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${
-                    cancelReason === reason
-                      ? "border-[#2454b5] bg-[#eaf3ff]"
-                      : "border-[#dbe5f0] bg-white hover:bg-[#f8fbff]"
-                  }`}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${cancelReason === reason
+                    ? "border-[#2454b5] bg-[#eaf3ff]"
+                    : "border-[#dbe5f0] bg-white hover:bg-[#f8fbff]"
+                    }`}
                 >
                   <input
                     type="radio"

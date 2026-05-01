@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, X, Package, Layers3 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import ImageSearchCamera from "@/components/ImageSearchCamera";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -42,39 +43,29 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
   }, []);
 
   useEffect(() => {
-    if (keyword.length < 2) {
-      setProducts([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
+    const fetchProducts = async () => {
       try {
         setLoading(true);
 
-        const res = await fetch(
-          `${API_BASE}/api/products?keyword=${encodeURIComponent(
-            keyword
-          )}&limit=10`,
-          { cache: "no-store" }
-        );
+        const res = await fetch(`${API_BASE}/api/products?limit=300`, {
+          cache: "no-store",
+        });
 
         const data = await res.json();
 
         if (data?.success) {
           setProducts(data.products || []);
-        } else {
-          setProducts([]);
         }
       } catch (error) {
-        console.error("Product search error:", error);
+        console.error("Product fetch error:", error);
         setProducts([]);
       } finally {
         setLoading(false);
       }
-    }, 300);
+    };
 
-    return () => clearTimeout(timer);
-  }, [keyword]);
+    fetchProducts();
+  }, []);
 
   const filteredCategories = useMemo(() => {
     if (!categories.length) return [];
@@ -91,16 +82,75 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
           String(cat?.name || "").toLowerCase().includes(lower) ||
           String(cat?.slug || "").toLowerCase().includes(lower) ||
           String(cat?.description || "").toLowerCase().includes(lower) ||
-          String(cat?.iconAlt || "").toLowerCase().includes(lower)
+          String(cat?.iconAlt || "").toLowerCase().includes(lower) ||
+          String(cat?.parentSlug || "").toLowerCase().includes(lower) ||
+          String(cat?.group || "").toLowerCase().includes(lower)
         );
       })
       .slice(0, 8);
   }, [categories, keyword]);
 
+  const filteredProducts = useMemo(() => {
+    if (!products.length || keyword.length < 2) return [];
+
+    const lower = keyword.toLowerCase();
+
+    return products
+      .filter((product) => {
+        return (
+          String(product?.name || "").toLowerCase().includes(lower) ||
+          String(product?.slug || "").toLowerCase().includes(lower) ||
+          String(product?.sku || "").toLowerCase().includes(lower) ||
+          String(product?.brand || "").toLowerCase().includes(lower) ||
+          String(product?.category || "").toLowerCase().includes(lower) ||
+          String(product?.subCategory || "").toLowerCase().includes(lower)
+        );
+      })
+      .slice(0, 8);
+  }, [products, keyword]);
+
+  const hasChildren = (category) => {
+    return categories.some(
+      (cat) => String(cat?.parentSlug || "") === String(category?.slug || "")
+    );
+  };
+
+  const getRootCategorySlug = (category) => {
+    if (!category) return "";
+
+    if (category.group) return category.group;
+
+    let current = category;
+    let guard = 0;
+
+    while (current?.parentSlug && guard < 10) {
+      const parent = categories.find(
+        (cat) => String(cat.slug) === String(current.parentSlug)
+      );
+
+      if (!parent) return current.parentSlug;
+
+      current = parent;
+      guard++;
+    }
+
+    return current?.slug || category.slug;
+  };
+
   const goToCategory = (category) => {
     if (!category?.slug) return;
 
-    router.push(`/category/${category.slug}`);
+    const rootSlug = getRootCategorySlug(category);
+    const isParent = hasChildren(category);
+
+    if (!category.parentSlug) {
+      router.push(`/category/${category.slug}`);
+    } else if (isParent) {
+      router.push(`/category/${rootSlug}?subCategory=${category.slug}`);
+    } else {
+      router.push(`/products?category=${rootSlug}&subCategory=${category.slug}`);
+    }
+
     setOpen(false);
     setQuery("");
 
@@ -130,7 +180,7 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
   const hasDropdown =
     open &&
     (filteredCategories.length > 0 ||
-      products.length > 0 ||
+      filteredProducts.length > 0 ||
       keyword.length >= 2 ||
       loading);
 
@@ -168,20 +218,20 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
           }
           className={
             mobile
-              ? "h-[50px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-12 pr-11 text-sm text-[#0f172a] outline-none placeholder:text-[#8aa5b9] focus:border-[#38bdf8]"
-              : "h-[58px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-14 pr-12 text-[16px] text-[#0f172a] outline-none transition placeholder:text-[#8aa5b9] focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.12)]"
+              ? "h-[50px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-12 pr-20 text-sm text-[#0f172a] outline-none placeholder:text-[#8aa5b9] focus:border-[#38bdf8]"
+              : "h-[58px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-14 pr-24 text-[16px] text-[#0f172a] outline-none transition placeholder:text-[#8aa5b9] focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.12)]"
           }
         />
+        <ImageSearchCamera mobile={mobile} onSearchDone={onSearchDone} />
 
         {query ? (
           <button
             type="button"
             onClick={() => {
               setQuery("");
-              setProducts([]);
               setOpen(false);
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#7a92a7] transition hover:text-[#0f172a]"
+            className="absolute right-14 top-1/2 -translate-y-1/2 text-[#7a92a7] transition hover:text-[#0f172a]"
             aria-label="Clear search"
           >
             <X size={18} />
@@ -224,8 +274,8 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
                 <p className="px-5 py-4 text-sm text-[#64748b]">
                   Searching products...
                 </p>
-              ) : products.length > 0 ? (
-                products.map((product) => (
+              ) : filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
                   <button
                     key={product._id || product.slug}
                     type="button"

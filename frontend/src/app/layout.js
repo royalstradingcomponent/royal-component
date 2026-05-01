@@ -6,6 +6,7 @@ import { OrderProvider } from "@/context/OrderContext";
 import { AddressProvider } from "@/context/AddressContext";
 import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { ChatProvider } from "@/context/ChatContext";
 
 export const metadata = {
   title: "Royal Component | Industrial Components Store",
@@ -25,8 +26,12 @@ export default function RootLayout({ children }) {
               <CartProvider>
                 <OrderProvider>
                   <AddressProvider>
+                    <ChatProvider>
+
                     {children}
                     <Toaster position="top-right" richColors />
+                        </ChatProvider>
+
                   </AddressProvider>
                 </OrderProvider>
               </CartProvider>

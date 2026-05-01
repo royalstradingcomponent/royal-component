@@ -38,8 +38,8 @@ const categories = [
 ];
 
 const accountMenuItems = [
-  { label: "My Orders", href: "/orders", icon: Package },
-  { label: "Buy Again", href: "/orders", icon: RotateCcw },
+  { label: "My Orders", href: "/checkout/order", icon: Package },
+  { label: "Buy Again", href: "/checkout/order", icon: RotateCcw },
   { label: "My Account", href: "/account", icon: LayoutDashboard },
   { label: "Wishlist", href: "/wishlist", icon: Heart },
   { label: "My Coupons", href: "/account/coupons", icon: TicketPercent },

@@ -409,10 +409,10 @@ export default function CheckoutOrdersPage() {
 
                       <Link
                         href={`/checkout/order/${orderId}`}
-                        className="mt-5 inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#2454b5] font-extrabold text-white shadow-[0_10px_24px_rgba(36,84,181,0.2)] transition hover:bg-[#1e4695]"
-                      >
+                        className="mt-5 inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#2454b5] text-white font-extrabold shadow-[0_10px_24px_rgba(36,84,181,0.2)] transition hover:bg-[#1e4695] opacity-100"
+                        >
                         <Eye size={18} />
-                        View Details
+                        <span>View Details</span>
                       </Link>
                     </aside>
                   </div>

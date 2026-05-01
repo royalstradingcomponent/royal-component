@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Star, ShoppingCart } from "lucide-react";
+import { getProductImage } from "@/lib/getProductImage";
 import WishlistToggleButton from "@/components/WishlistToggleButton";
 
 const API_BASE =
@@ -59,9 +62,13 @@ export default function ProductCard({ product }) {
         <Link href={productLink} className="block">
           <div className="flex h-[150px] items-center justify-center overflow-hidden bg-white p-3">
             <img
-              src={getImageUrl(image)}
+              src={getProductImage(product)}
               alt={product?.name || "Product"}
               className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-[1.03]"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = `${API_BASE}/uploads/new-products/LM358.jpg`;
+              }}
             />
           </div>
         </Link>
@@ -134,7 +141,7 @@ export default function ProductCard({ product }) {
         <Link
           href={productLink}
           className="mt-4 flex h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[#d6ecff] text-[14px] font-extrabold text-[#000000] border border-[#b6dcff] transition hover:bg-[#c5e4ff]"
-          >
+        >
           <ShoppingCart size={16} className="text-[#0b6aa2]" />
           View Details
         </Link>

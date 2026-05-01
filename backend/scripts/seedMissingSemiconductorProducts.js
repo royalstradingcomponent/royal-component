@@ -68,22 +68,29 @@ async function run() {
         status: "published",
       });
 
-      if (existingCount > 0) {
+      const image = category.image || imageByKeyword(category.name);
+
+      const productCount = Number(category.countText?.match(/\d+/)?.[0] || 12);
+      const missingCount = Math.max(productCount - existingCount, 0);
+
+      if (missingCount <= 0) {
         skipped++;
-        console.log(`⏭️ Already has products: ${category.name} / ${normalizedSlug}`);
+        console.log(
+          `⏭️ Complete: ${category.name} / ${normalizedSlug} already has ${existingCount}/${productCount}`
+        );
         continue;
       }
 
-      const image = category.image || imageByKeyword(category.name);
+      const productsToCreate = Array.from({ length: missingCount }).map((_, index) => {
+        const realIndex = existingCount + index;
 
-      const productsToCreate = Array.from({ length: 3 }).map((_, index) => {
-        const price = priceByIndex(index);
+        const price = priceByIndex(realIndex);
         const mrp = Math.round(price * 1.35);
 
         return {
-          name: `${category.name} ${index + 1}`,
-          slug: `${normalizedSlug}-${index + 1}`,
-          sku: makeSku(normalizedSlug, index),
+          name: `${category.name} ${realIndex + 1}`,
+          slug: `${normalizedSlug}-${realIndex + 1}`,
+          sku: makeSku(normalizedSlug, realIndex),
           mpn: "",
           brand: "Generic",
           category: "semiconductors",
@@ -108,7 +115,7 @@ async function run() {
           price,
           mrp,
           discount: Math.round(((mrp - price) / mrp) * 100),
-          stock: 100 + index * 25,
+          stock: 100 + realIndex * 25,
           moq: 1,
           unit: "piece",
           leadTimeDays: 2,

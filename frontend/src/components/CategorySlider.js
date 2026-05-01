@@ -1,132 +1,184 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Layers3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Layers3, Grid3X3 } from "lucide-react";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://royal-component-backend.onrender.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const fallbackImage = "/banner/new-products/banner-1.png";
 
-function getImageUrl(url) {
-  if (!url) return "/service-icons/ezbill.png";
-  if (url.startsWith("http")) return url;
-  return `${API_BASE}${url}`;
+const HOME_SEMICONDUCTOR_SLUGS = [
+  "amplifierscomparators",
+  "audiovideoics",
+  "chipprogrammersdebuggers",
+  "clocktimingfrequencyics",
+  "communicationwirelessmoduleics",
+  "dataconverters",
+  "discretesemiconductors",
+  "interfaceics",
+  "logicics",
+  "memorychips",
+  "powermanagementics",
+  "processorsmicrocontrollers",
+  "programmablelogicics",
+  "sensorics",
+];
+
+function getImageUrl(image) {
+  if (!image) return fallbackImage;
+  if (image.startsWith("http")) return image;
+  if (image.startsWith("/uploads")) return `${API_BASE}${image}`;
+  if (image.startsWith("/")) return image;
+  return `${API_BASE}/${image}`;
 }
 
 export default function CategorySlider() {
+  const sliderRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const visibleCategories = useMemo(() => {
+    return HOME_SEMICONDUCTOR_SLUGS.map((slug) =>
+      categories.find((cat) => cat?.slug === slug && cat?.isActive !== false)
+    ).filter(Boolean);
+  }, [categories]);
+
   useEffect(() => {
-    const fetchCategories = async () => {
+    async function fetchCategories() {
       try {
         const res = await fetch(`${API_BASE}/api/categories`, {
           cache: "no-store",
         });
+
         const data = await res.json();
 
-        if (data?.success) {
-          setCategories(data.categories || []);
-        }
+        const list = Array.isArray(data)
+          ? data
+          : data?.categories || data?.data || [];
+
+        setCategories(list);
       } catch (error) {
         console.error("Category fetch error:", error);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     fetchCategories();
   }, []);
 
-  return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#f7fcff] via-[#eef8ff] to-[#eaf5fd] py-16 sm:py-20">
-      {/* soft decorative blur */}
-      <div className="pointer-events-none absolute left-[-80px] top-[-80px] h-[220px] w-[220px] rounded-full bg-[#bae6fd]/40 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-[-100px] right-[-60px] h-[240px] w-[240px] rounded-full bg-[#7dd3fc]/20 blur-3xl" />
+  const scrollSlider = (direction) => {
+    if (!sliderRef.current) return;
 
-      <div className="container-royal relative z-10">
-        <div className="mx-auto mb-12 max-w-4xl text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#cfe8f7] bg-white/80 px-4 py-2 text-sm font-semibold text-[#0f6cbd] shadow-sm backdrop-blur">
-            <Layers3 size={16} />
-            Explore Product Families
-          </div>
+    const amount = Math.floor(window.innerWidth * 0.85);
 
-          <h2 className="text-[32px] font-extrabold tracking-[-0.03em] text-[#0f172a] sm:text-[42px] lg:text-[52px]">
-            Component Categories
-          </h2>
+    sliderRef.current.scrollBy({
+      left: direction === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
+  };
 
-          <p className="mx-auto mt-4 max-w-3xl text-[16px] leading-8 text-[#4f6f86] sm:text-[18px]">
-            Explore industrial, electrical and electronic categories for
-            procurement, repair, automation and embedded projects.
-          </p>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            {[...Array(8)].map((_, index) => (
+  if (loading) {
+    return (
+      <section className="w-full bg-[#f5fbff] py-16">
+        <div className="w-full px-4 sm:px-6 lg:px-10">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-[320px] animate-pulse rounded-[28px] border border-[#d9edf8] bg-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
+                className="h-[380px] animate-pulse rounded-[28px] bg-white shadow-sm"
               />
             ))}
           </div>
-        ) : categories.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            {categories.map((item) => (
-              <Link
-                key={item._id || item.slug}
-                href={`/category/${item.slug}`}
-                className="group relative overflow-hidden rounded-[28px] border border-[#d7ebf8] bg-white/95 px-6 py-7 text-center shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-2 hover:border-[#8fd3ff] hover:shadow-[0_18px_45px_rgba(15,108,189,0.14)]"
-              >
-                {/* top hover glow */}
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#38bdf8] via-[#0f6cbd] to-[#38bdf8] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        </div>
+      </section>
+    );
+  }
 
-                {/* image wrapper */}
-                <div className="mb-6 flex h-[160px] w-full items-center justify-center rounded-[22px] border border-[#e8f4fb] bg-gradient-to-b from-[#f9fdff] to-[#eff8fe] p-4">
-                  <img
-                    src={getImageUrl(item.image)}
-                    alt={item.iconAlt || item.name}
-                    className="max-h-[120px] w-auto max-w-[180px] object-contain transition-transform duration-300 group-hover:scale-110"
-                  />
-                </div>
+  if (!visibleCategories.length) return null;
 
-                {/* content */}
-                <h3 className="text-[22px] font-extrabold tracking-[-0.02em] text-[#0f6cbd] transition-colors duration-300 group-hover:text-[#0b5ca0]">
-                  {item.name}
-                </h3>
-
-                {item.description ? (
-                  <p className="mt-4 line-clamp-3 min-h-[84px] text-[15px] leading-7 text-[#56758c]">
-                    {item.description}
-                  </p>
-                ) : (
-                  <p className="mt-4 min-h-[84px] text-[15px] leading-7 text-[#56758c]">
-                    Explore quality products, industrial-grade inventory and
-                    category-specific sourcing options.
-                  </p>
-                )}
-
-                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-[#b6dcff] bg-[#d6ecff] px-4 py-2 text-sm font-extrabold text-[#000000] transition-all duration-300 group-hover:border-[#9fd3ff] group-hover:bg-[#c5e4ff]">
-                  View Category
-                  <ChevronRight
-                    size={16}
-                    className="transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </div>
-              </Link>
-            ))}
+  return (
+    <section className="relative w-full overflow-hidden bg-[#f5fbff] py-16">
+      <div className="w-full px-4 sm:px-6 lg:px-10">
+        <div className="mb-10 text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#b9defa] bg-white px-5 py-2 text-sm font-bold text-[#006bb6] shadow-sm">
+            <Layers3 size={17} />
+            Explore Product Families
           </div>
-        ) : (
-          <div className="rounded-[28px] border border-[#d7ebf8] bg-white p-10 text-center shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-            <h3 className="text-[22px] font-bold text-[#0f172a]">
-              No categories available right now
-            </h3>
-            <p className="mt-3 text-[15px] text-[#6b879b]">
-              Please check again later for updated product categories.
-            </p>
+
+          <h2 className="text-4xl font-black tracking-tight text-[#0d1b33] md:text-5xl">
+            Component Categories
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-[#46627f]">
+            Explore industrial, electrical and electronic categories for
+            procurement, repair, automation and embedded projects.
+          </p>
+
+          <div className="mt-7">
+            <Link
+              href="/category/semiconductors"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#8dccf7] bg-[#d8efff] px-8 py-3 text-[16px] font-black text-[#003b63] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#bfe5ff] hover:shadow-md"
+            >
+              <Grid3X3 size={18} />
+              Explore All Categories
+              <ChevronRight size={18} />
+            </Link>
           </div>
-        )}
+        </div>
+
+        <div className="relative w-full">
+          <button
+            type="button"
+            onClick={() => scrollSlider("left")}
+            className="absolute left-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#b9defa] bg-white text-[#006bb6] shadow-lg transition hover:bg-[#eaf6ff] lg:flex"
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {visibleCategories.map((cat) => {
+              const slug = cat.slug || "";
+              const href = `/category/semiconductors?subCategory=${slug}`;
+
+              return (
+                <Link
+                  key={cat._id || slug}
+                  href={href}
+                  className="group flex flex-col rounded-[24px] border border-[#d7ebfb] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#38a9f4] hover:shadow-xl"
+                >
+                  <div className="mb-5 flex h-[140px] items-center justify-center rounded-[18px] border border-[#e0f0fb] bg-[#f5fbff]">
+                    <img
+                      src={getImageUrl(cat.image)}
+                      alt={cat.name}
+                      className="h-[110px] object-contain"
+                    />
+                  </div>
+
+                  <h3 className="text-[18px] font-black text-[#006bb6] leading-tight">
+                    {cat.name}
+                  </h3>
+
+                  <p className="mt-2 text-[13px] text-[#46627f] line-clamp-2">
+                    {cat.description}
+                  </p>
+
+                  <span className="mt-4 inline-block rounded-full bg-[#d8efff] px-4 py-2 text-xs font-bold">
+                    View Category →
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => scrollSlider("right")}
+            className="absolute right-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#b9defa] bg-white text-[#006bb6] shadow-lg transition hover:bg-[#eaf6ff] lg:flex"
+          >
+            <ChevronRight size={24} />
+          </button>
+        </div>
       </div>
     </section>
   );

@@ -881,3 +881,58 @@ exports.getSimilarProducts = async (req, res) => {
     });
   }
 };
+exports.searchProductsByImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Image is required",
+      });
+    }
+
+    const fileName = String(req.file.originalname || "")
+      .toLowerCase()
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[-_]/g, " ")
+      .trim();
+
+    const keywords = fileName.split(" ").filter(Boolean);
+
+    const regex = keywords.length
+      ? new RegExp(keywords.join("|"), "i")
+      : new RegExp("", "i");
+
+    const products = await Product.find({
+      isActive: true,
+      status: "published",
+      $or: [
+        { name: regex },
+        { slug: regex },
+        { sku: regex },
+        { mpn: regex },
+        { brand: regex },
+        { category: regex },
+        { subCategory: regex },
+        { shortDescription: regex },
+        { description: regex },
+        { tags: regex },
+      ],
+    })
+      .select(
+        "name slug sku brand category subCategory thumbnail images price mrp discount stock moq unit shortDescription"
+      )
+      .limit(40)
+      .lean();
+
+    res.json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    console.error("Image search error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Image search failed",
+    });
+  }
+};

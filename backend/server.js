@@ -8,6 +8,7 @@ const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
 const couponRoutes = require("./routes/couponRoutes");
+const chatRoutes = require("./routes/chatRoutes");
 
 dotenv.config();
 
@@ -107,6 +108,7 @@ app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/categories", categoryRoutes);
 app.use("/api/coupons", couponRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
