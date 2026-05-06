@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Building2, CreditCard, FileText, IndianRupee, ShieldCheck, Truck } from "lucide-react";
+import {
+  Building2,
+  CreditCard,
+  FileText,
+  IndianRupee,
+  ShieldCheck,
+  Truck,
+  Copy,
+  Smartphone,
+} from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
 const iconMap = {
@@ -94,17 +103,15 @@ export default function PaymentMethodSelector({
               type="button"
               disabled={!method.enabled}
               onClick={() => method.enabled && onChange(method.id)}
-              className={`relative rounded-xl border p-4 text-left transition ${
-                active
+              className={`relative rounded-xl border p-4 text-left transition ${active
                   ? "border-[#2454b5] bg-[#edf3ff] shadow-[0_0_0_3px_rgba(36,84,181,0.10)]"
                   : "border-[#dbe5f0] bg-white hover:border-[#8bb7ee]"
-              } ${!method.enabled ? "cursor-not-allowed opacity-50" : ""}`}
+                } ${!method.enabled ? "cursor-not-allowed opacity-50" : ""}`}
             >
               <div className="flex gap-3">
                 <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                    active ? "bg-[#2454b5] text-white" : "bg-[#eaf3ff] text-[#2454b5]"
-                  }`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${active ? "bg-[#2454b5] text-white" : "bg-[#eaf3ff] text-[#2454b5]"
+                    }`}
                 >
                   <Icon size={19} />
                 </div>
@@ -136,10 +143,15 @@ export default function PaymentMethodSelector({
         <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
           <div className="mb-2 flex items-center gap-2 font-bold text-[#102033]">
             <ShieldCheck size={18} className="text-[#2454b5]" />
-            Bank details will be shared after order confirmation
+            Pay to Royal Component bank account
           </div>
 
           <div className="grid gap-2 text-sm text-[#607287] md:grid-cols-2">
+
+            <p className="mt-3 rounded-xl border border-[#bae6fd] bg-white p-3 text-sm font-bold text-[#075985]">
+              Payment karne ke baad order details page par UTR / screenshot upload karein.
+              Admin verify karne ke baad payment status Paid ho jayega.
+            </p>
             <p>Account Name: {bankDetails.accountName}</p>
             <p>Bank: {bankDetails.bankName}</p>
             <p>Account No: {bankDetails.accountNumber}</p>
@@ -157,11 +169,25 @@ export default function PaymentMethodSelector({
       ) : null}
 
       {value === "online-payment" ? (
-        <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4 text-sm text-[#607287]">
-          Online payment gateway can be connected later with Razorpay. For now, this
-          order will be saved with payment status as Pending.
-        </div>
-      ) : null}
+  <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
+    <div className="mb-3 flex items-center gap-2 font-bold text-[#102033]">
+      <Smartphone size={18} className="text-[#2454b5]" />
+      Manual UPI / Card Payment
+    </div>
+
+    <div className="grid gap-2 text-sm text-[#607287] md:grid-cols-2">
+      <p>UPI Name: {bankDetails?.upiName || "Royal Component"}</p>
+      <p>UPI ID: {bankDetails?.upiId || "Add UPI ID"}</p>
+      <p>Card Payment: Share payment reference after payment</p>
+      <p>Status: Pending until admin verification</p>
+    </div>
+
+    <p className="mt-3 rounded-xl border border-[#bae6fd] bg-white p-3 text-sm font-bold text-[#075985]">
+      UPI/Card payment karne ke baad order details page par UTR / screenshot
+      upload karein. Admin verify karne ke baad payment status Paid ho jayega.
+    </p>
+  </div>
+) : null}
     </section>
   );
 }

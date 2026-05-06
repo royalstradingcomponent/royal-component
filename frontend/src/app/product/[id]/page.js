@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
 import { getProductImage } from "@/lib/getProductImage";
+import ProductImageGallery from "@/components/ProductImageGallery";
 import { apiRequest, API_BASE } from "@/lib/api";
 import {
   Star,
@@ -166,6 +167,20 @@ function getBulkPricingRows(product) {
 }
 
 function getFeatureCards(product) {
+  // ✅ Admin controlled
+  if (product?.highlights?.length > 0) {
+    return product.highlights
+      .filter((item) => item.isActive !== false)
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((item) => ({
+        title: item.title,
+        desc: item.description,
+        icon: ShieldCheck,
+        iconWrap: "bg-[#eef4ff] text-[#2452c6]",
+      }));
+  }
+
+  // 🔁 fallback
   return [
     {
       title: "Reliable Quality",
@@ -218,35 +233,16 @@ function getQuickSpecs(product) {
 }
 
 function getApplications(product) {
-  const category = String(product?.category || "").toLowerCase();
-
-  if (category.includes("semi")) {
-    return [
-      "Embedded systems and controller boards",
-      "Signal communication and interface circuits",
-      "Industrial automation projects",
-      "Repair, maintenance and replacement sourcing",
-    ];
+  // ✅ Admin controlled
+  if (product?.applications?.length > 0) {
+    return product.applications
+      .filter((item) => item.isActive !== false)
+      .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+      .map((item) => item.text)
+      .filter(Boolean);
   }
 
-  if (category.includes("sensor")) {
-    return [
-      "Monitoring and detection systems",
-      "Industrial automation control panels",
-      "Smart electronics projects",
-      "OEM and field replacement requirements",
-    ];
-  }
-
-  if (category.includes("cable")) {
-    return [
-      "Panel wiring and industrial connections",
-      "Power and signal routing applications",
-      "Machine installation projects",
-      "Maintenance and replacement sourcing",
-    ];
-  }
-
+  // 🔁 fallback
   return [
     "Industrial electronics and control systems",
     "PCB assembly and engineering projects",
@@ -403,27 +399,7 @@ export default async function ProductDetailPage({ params }) {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_560px]">
           <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-[90px_minmax(0,1fr)]">
-              <div className="flex gap-4 md:flex-col">
-                <div className="rounded-sm border-2 border-[#1d4ed8] bg-white p-2">
-                  <img
-                    src={getProductImage(product)}
-                    alt={product?.name || "Product"}
-                    className="h-[72px] w-[72px] object-contain"
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-sm bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-center">
-                  <img
-                    src={getProductImage(product)}
-                    alt={product?.name || "Product"}
-                    className="h-[420px] w-full object-contain md:h-[560px]"
-                  />
-                </div>
-              </div>
-            </div>
+            <ProductImageGallery product={product} />
 
             <section className="rounded-sm bg-white p-6 shadow-sm">
               <div className="flex items-start gap-3">
@@ -749,81 +725,118 @@ export default async function ProductDetailPage({ params }) {
                 </div>
               </section>
 
-              </div>
+              {product?.customSections
+                ?.filter((section) => section.isActive !== false)
+                ?.sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+                ?.map((section, index) => (
+                  <section
+                    key={`${section.title}-${index}`}
+                    className="rounded-sm bg-white p-6 shadow-sm"
+                  >
+                    <h2 className="text-[22px] font-extrabold text-[#111827]">
+                      {section.title}
+                    </h2>
 
-              {similarProducts.length > 0 ? (
-                <section className="lg:col-span-2 rounded-sm bg-white p-6 shadow-sm">
-                  <div className="mb-6 flex items-end justify-between gap-4">
-                    <div>
-                      <h2 className="text-[22px] font-extrabold text-[#111827]">
-                        Similar products
-                      </h2>
-                      <p className="mt-2 text-[16px] text-slate-600">
-                        You may also be interested in these related items.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                    {similarProducts.slice(0, 10).map((item) => (
-                      <ProductCard
-                        key={item?._id || item?.slug}
-                        product={item}
+                    {section.image ? (
+                      <img
+                        src={getImageUrl(section.image)}
+                        alt={section.title}
+                        className="mt-5 max-h-[360px] w-full rounded-sm object-contain"
                       />
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+                    ) : null}
+
+                    {section.content ? (
+                      <p className="mt-5 whitespace-pre-line text-[17px] leading-9 text-[#111827]">
+                        {section.content}
+                      </p>
+                    ) : null}
+
+                    {section.buttonText && section.buttonLink ? (
+                      <Link
+                        href={section.buttonLink}
+                        className="mt-5 inline-flex bg-[#2452c6] px-5 py-3 font-bold text-white"
+                      >
+                        {section.buttonText}
+                      </Link>
+                    ) : null}
+                  </section>
+                ))}
+
             </div>
 
-            <div className="space-y-6">
-              <div className="rounded-sm bg-[#7f0c19] p-6 text-white shadow-sm">
-                <h3 className="text-[18px] font-extrabold uppercase tracking-wide">
-                  Royal Procurement Plus
-                </h3>
+            {similarProducts.length > 0 ? (
+              <section className="lg:col-span-2 rounded-sm bg-white p-6 shadow-sm">
+                <div className="mb-6 flex items-end justify-between gap-4">
+                  <div>
+                    <h2 className="text-[22px] font-extrabold text-[#111827]">
+                      Similar products
+                    </h2>
+                    <p className="mt-2 text-[16px] text-slate-600">
+                      You may also be interested in these related items.
+                    </p>
+                  </div>
+                </div>
 
-                <p className="mt-4 text-[30px] font-extrabold leading-tight">
-                  Bulk sourcing support
-                </p>
+                <div className="grid gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {similarProducts.slice(0, 10).map((item) => (
+                    <ProductCard
+                      key={item?._id || item?.slug}
+                      product={item}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
 
-                <p className="mt-3 text-[16px] leading-8 text-white/95">
-                  Get quotation, BOM support, technical sourcing assistance and
-                  procurement help for semiconductors, connectors, modules and
-                  industrial components.
-                </p>
+          <div className="space-y-6">
+            <div className="rounded-sm bg-[#7f0c19] p-6 text-white shadow-sm">
+              <h3 className="text-[18px] font-extrabold uppercase tracking-wide">
+                Royal Procurement Plus
+              </h3>
 
-                <ul className="mt-5 space-y-3 text-[16px] leading-7">
-                  <li>• Bulk pricing for repeat buyers</li>
-                  <li>• Technical document support</li>
-                  <li>• Fast quotation for urgent requirements</li>
-                </ul>
+              <p className="mt-4 text-[30px] font-extrabold leading-tight">
+                Bulk sourcing support
+              </p>
 
-                <button
-                  type="button"
-                  className="mt-6 inline-flex h-[54px] w-full items-center justify-center bg-white px-5 text-[18px] font-bold text-[#111827] transition hover:bg-slate-100"
-                >
-                  Click here to find out more
-                </button>
-              </div>
+              <p className="mt-3 text-[16px] leading-8 text-white/95">
+                Get quotation, BOM support, technical sourcing assistance and
+                procurement help for semiconductors, connectors, modules and
+                industrial components.
+              </p>
 
-              <div className="rounded-sm bg-white p-6 shadow-sm">
-                <h3 className="text-[20px] font-extrabold text-[#111827]">
-                  Need a custom quote?
-                </h3>
-                <p className="mt-3 text-[16px] leading-8 text-slate-600">
-                  For OEM, reseller, institution and distributor requirements,
-                  request custom pricing based on quantity and delivery schedule.
-                </p>
+              <ul className="mt-5 space-y-3 text-[16px] leading-7">
+                <li>• Bulk pricing for repeat buyers</li>
+                <li>• Technical document support</li>
+                <li>• Fast quotation for urgent requirements</li>
+              </ul>
 
-                <button
-                  type="button"
-                  className="mt-5 inline-flex h-[52px] w-full items-center justify-center bg-[#2452c6] px-5 text-[18px] font-semibold text-white transition hover:bg-[#1e40af]"
-                >
-                  Request bulk quotation
-                </button>
-              </div>
+              <button
+                type="button"
+                className="mt-6 inline-flex h-[54px] w-full items-center justify-center bg-white px-5 text-[18px] font-bold text-[#111827] transition hover:bg-slate-100"
+              >
+                Click here to find out more
+              </button>
+            </div>
+
+            <div className="rounded-sm bg-white p-6 shadow-sm">
+              <h3 className="text-[20px] font-extrabold text-[#111827]">
+                Need a custom quote?
+              </h3>
+              <p className="mt-3 text-[16px] leading-8 text-slate-600">
+                For OEM, reseller, institution and distributor requirements,
+                request custom pricing based on quantity and delivery schedule.
+              </p>
+
+              <button
+                type="button"
+                className="mt-5 inline-flex h-[52px] w-full items-center justify-center bg-[#2452c6] px-5 text-[18px] font-semibold text-white transition hover:bg-[#1e40af]"
+              >
+                Request bulk quotation
+              </button>
             </div>
           </div>
+        </div>
       </section>
 
       <Footer />

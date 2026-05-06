@@ -9,7 +9,12 @@ const SERVER_API_BASE =
 export const API_BASE =
   typeof window === "undefined" ? SERVER_API_BASE : PUBLIC_API_BASE;
 
-function getStoredToken() {
+export function getAdminToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("adminToken");
+}
+
+export function getUserToken() {
   if (typeof window === "undefined") return null;
 
   try {
@@ -24,12 +29,15 @@ function getStoredToken() {
 }
 
 export async function apiRequest(endpoint, options = {}) {
-  const token = getStoredToken();
+  const token = options.admin ? getAdminToken() : getUserToken();
+
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
 
   const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
@@ -37,6 +45,7 @@ export async function apiRequest(endpoint, options = {}) {
   });
 
   let data = null;
+
   try {
     data = await res.json();
   } catch {
@@ -48,4 +57,11 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   return data;
+}
+
+export async function adminRequest(endpoint, options = {}) {
+  return apiRequest(endpoint, {
+    ...options,
+    admin: true,
+  });
 }

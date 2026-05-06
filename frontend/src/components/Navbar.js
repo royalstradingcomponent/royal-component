@@ -3,13 +3,13 @@
 import Link from "next/link";
 import {
   Menu,
-  Search,
   ShoppingCart,
   User,
   X,
   ChevronRight,
   ChevronDown,
   Package,
+  PackageSearch,
   RotateCcw,
   Heart,
   TicketPercent,
@@ -26,19 +26,23 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import SearchBar from "@/components/SearchBar";
+import { API_BASE } from "@/lib/api";
 
-const categories = [
-  { name: "Semiconductors", href: "/products?category=semiconductors" },
-  { name: "Automation", href: "/products?category=automation" },
-  { name: "Switchgear", href: "/products?category=switchgear" },
-  { name: "Sensors", href: "/products?category=sensors" },
-  { name: "PLC", href: "/products?category=plc" },
-  { name: "Cables", href: "/products?category=cables" },
-  { name: "Tools", href: "/products?category=tools" },
+const fallbackCategories = [
+  { name: "Amplifiers & Comparators", slug: "amplifierscomparators" },
+  { name: "Audio & Video ICs", slug: "audiovideoics" },
+  { name: "Chip Programmers & Debuggers", slug: "chipprogrammersdebuggers" },
+  { name: "Clock, Timing & Frequency ICs", slug: "clocktimingfrequencyics" },
+  {
+    name: "Communication & Wireless Module ICs",
+    slug: "communicationwirelessmoduleics",
+  },
 ];
 
 const accountMenuItems = [
   { label: "My Orders", href: "/checkout/order", icon: Package },
+  { label: "Request Component", href: "/request-component", icon: PackageSearch },
+  { label: "Track Request", href: "/request-component/my-requests", icon: PackageSearch },
   { label: "Buy Again", href: "/checkout/order", icon: RotateCcw },
   { label: "My Account", href: "/account", icon: LayoutDashboard },
   { label: "Wishlist", href: "/wishlist", icon: Heart },
@@ -48,17 +52,30 @@ const accountMenuItems = [
   { label: "FAQ", href: "/contact#faq", icon: CircleHelp },
 ];
 
+function getCategoryHref(item) {
+  if (item?.href) return item.href;
+
+  return `/products?category=semiconductors&subCategory=${encodeURIComponent(
+    item?.slug || ""
+  )}`;
+}
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [categories, setCategories] = useState(fallbackCategories);
+  const [isSemiconductorMenuOpen, setIsSemiconductorMenuOpen] = useState(false);
 
   const { user, logout } = useAuth();
   const { cartSummary, cartItems } = useCart();
   const { wishlistItems } = useWishlist();
 
   const accountMenuRef = useRef(null);
+
+  const visibleCategories = categories.slice(0, 5);
+  const allSemiconductorCategories = categories;
 
   const wishlistCount = (wishlistItems || []).length;
 
@@ -70,7 +87,9 @@ export default function Navbar() {
     );
 
   const userName = useMemo(() => {
-    return String(user?.name || user?.fullName || user?.email || "My Account").trim();
+    return String(
+      user?.name || user?.fullName || user?.email || "My Account"
+    ).trim();
   }, [user]);
 
   const userEmail = useMemo(() => {
@@ -81,6 +100,47 @@ export default function Navbar() {
     const name = String(user?.name || user?.fullName || "My Account").trim();
     return name.length > 18 ? `${name.slice(0, 18)}...` : name;
   }, [user]);
+
+  useEffect(() => {
+    const fetchNavbarCategories = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/categories`, {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!data?.success) return;
+
+        const semiconductorSubCategories = (data.categories || [])
+          .filter((cat) => cat.isActive !== false)
+          .filter((cat) => cat.showInNavbar !== false)
+          .filter((cat) => cat.parentSlug === "semiconductors")
+          .sort(
+            (a, b) =>
+              Number(a.navbarOrder || 0) - Number(b.navbarOrder || 0) ||
+              Number(a.order || 0) - Number(b.order || 0)
+          )
+          .map((cat) => ({
+            _id: cat._id,
+            name: cat.name,
+            slug: cat.slug,
+            href: `/products?category=semiconductors&subCategory=${encodeURIComponent(
+              cat.slug
+            )}`,
+          }))
+          .filter((cat) => cat.name && cat.slug);
+
+        if (semiconductorSubCategories.length > 0) {
+          setCategories(semiconductorSubCategories);
+        }
+      } catch (error) {
+        console.error("Navbar category fetch error:", error);
+      }
+    };
+
+    fetchNavbarCategories();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -105,13 +165,13 @@ export default function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-[#d6e8f5] bg-white shadow-[0_6px_24px_rgba(15,23,42,0.06)]">
-        <div className="bg-gradient-to-r from-[#0f6cbd] via-[#1792e8] to-[#38bdf8] px-4 py-2 text-center text-xs font-medium tracking-wide text-white sm:text-sm">
+        <div className="bg-gradient-to-r from-[#0f6cbd] via-[#1792e8] to-[#38bdf8] px-4 py-2 text-center text-xs font-semibold tracking-wide text-white sm:text-sm">
           Trusted Industrial Components • Fast Procurement • Bulk Order Support
         </div>
 
-        <div className="container-royal">
+        <div className="mx-auto w-full max-w-[1500px] px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-3 py-4 lg:py-5">
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 className="rounded-md p-2 text-[#0f3d67] transition hover:bg-[#eaf6ff] lg:hidden"
                 onClick={() => setMobileOpen(true)}
@@ -121,16 +181,16 @@ export default function Navbar() {
                 <Menu size={24} />
               </button>
 
-              <Link href="/" className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#1792e8] to-[#0f6cbd] text-xl font-extrabold text-white shadow-sm">
+              <Link href="/" className="flex min-w-0 items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1792e8] to-[#0f6cbd] text-xl font-extrabold text-white shadow-sm">
                   RC
                 </div>
 
-                <div>
-                  <p className="text-lg font-extrabold leading-none text-[#0f172a] sm:text-[1.75rem]">
+                <div className="min-w-0">
+                  <p className="truncate text-lg font-extrabold leading-none text-[#0f172a] sm:text-[1.75rem]">
                     Royal Component
                   </p>
-                  <p className="mt-1 text-[11px] font-medium tracking-[0.02em] text-[#5f7d95] sm:text-xs">
+                  <p className="mt-1 hidden text-[11px] font-medium tracking-[0.02em] text-[#5f7d95] sm:block sm:text-xs">
                     Industrial Solutions Store
                   </p>
                 </div>
@@ -141,7 +201,7 @@ export default function Navbar() {
               <SearchBar />
             </div>
 
-            <div className="flex items-center gap-2 text-[#0f172a] sm:gap-3">
+            <div className="flex shrink-0 items-center gap-2 text-[#0f172a] sm:gap-3">
               {!user?.token ? (
                 <button
                   type="button"
@@ -183,6 +243,7 @@ export default function Navbar() {
                       <div className="max-h-[420px] overflow-y-auto py-2">
                         {accountMenuItems.map((item) => {
                           const Icon = item.icon;
+
                           return (
                             <Link
                               key={item.label}
@@ -211,6 +272,22 @@ export default function Navbar() {
                   ) : null}
                 </div>
               )}
+
+              <Link
+                href="/request-component"
+                className="hidden h-[46px] items-center gap-2 rounded-full border border-[#b9e6fb] bg-[#eaf7ff] px-5 text-sm font-extrabold text-[#0f6cbd] shadow-sm transition hover:border-[#38bdf8] hover:bg-[#dff2ff] md:flex"
+                >
+                <PackageSearch size={18} />
+                Request Component
+              </Link>
+
+              <Link
+                href="/request-component/my-requests"
+                className="hidden h-[46px] items-center gap-2 rounded-full border border-[#b9e6fb] bg-[#eaf7ff] px-5 text-sm font-extrabold text-[#0f6cbd] shadow-sm transition hover:border-[#38bdf8] hover:bg-[#dff2ff] md:flex"
+                >
+                <PackageSearch size={18} />
+                Track Request
+              </Link>
 
               <Link
                 href="/wishlist"
@@ -243,17 +320,73 @@ export default function Navbar() {
             </div>
           </div>
 
-          <nav className="hidden items-center gap-2 border-t border-[#e6f1f8] py-3 lg:flex xl:gap-3">
-            {categories.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="group relative inline-flex items-center rounded-full px-4 py-2.5 text-[15px] font-semibold text-[#33546d] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+          <nav className="hidden border-t border-[#e6f1f8] py-3 lg:block">
+            <div className="flex items-center gap-2 whitespace-nowrap xl:gap-3">
+              {/* ALL SEMICONDUCTORS - FIRST */}
+              <div
+                className="relative shrink-0"
+                onMouseEnter={() => setIsSemiconductorMenuOpen(true)}
+                onMouseLeave={() => setIsSemiconductorMenuOpen(false)}
               >
-                <span>{item.name}</span>
-                <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
-              </Link>
-            ))}
+                <Link
+                  href="/products?category=semiconductors"
+                  className="inline-flex items-center gap-2 rounded-full border border-[#0f6cbd]/25 bg-[#eaf7ff] px-5 py-2.5 text-[15px] font-extrabold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#dff2ff]"
+                >
+                  All Semiconductors
+                  <ChevronDown size={16} />
+                </Link>
+
+                <div
+                  className={`absolute left-0 top-full z-[90] mt-3 w-[980px] max-w-[calc(100vw-48px)] rounded-[24px] border border-[#d7e7f4] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] transition-all duration-200 ${isSemiconductorMenuOpen
+                    ? "visible opacity-100"
+                    : "invisible opacity-0"
+                    }`}
+                >                  <div className="mb-4 flex items-center justify-between border-b border-[#e8f1f8] pb-3">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-[#0f172a]">
+                        All Semiconductor Categories
+                      </h3>
+                      <p className="text-sm text-[#5f7d95]">
+                        Browse ICs, modules, controllers, sensors and electronic components.
+                      </p>
+                    </div>
+
+                    <Link
+                      href="/products?category=semiconductors"
+                      className="rounded-full bg-[#eaf7ff] px-4 py-2 text-sm font-bold text-[#0f6cbd] hover:bg-[#dff2ff]"
+                    >
+                      View All
+                    </Link>
+                  </div>
+
+                  <div className="grid max-h-[420px] grid-cols-3 gap-2 overflow-y-auto pr-1 xl:grid-cols-4">
+                    {allSemiconductorCategories.map((item) => (
+                      <Link
+                        key={item._id || item.slug}
+                        href={getCategoryHref(item)}
+                        onClick={() => setIsSemiconductorMenuOpen(false)}
+                        className="flex min-h-[48px] items-center justify-between rounded-xl border border-[#e6f1f8] bg-[#f8fcff] px-4 py-3 text-sm font-bold text-[#23435b] transition hover:border-[#38bdf8] hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+                      >
+                        <span className="whitespace-normal leading-snug">{item.name}</span>
+                        <ChevronRight size={16} className="shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* TOP 5 CATEGORIES AFTER ALL SEMICONDUCTORS */}
+              {visibleCategories.map((item) => (
+                <Link
+                  key={item._id || item.slug}
+                  href={getCategoryHref(item)}
+                  className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-semibold text-[#33546d] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+                >
+                  <span>{item.name}</span>
+                  <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
+                </Link>
+              ))}
+            </div>
           </nav>
         </div>
 
@@ -324,6 +457,7 @@ export default function Navbar() {
                     <div className="py-2">
                       {accountMenuItems.map((item) => {
                         const Icon = item.icon;
+
                         return (
                           <Link
                             key={item.label}
@@ -358,8 +492,8 @@ export default function Navbar() {
                 <div className="space-y-2">
                   {categories.map((item) => (
                     <Link
-                      key={item.name}
-                      href={item.href}
+                      key={item._id || item.slug}
+                      href={getCategoryHref(item)}
                       className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
                       onClick={() => setMobileOpen(false)}
                     >
@@ -367,6 +501,30 @@ export default function Navbar() {
                       <ChevronRight size={17} />
                     </Link>
                   ))}
+
+                  <Link
+                    href="/request-component"
+                    className="flex items-center justify-between rounded-xl border border-[#b9e6fb] bg-[#eaf7ff] px-4 py-3 text-sm font-extrabold text-[#0f6cbd] transition hover:border-[#38bdf8] hover:bg-[#dff2ff]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="flex items-center gap-3">
+                      <PackageSearch size={17} />
+                      Request Component
+                    </span>
+                    <ChevronRight size={17} />
+                  </Link>
+
+                  <Link
+                    href="/request-component/my-requests"
+                    className="flex items-center justify-between rounded-xl border border-[#b9e6fb] bg-[#eaf7ff] px-4 py-3 text-sm font-extrabold text-[#0f6cbd] transition hover:border-[#38bdf8] hover:bg-[#dff2ff]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="flex items-center gap-3">
+                      <PackageSearch size={17} />
+                      Track Request
+                    </span>
+                    <ChevronRight size={17} />
+                  </Link>
 
                   <Link
                     href="/wishlist"
@@ -407,8 +565,8 @@ export default function Navbar() {
         isOpen={isRegisterOpen}
         onClose={() => setIsRegisterOpen(false)}
         openLogin={() => {
-          setIsRegisterOpen(false);
-          setIsLoginOpen(true);
+          setIsLoginOpen(false);
+          setIsRegisterOpen(true);
         }}
       />
     </>

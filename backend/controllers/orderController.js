@@ -739,3 +739,286 @@
       });
     }
   };
+
+  /* =====================================================
+  CUSTOMER REQUEST REFUND
+  POST /api/orders/refund/:id
+===================================================== */
+exports.requestRefund = async (req, res) => {
+  try {
+    const {
+      reason = "",
+      comment = "",
+      method = "ORIGINAL_PAYMENT",
+      upi = {},
+      bank = {},
+      card = {},
+    } = req.body;
+
+    if (!reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Refund reason is required",
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (!["Delivered", "Cancelled"].includes(order.orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Refund can be requested only after delivered or cancelled order",
+      });
+    }
+
+    if (
+      order.refund?.status &&
+      ["Requested", "Approved", "Processing", "Refunded"].includes(
+        order.refund.status
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Refund request already exists for this order",
+      });
+    }
+
+    if (order.payment?.method === "COD" && method !== "BANK_ACCOUNT") {
+      return res.status(400).json({
+        success: false,
+        message: "For COD orders, bank account details are required",
+      });
+    }
+
+    if (method === "BANK_ACCOUNT") {
+      if (!bank.accountHolderName || !bank.accountNumber || !bank.ifsc) {
+        return res.status(400).json({
+          success: false,
+          message: "Account holder name, account number and IFSC are required",
+        });
+      }
+    }
+
+    if (method === "UPI") {
+      if (!upi.upiId && !upi.phone) {
+        return res.status(400).json({
+          success: false,
+          message: "UPI ID or UPI phone number is required",
+        });
+      }
+    }
+
+    if (method === "CARD") {
+      if (!card.transactionId && !card.last4) {
+        return res.status(400).json({
+          success: false,
+          message: "Card transaction ID or last 4 digits are required",
+        });
+      }
+    }
+
+    const refundAmount = Number(order.pricing?.totalAmount || 0);
+
+    order.refund.status = "Requested";
+    order.refund.amount = refundAmount;
+    order.refund.reason = reason;
+    order.refund.comment = comment;
+    order.refund.method = method;
+
+    order.refund.upi = {
+      upiId: upi.upiId || "",
+      phone: upi.phone || "",
+    };
+
+    order.refund.bank = {
+      accountHolderName: bank.accountHolderName || "",
+      accountNumber: bank.accountNumber || "",
+      ifsc: bank.ifsc || "",
+      bankName: bank.bankName || "",
+    };
+
+    order.refund.card = {
+      last4: card.last4 || "",
+      transactionId: card.transactionId || "",
+    };
+
+    order.refund.requestedAt = new Date();
+
+    order.refund.history.push({
+      status: "Requested",
+      message: "Refund request submitted by customer",
+      date: new Date(),
+    });
+
+    order.payment.status = "Refund Pending";
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Refund request submitted successfully",
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    console.error("REQUEST REFUND ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Refund request failed",
+    });
+  }
+};
+
+/* =====================================================
+  ADMIN UPDATE REFUND
+  PUT /api/orders/admin/refund/:id
+===================================================== */
+exports.adminUpdateRefund = async (req, res) => {
+  try {
+    const {
+      status,
+      adminNote = "",
+      refundReferenceId = "",
+      amount,
+    } = req.body;
+
+    const allowedStatuses = ["Approved", "Rejected", "Processing", "Refunded"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid refund status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (!order.refund || order.refund.status === "Not Requested") {
+      return res.status(400).json({
+        success: false,
+        message: "No refund request found for this order",
+      });
+    }
+
+    order.refund.status = status;
+
+    if (amount !== undefined) {
+      order.refund.amount = Number(amount || 0);
+    }
+
+    order.refund.admin.note = adminNote;
+    order.refund.admin.processedBy = req.user?._id || null;
+    order.refund.admin.refundReferenceId = refundReferenceId;
+
+    if (status === "Approved") {
+      order.refund.approvedAt = new Date();
+      order.payment.status = "Refund Processing";
+    }
+
+    if (status === "Rejected") {
+      order.refund.rejectedAt = new Date();
+      order.payment.status = "Paid";
+    }
+
+    if (status === "Processing") {
+      order.refund.processedAt = new Date();
+      order.payment.status = "Refund Processing";
+    }
+
+    if (status === "Refunded") {
+      order.refund.refundedAt = new Date();
+      order.payment.status = "Refunded";
+    }
+
+    order.refund.history.push({
+      status,
+      message: adminNote || `Refund status updated to ${status}`,
+      date: new Date(),
+    });
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Refund updated successfully",
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    console.error("ADMIN UPDATE REFUND ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Refund update failed",
+    });
+  }
+};
+
+/* =====================================================
+  CUSTOMER SUBMIT PAYMENT PROOF
+  POST /api/orders/payment-proof/:id
+===================================================== */
+exports.submitPaymentProof = async (req, res) => {
+  try {
+    const { utr = "", note = "" } = req.body;
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (["Paid", "Refunded"].includes(order.payment.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment proof cannot be updated after payment is completed",
+      });
+    }
+
+    order.payment.proof = {
+      image: req.file ? `/${req.file.path.replace(/\\/g, "/")}` : order.payment.proof?.image || "",
+      utr: String(utr || "").trim(),
+      note: String(note || "").trim(),
+      uploadedAt: new Date(),
+    };
+
+    order.payment.transactionId = String(utr || "").trim();
+    order.payment.status = "Awaiting Verification";
+    order.payment.paymentChanged = true;
+    order.payment.paymentChangedAt = new Date();
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment proof submitted successfully",
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    console.error("SUBMIT PAYMENT PROOF ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Payment proof submit failed",
+    });
+  }
+};

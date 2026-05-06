@@ -1,253 +1,173 @@
-import Link from "next/link";
+"use client";
 
-const adminSections = [
-  {
-    title: "Products",
-    description: "Add, edit, delete and manage all products.",
-    href: "/admin/products",
-    stats: "Manage catalog",
-  },
-  {
-    title: "Categories",
-    description: "Create and control product categories.",
-    href: "/admin/categories",
-    stats: "Organize items",
-  },
-  {
-    title: "Orders",
-    description: "Track, update and manage customer orders.",
-    href: "/admin/orders",
-    stats: "Order workflow",
-  },
-  {
-    title: "Customers",
-    description: "View users and customer activity.",
-    href: "/admin/customers",
-    stats: "User management",
-  },
-  {
-    title: "Banners",
-    description: "Control homepage banners and promotional sections.",
-    href: "/admin/banners",
-    stats: "Marketing assets",
-  },
-  {
-    title: "Inventory",
-    description: "Manage stock, availability and product quantities.",
-    href: "/admin/inventory",
-    stats: "Stock control",
-  },
-  {
-    title: "Homepage CMS",
-    description: "Control homepage sections, hero, featured blocks and layout.",
-    href: "/admin/homepage",
-    stats: "Content control",
-  },
-  {
-    title: "Settings",
-    description: "Manage site settings, branding and configurations.",
-    href: "/admin/settings",
-    stats: "Site controls",
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  Boxes,
+  IndianRupee,
+  Package,
+  ShoppingCart,
+  Users,
+} from "lucide-react";
+import { adminRequest } from "@/lib/api";
 
-export default function AdminPage() {
+function StatCard({ title, value, icon: Icon, note }) {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(180deg, #f8fbff 0%, #eef5ff 50%, #f7faff 100%)",
-        padding: "32px 20px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            background: "#ffffff",
-            border: "1px solid #dbe7ff",
-            borderRadius: "24px",
-            padding: "28px",
-            boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
-            marginBottom: "28px",
-          }}
-        >
-          <span
-            style={{
-              display: "inline-block",
-              fontSize: "12px",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              background: "#e8f1ff",
-              color: "#1d4ed8",
-              padding: "8px 12px",
-              borderRadius: "999px",
-              marginBottom: "14px",
-            }}
-          >
-            Royal Component Admin
-          </span>
-
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "36px",
-              lineHeight: 1.2,
-              color: "#0f172a",
-              fontWeight: 800,
-            }}
-          >
-            Admin Dashboard
-          </h1>
-
-          <p
-            style={{
-              marginTop: "12px",
-              marginBottom: 0,
-              fontSize: "16px",
-              lineHeight: 1.7,
-              color: "#475569",
-              maxWidth: "860px",
-            }}
-          >
-            Yahin se aage tumhare pure Royal Component store ka control hoga —
-            products, categories, orders, customers, banners, inventory aur
-            homepage sections sab admin se manage karenge. Abhi yeh dashboard
-            base ready kar rahe hain, phir next step me har section ka real
-            admin page banayenge.
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: "20px",
-          }}
-        >
-          {adminSections.map((section) => (
-            <Link
-              key={section.title}
-              href={section.href}
-              style={{
-                textDecoration: "none",
-                color: "inherit",
-              }}
-            >
-              <div
-                style={{
-                  background: "#ffffff",
-                  border: "1px solid #dbe7ff",
-                  borderRadius: "22px",
-                  padding: "22px",
-                  height: "100%",
-                  boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
-                  transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                }}
-              >
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minWidth: "90px",
-                    padding: "8px 12px",
-                    borderRadius: "999px",
-                    background: "#eff6ff",
-                    color: "#2563eb",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    marginBottom: "14px",
-                  }}
-                >
-                  {section.stats}
-                </div>
-
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "22px",
-                    fontWeight: 700,
-                    color: "#0f172a",
-                  }}
-                >
-                  {section.title}
-                </h2>
-
-                <p
-                  style={{
-                    marginTop: "12px",
-                    marginBottom: "18px",
-                    color: "#475569",
-                    fontSize: "15px",
-                    lineHeight: 1.7,
-                  }}
-                >
-                  {section.description}
-                </p>
-
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    color: "#1d4ed8",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                  }}
-                >
-                  Open Section →
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <div
-          style={{
-            marginTop: "28px",
-            background: "#ffffff",
-            border: "1px solid #dbe7ff",
-            borderRadius: "24px",
-            padding: "24px",
-            boxShadow: "0 10px 24px rgba(15, 23, 42, 0.05)",
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: "22px",
-              color: "#0f172a",
-              fontWeight: 700,
-            }}
-          >
-            Next Step
+    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-slate-500">{title}</p>
+          <h3 className="mt-2 text-2xl font-bold text-[#102033]">
+            {value}
           </h3>
+          {note && <p className="mt-1 text-xs text-slate-400">{note}</p>}
+        </div>
 
-          <p
-            style={{
-              marginTop: "12px",
-              marginBottom: 0,
-              color: "#475569",
-              fontSize: "15px",
-              lineHeight: 1.8,
-            }}
-          >
-            Abhi yeh admin dashboard build issue fix karega. Iske baad hum ek-ek
-            karke real admin pages banayenge:
-            <strong> Products</strong>, <strong>Categories</strong>,
-            <strong> Orders</strong>, <strong>Customers</strong>,
-            <strong> Banners</strong>, <strong> Homepage CMS</strong> aur
-            <strong> Inventory</strong>.
-          </p>
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#eef4ff] text-[#2454b5]">
+          <Icon size={24} />
         </div>
       </div>
-    </main>
+    </div>
+  );
+}
+
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    totalProducts: 0,
+    totalCustomers: 0,
+    recentOrders: [],
+    recentProducts: [],
+    lowStock: [],
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      const data = await adminRequest("/api/admin/stats/counts");
+      setStats(data);
+    } catch (error) {
+      console.error("Dashboard stats error:", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  if (loading) {
+    return <div className="rounded-2xl bg-white p-6">Loading dashboard...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-[#102033]">
+          Dashboard Overview
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Complete control center for Royal Components.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Total Sales"
+          value={`₹ ${Number(stats.totalSales || 0).toLocaleString("en-IN")}`}
+          icon={IndianRupee}
+          note="All order revenue"
+        />
+
+        <StatCard
+          title="Total Orders"
+          value={stats.totalOrders || 0}
+          icon={ShoppingCart}
+          note="Customer orders"
+        />
+
+        <StatCard
+          title="Total Products"
+          value={stats.totalProducts || 0}
+          icon={Package}
+          note="Active products"
+        />
+
+        <StatCard
+          title="Total Customers"
+          value={stats.totalCustomers || 0}
+          icon={Users}
+          note="Registered users"
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className="rounded-2xl border bg-white p-5 shadow-sm xl:col-span-2">
+          <h2 className="mb-4 text-lg font-bold text-[#102033]">
+            Recent Orders
+          </h2>
+
+          <div className="space-y-3">
+            {stats.recentOrders?.length ? (
+              stats.recentOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="flex items-center justify-between rounded-xl border bg-slate-50 p-4"
+                >
+                  <div>
+                    <p className="font-bold text-[#102033]">
+                      {order.orderNumber || order.id}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {order.customer}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-bold">
+                      ₹ {Number(order.amount || 0).toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-xs text-slate-500">{order.status}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">No recent orders found.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-[#102033]">
+            <Boxes size={20} />
+            Low Stock
+          </h2>
+
+          <div className="space-y-3">
+            {stats.lowStock?.length ? (
+              stats.lowStock.map((item) => (
+                <div
+                  key={item._id}
+                  className="rounded-xl border bg-red-50 p-4"
+                >
+                  <p className="font-bold text-[#102033]">{item.name}</p>
+                  <p className="text-sm text-slate-500">
+                    SKU: {item.sku || "N/A"}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-red-600">
+                    Stock: {item.totalStock}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">No low stock products.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

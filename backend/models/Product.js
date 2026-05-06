@@ -31,6 +31,44 @@ const documentSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const highlightSchema = new mongoose.Schema(
+  {
+    title: { type: String, default: "", trim: true },
+    description: { type: String, default: "", trim: true },
+    icon: { type: String, default: "ShieldCheck", trim: true },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
+const applicationSchema = new mongoose.Schema(
+  {
+    text: { type: String, default: "", trim: true },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
+const customSectionSchema = new mongoose.Schema(
+  {
+    title: { type: String, default: "", trim: true },
+    content: { type: String, default: "", trim: true },
+    image: { type: String, default: "", trim: true },
+    buttonText: { type: String, default: "", trim: true },
+    buttonLink: { type: String, default: "", trim: true },
+    type: {
+      type: String,
+      enum: ["text", "image", "card", "banner"],
+      default: "text",
+    },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -121,6 +159,21 @@ const productSchema = new mongoose.Schema(
       type: [documentSchema],
       default: [],
     },
+
+    highlights: {
+  type: [highlightSchema],
+  default: [],
+},
+
+applications: {
+  type: [applicationSchema],
+  default: [],
+},
+
+customSections: {
+  type: [customSectionSchema],
+  default: [],
+},
 
     price: {
       type: Number,

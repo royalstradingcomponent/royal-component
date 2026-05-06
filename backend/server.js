@@ -10,6 +10,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 
+
 dotenv.config();
 
 const app = express();
@@ -107,8 +108,16 @@ app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/payments", require("./routes/paymentRoutes"));
 app.use("/api/categories", categoryRoutes);
+app.use("/api/hero-slides", require("./routes/heroRoutes"));
+app.use("/api/home-sections", require("./routes/homeSectionRoutes"));
 app.use("/api/coupons", couponRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/policies", require("./routes/policyRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
+app.use("/api/component-requests", require("./routes/componentRequestRoutes"));
+app.use("/api/supplier-sources", require("./routes/supplierSourceRoutes"));
+
+
 
 app.use((req, res) => {
   res.status(404).json({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, LocateFixed } from "lucide-react";
 import { useAddress } from "@/context/AddressContext";
 
 const emptyForm = {
@@ -15,6 +15,10 @@ const emptyForm = {
   landmark: "",
   addressType: "HOME",
   isDefault: true,
+  latitude: null,
+  longitude: null,
+  mapAddress: "",
+  locationVerified: false,
 };
 
 export default function AddressFormModal({
@@ -27,6 +31,7 @@ export default function AddressFormModal({
   const [form, setForm] = useState(emptyForm);
   const [pinLoading, setPinLoading] = useState(false);
   const [pinError, setPinError] = useState("");
+  const [locationLoading, setLocationLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +48,10 @@ export default function AddressFormModal({
         landmark: editingAddress.landmark || "",
         addressType: editingAddress.addressType || "HOME",
         isDefault: Boolean(editingAddress.isDefault),
+        latitude: editingAddress.latitude || null,
+        longitude: editingAddress.longitude || null,
+        mapAddress: editingAddress.mapAddress || "",
+        locationVerified: Boolean(editingAddress.locationVerified),
       });
     } else {
       setForm(emptyForm);
@@ -107,6 +116,42 @@ export default function AddressFormModal({
     }
   };
 
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setPinError("Location is not supported in this browser");
+      return;
+    }
+
+    setLocationLoading(true);
+    setPinError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setForm((prev) => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+          locationVerified: true,
+          mapAddress: `GPS Verified: ${lat}, ${lng}`,
+        }));
+
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationLoading(false);
+        setPinError("Please allow location permission");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      }
+    );
+  };
+
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
     e?.stopPropagation?.();
@@ -122,10 +167,23 @@ export default function AddressFormModal({
       landmark: form.landmark.trim(),
       addressType: form.addressType,
       isDefault: form.isDefault,
+      latitude: form.latitude,
+      longitude: form.longitude,
+      mapAddress: form.mapAddress,
+      locationVerified: form.locationVerified,
     };
 
     if (!payload.fullName || !payload.phone || !payload.pincode || !payload.city || !payload.state || !payload.addressLine) {
       setPinError("Please fill all required fields");
+      return;
+    }
+    if (payload.addressLine.length < 15) {
+      setPinError("Please enter complete house / office / shop address");
+      return;
+    }
+
+    if (!payload.locationVerified) {
+      setPinError("Please use current location to verify delivery address");
       return;
     }
 
@@ -283,6 +341,32 @@ export default function AddressFormModal({
                 placeholder="Near road, market, industrial area..."
               />
             </div>
+            {/* 🔥 USE CURRENT LOCATION */}
+            <div className="md:col-span-2">
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={locationLoading}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-[#2454b5] bg-[#eaf3ff] px-5 text-sm font-extrabold text-[#2454b5] hover:bg-[#dbeafe] disabled:opacity-60"
+              >
+                {locationLoading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <LocateFixed size={18} />
+                )}
+                {locationLoading ? "Detecting Location..." : "Use Current Location"}
+              </button>
+
+              {form.locationVerified ? (
+                <p className="mt-2 text-xs font-bold text-green-700">
+                  ✅ Location verified (GPS)
+                </p>
+              ) : (
+                <p className="mt-2 text-xs font-semibold text-[#607287]">
+                  ⚠️ Please verify location before saving address
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="mt-5">
@@ -298,11 +382,10 @@ export default function AddressFormModal({
                   onClick={() =>
                     setForm((prev) => ({ ...prev, addressType: type }))
                   }
-                  className={`rounded-full border px-4 py-2 text-sm font-bold transition ${
-                    form.addressType === type
-                      ? "border-[#2454b5] bg-[#2454b5] text-white"
-                      : "border-[#cbd5e1] bg-white text-[#42566d] hover:border-[#2454b5]"
-                  }`}
+                  className={`rounded-full border px-4 py-2 text-sm font-bold transition ${form.addressType === type
+                    ? "border-[#2454b5] bg-[#2454b5] text-white"
+                    : "border-[#cbd5e1] bg-white text-[#42566d] hover:border-[#2454b5]"
+                    }`}
                 >
                   {type}
                 </button>

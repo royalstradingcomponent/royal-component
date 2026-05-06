@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../middleware/upload");
 
 const {
   createOrder,
@@ -13,6 +14,9 @@ const {
   updateOrderAddress,
   updateOrderPhone,
   updatePayment,
+  requestRefund,
+  adminUpdateRefund,
+  submitPaymentProof,
 } = require("../controllers/orderController");
 
 const { protect, admin } = require("../middleware/authMiddleware");
@@ -23,9 +27,18 @@ router.get("/track/:id", protect, trackOrder);
 
 router.get("/admin/all", protect, admin, getAllOrders);
 router.put("/admin/update-status", protect, admin, updateOrderStatus);
+router.put("/admin/refund/:id", protect, admin, adminUpdateRefund);
 
 router.put("/cancel/:id", protect, cancelOrder);
 router.put("/cancel-item/:orderId/:itemId", protect, cancelOrderItem);
+
+router.post("/refund/:id", protect, requestRefund);
+router.post(
+  "/payment-proof/:id",
+  protect,
+  upload.single("image"),
+  submitPaymentProof
+);
 
 router.put("/update-address/:id", protect, updateOrderAddress);
 router.put("/update-phone/:id", protect, updateOrderPhone);

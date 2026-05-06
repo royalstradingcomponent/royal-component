@@ -26,6 +26,10 @@ exports.addAddress = async (req, res) => {
       landmark,
       addressType,
       isDefault,
+      latitude,
+      longitude,
+      mapAddress,
+      locationVerified,
     } = req.body;
 
     const missingFields = [];
@@ -86,6 +90,11 @@ exports.addAddress = async (req, res) => {
       landmark: landmark ? landmark.trim() : "",
       addressType: addressType || "OFFICE",
       isDefault: shouldBeDefault,
+
+      latitude: latitude ? Number(latitude) : null,
+      longitude: longitude ? Number(longitude) : null,
+      mapAddress: mapAddress ? mapAddress.trim() : "",
+      locationVerified: Boolean(locationVerified && latitude && longitude),
     });
 
     user.lastActivity = new Date();
@@ -164,17 +173,21 @@ exports.updateAddress = async (req, res) => {
     }
 
     const allowedFields = [
-      "fullName",
-      "phone",
-      "altPhone",
-      "pincode",
-      "city",
-      "state",
-      "addressLine",
-      "landmark",
-      "addressType",
-      "isDefault",
-    ];
+  "fullName",
+  "phone",
+  "altPhone",
+  "pincode",
+  "city",
+  "state",
+  "addressLine",
+  "landmark",
+  "addressType",
+  "isDefault",
+  "latitude",
+  "longitude",
+  "mapAddress",
+  "locationVerified",
+];
 
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {

@@ -95,10 +95,11 @@ export default function CheckoutPaymentPage() {
     const orderId = data?.orderId || data?.order?._id;
 
     if (orderId) {
-      router.push(`/checkout/success/${orderId}`);
-    } else {
-      router.push("/orders");
-    }
+  router.push(`/checkout/order/${orderId}`);
+} else {
+  router.push("/checkout/order");
+}
+
   };
 
   if (authLoading || cartLoading) {

@@ -74,6 +74,18 @@ const categorySchema = new mongoose.Schema(
       index: true,
     },
 
+    showInNavbar: {
+  type: Boolean,
+  default: true,
+  index: true,
+},
+
+navbarOrder: {
+  type: Number,
+  default: 0,
+  index: true,
+},
+
     seo: {
       metaTitle: { type: String, default: "", trim: true },
       metaDescription: { type: String, default: "", trim: true },

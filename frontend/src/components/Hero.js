@@ -1,39 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, FileText, ShieldCheck, Truck, Wrench } from "lucide-react";
+import { API_BASE } from "@/lib/api";
 
-const slides = [
-  { image: "/banner/banner-1.png", label: "Industrial Components" },
-  { image: "/banner/banner-2.png", label: "Bulk Procurement" },
-];
-
-const heroContent = [
+const fallbackSlides = [
   {
-    title1: "Industrial Electrical &",
-    title2: "Electronic Components Supplier",
-    item: "Automation Components",
-  },
-  {
-    title1: "Wholesale Hardware &",
-    title2: "Industrial Supply Store",
-    item: "Mechanical Bearings",
-  },
-  {
-    title1: "Electrical, Mechanical &",
-    title2: "Electronic Parts Distributor",
-    item: "Switchgear & Sensors",
-  },
-  {
-    title1: "B2B Industrial Products",
-    title2: "For Factories & Engineers",
-    item: "PLC Parts",
-  },
-  {
+    image: "/banner/banner-1.png",
+    label: "Bulk Procurement",
     title1: "Bulk Procurement For",
     title2: "Industrial Components",
-    item: "Cables & Connectors",
+    item: "Semiconductors, Sensors & Automation Parts",
+    description:
+      "Buy electrical, electronic, mechanical and automation components online with trusted brand sourcing, technical specifications, bulk quantity support and reliable B2B delivery across India.",
+    primaryText: "Shop Components",
+    primaryLink: "/products",
+    secondaryText: "Request Bulk Quote",
+    secondaryLink: "/quote-request",
   },
 ];
 
@@ -43,33 +27,69 @@ const trustItems = [
   { icon: Wrench, text: "Technical product guidance" },
 ];
 
+function getImageUrl(url) {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  if (url.startsWith("/uploads")) return `${API_BASE}${url}`;
+  return url;
+}
+
 export default function Hero() {
+  const [slides, setSlides] = useState(fallbackSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [currentContent, setCurrentContent] = useState(0);
   const [typedTitle1, setTypedTitle1] = useState("");
   const [typedTitle2, setTypedTitle2] = useState("");
   const [typedItem, setTypedItem] = useState("");
 
+  const activeSlide = useMemo(() => {
+    return slides[currentSlide] || slides[0] || fallbackSlides[0];
+  }, [slides, currentSlide]);
+
   useEffect(() => {
-    const slideInterval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
+    const fetchHeroSlides = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/hero-slides`, {
+          cache: "no-store",
+        });
 
-    const contentInterval = setInterval(() => {
-      setCurrentContent((prev) => (prev + 1) % heroContent.length);
-    }, 6500);
+        const data = await res.json();
 
-    return () => {
-      clearInterval(slideInterval);
-      clearInterval(contentInterval);
+        if (data?.success && Array.isArray(data.slides) && data.slides.length) {
+          const activeSlides = data.slides
+            .filter((slide) => slide.isActive !== false)
+            .sort(
+              (a, b) =>
+                Number(a.order || 0) - Number(b.order || 0) ||
+                new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+            );
+
+          if (activeSlides.length) {
+            setSlides(activeSlides);
+            setCurrentSlide(0);
+          }
+        }
+      } catch (error) {
+        console.error("Hero slides fetch error:", error);
+      }
     };
+
+    fetchHeroSlides();
   }, []);
 
   useEffect(() => {
-    const active = heroContent[currentContent];
-    const fullTitle1 = active.title1;
-    const fullTitle2 = active.title2;
-    const fullItem = active.item;
+    if (!slides.length) return;
+
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 6500);
+
+    return () => clearInterval(timer);
+  }, [slides]);
+
+  useEffect(() => {
+    const fullTitle1 = activeSlide?.title1 || "";
+    const fullTitle2 = activeSlide?.title2 || "";
+    const fullItem = activeSlide?.item || "";
 
     setTypedTitle1("");
     setTypedTitle2("");
@@ -79,6 +99,9 @@ export default function Hero() {
     let title2Index = 0;
     let itemIndex = 0;
 
+    let title2Timer = null;
+    let itemTimer = null;
+
     const title1Timer = setInterval(() => {
       title1Index += 1;
       setTypedTitle1(fullTitle1.slice(0, title1Index));
@@ -86,14 +109,14 @@ export default function Hero() {
       if (title1Index >= fullTitle1.length) {
         clearInterval(title1Timer);
 
-        const title2Timer = setInterval(() => {
+        title2Timer = setInterval(() => {
           title2Index += 1;
           setTypedTitle2(fullTitle2.slice(0, title2Index));
 
           if (title2Index >= fullTitle2.length) {
             clearInterval(title2Timer);
 
-            const itemTimer = setInterval(() => {
+            itemTimer = setInterval(() => {
               itemIndex += 1;
               setTypedItem(fullItem.slice(0, itemIndex));
 
@@ -108,18 +131,22 @@ export default function Hero() {
 
     return () => {
       clearInterval(title1Timer);
+      if (title2Timer) clearInterval(title2Timer);
+      if (itemTimer) clearInterval(itemTimer);
     };
-  }, [currentContent]);
+  }, [activeSlide]);
 
   return (
     <section className="relative isolate min-h-[650px] overflow-hidden bg-white sm:min-h-[590px] md:min-h-[560px] lg:min-h-[540px]">
       {slides.map((slide, index) => (
         <div
-          key={slide.image}
+          key={slide._id || slide.image || index}
           className={`absolute inset-0 bg-cover bg-[78%_center] transition-opacity duration-700 sm:bg-[72%_center] md:bg-center ${
             currentSlide === index ? "opacity-100" : "opacity-0"
           }`}
-          style={{ backgroundImage: `url('${slide.image}')` }}
+          style={{
+            backgroundImage: `url('${getImageUrl(slide.image)}')`,
+          }}
         />
       ))}
 
@@ -130,7 +157,8 @@ export default function Hero() {
           <div className="mb-4 inline-flex max-w-full items-center gap-2 rounded-full border border-[#bae6fd] bg-white/90 px-3 py-2 text-[11px] font-bold text-[#0f172a] shadow-sm sm:px-4 sm:text-sm">
             <span className="h-2 w-2 shrink-0 rounded-full bg-[#1296db]" />
             <span className="truncate">
-              {slides[currentSlide].label} • Fast Procurement • B2B Supply
+              {activeSlide?.label || "Trusted Industrial Components"} • Fast
+              Procurement • B2B Supply
             </span>
           </div>
 
@@ -156,32 +184,32 @@ export default function Hero() {
           </div>
 
           <p className="mt-4 max-w-2xl text-[14px] leading-7 text-[#334155] sm:text-[16px] md:text-[17px]">
-            Source electrical, electronic, mechanical, automation and hardware
-            products with technical clarity, trusted brand availability and
-            reliable wholesale supply support.
+            {activeSlide?.description ||
+              "Source electrical, electronic, mechanical, automation and hardware products with technical clarity, trusted brand availability and reliable wholesale supply support."}
           </p>
 
           <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap sm:gap-4">
             <Link
-              href="/products"
+              href={activeSlide?.primaryLink || "/products"}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1d4ed8] to-[#38bdf8] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_30px_rgba(29,78,216,0.35)] transition hover:-translate-y-0.5 hover:from-[#1e40af] hover:to-[#0ea5e9] sm:w-auto sm:px-7 sm:py-3.5"
             >
-              Shop Components
+              {activeSlide?.primaryText || "Shop Components"}
               <ArrowRight size={18} />
             </Link>
 
             <Link
-              href="/quote-request"
+              href={activeSlide?.secondaryLink || "/quote-request"}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#bae6fd] bg-[#dff2ff] px-6 py-3 text-sm font-extrabold text-[#274967] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#cfeeff] sm:w-auto sm:px-7 sm:py-3.5"
             >
               <FileText size={18} />
-              Request Bulk Quote
+              {activeSlide?.secondaryText || "Request Bulk Quote"}
             </Link>
           </div>
 
           <div className="mt-6 grid gap-3 sm:mt-7 sm:grid-cols-2 lg:grid-cols-3">
             {trustItems.map((item) => {
               const Icon = item.icon;
+
               return (
                 <div
                   key={item.text}
@@ -198,18 +226,23 @@ export default function Hero() {
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
-        {slides.map((slide, index) => (
-          <button
-            key={slide.image}
-            onClick={() => setCurrentSlide(index)}
-            className={`h-2.5 rounded-full transition-all duration-300 ${
-              currentSlide === index ? "w-8 bg-[#0f172a]" : "w-2.5 bg-[#94a3b8]"
-            }`}
-            type="button"
-          />
-        ))}
-      </div>
+      {slides.length > 1 ? (
+        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2">
+          {slides.map((slide, index) => (
+            <button
+              key={slide._id || slide.image || index}
+              onClick={() => setCurrentSlide(index)}
+              className={`h-2.5 rounded-full transition-all duration-300 ${
+                currentSlide === index
+                  ? "w-8 bg-[#0f172a]"
+                  : "w-2.5 bg-[#94a3b8]"
+              }`}
+              type="button"
+              aria-label={`Go to banner ${index + 1}`}
+            />
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -50,14 +50,35 @@ const addressSchema = new mongoose.Schema(
 
     addressType: {
       type: String,
-      enum: ["HOME", "WORK", "OFFICE"],
+      enum: ["HOME", "WORK", "OFFICE", "WAREHOUSE", "FACTORY", "OTHER"],
       default: "HOME",
     },
 
     isDefault: {
-      type: Boolean,
-      default: false,
-    },
+  type: Boolean,
+  default: false,
+},
+
+latitude: {
+  type: Number,
+  default: null,
+},
+
+longitude: {
+  type: Number,
+  default: null,
+},
+
+mapAddress: {
+  type: String,
+  default: "",
+  trim: true,
+},
+
+locationVerified: {
+  type: Boolean,
+  default: false,
+},
   },
   { _id: true }
 );

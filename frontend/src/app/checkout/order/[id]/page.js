@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+
+
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -17,6 +19,7 @@ import {
   Mail,
   Building2,
   CreditCard,
+  UploadCloud,
   ShieldCheck,
   Clock3,
   ClipboardList,
@@ -25,6 +28,7 @@ import {
   Ban,
   AlertTriangle,
   Boxes,
+  RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -181,6 +185,28 @@ export default function CheckoutOrderDetailPage() {
     country: "India",
   });
   const [addressLoading, setAddressLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentFile, setPaymentFile] = useState(null);
+  const [paymentUtr, setPaymentUtr] = useState("");
+  const [paymentNote, setPaymentNote] = useState("");
+
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundLoading, setRefundLoading] = useState(false);
+
+  const [refundForm, setRefundForm] = useState({
+    reason: "",
+    comment: "",
+    method: "ORIGINAL_PAYMENT",
+    upiId: "",
+    upiPhone: "",
+    accountHolderName: "",
+    accountNumber: "",
+    ifsc: "",
+    bankName: "",
+    cardLast4: "",
+    cardTransactionId: "",
+  });
 
   const loadOrder = async () => {
     try {
@@ -231,7 +257,22 @@ export default function CheckoutOrderDetailPage() {
   const companyName = order?.buyer?.companyName || "";
 
   const paymentMethod =
-    order?.payment?.method || order?.paymentMethod || "bank-transfer";
+  order?.payment?.method || order?.paymentMethod || "bank-transfer";
+
+  const paymentStatus = order?.payment?.status || "Pending";
+  const canUploadPaymentProof = ["Pending", "Failed"].includes(paymentStatus);
+
+  const refundStatus = order?.refund?.status || "Not Requested";
+
+  const canRequestRefund = (() => {
+    const status = String(getStatus(order)).toLowerCase();
+    const refund = String(refundStatus).toLowerCase();
+
+    return (
+      (status.includes("delivered") || status.includes("cancel")) &&
+      !["requested", "approved", "processing", "refunded"].includes(refund)
+    );
+  })();
   const handleStartOrderChat = async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -308,6 +349,116 @@ export default function CheckoutOrderDetailPage() {
       setCancelLoading(false);
     }
   };
+
+  const handleRefundRequest = async () => {
+    if (!refundForm.reason.trim()) {
+      toast.error("Please select refund reason");
+      return;
+    }
+
+    try {
+      setRefundLoading(true);
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = user?.token;
+
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/api/orders/refund/${id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reason: refundForm.reason,
+          comment: refundForm.comment,
+          method: refundForm.method,
+          upi: {
+            upiId: refundForm.upiId,
+            phone: refundForm.upiPhone,
+          },
+          bank: {
+            accountHolderName: refundForm.accountHolderName,
+            accountNumber: refundForm.accountNumber,
+            ifsc: refundForm.ifsc,
+            bankName: refundForm.bankName,
+          },
+          card: {
+            last4: refundForm.cardLast4,
+            transactionId: refundForm.cardTransactionId,
+          },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "Refund request failed");
+      }
+
+      toast.success("Refund request submitted successfully");
+      setShowRefundModal(false);
+      await loadOrder();
+    } catch (error) {
+      toast.error(error.message || "Refund request failed");
+    } finally {
+      setRefundLoading(false);
+    }
+  };
+
+  const handlePaymentProofSubmit = async () => {
+    if (!paymentUtr.trim() && !paymentFile) {
+      toast.error("Please upload screenshot or enter UTR / transaction ID");
+      return;
+    }
+
+    try {
+      setPaymentLoading(true);
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = user?.token;
+
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
+      const formData = new FormData();
+      if (paymentFile) formData.append("image", paymentFile);
+      formData.append("utr", paymentUtr);
+      formData.append("note", paymentNote);
+
+      const res = await fetch(`${API_BASE}/api/orders/payment-proof/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "Payment proof submit failed");
+      }
+
+      toast.success("Payment proof submitted successfully");
+      setShowPaymentModal(false);
+      setPaymentFile(null);
+      setPaymentUtr("");
+      setPaymentNote("");
+      await loadOrder();
+    } catch (error) {
+      toast.error(error.message || "Payment proof submit failed");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   const handleUpdateAddress = async () => {
     if (
       !addressForm.name ||
@@ -429,6 +580,28 @@ export default function CheckoutOrderDetailPage() {
                   {getStatus(order)}
                 </p>
 
+                <div className="mt-3 rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0284c7]">
+                    Payment Status
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[#102033]">
+                    {paymentStatus}
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                    Method: {formatPaymentMethod(paymentMethod)}
+                  </p>
+                </div>
+
+                {canUploadPaymentProof ? (
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="mt-3 inline-flex h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] px-4 font-extrabold text-white transition hover:bg-[#0369a1]"
+                  >
+                    <UploadCloud size={17} />
+                    Upload Payment Proof
+                  </button>
+                ) : null}
+
                 {orderCanCancel ? (
                   <button
                     onClick={() => setShowCancelModal(true)}
@@ -437,6 +610,30 @@ export default function CheckoutOrderDetailPage() {
                     <Ban size={17} />
                     Cancel Order
                   </button>
+                ) : null}
+
+                {canRequestRefund ? (
+                  <button
+                    onClick={() => setShowRefundModal(true)}
+                    className="mt-3 inline-flex h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] px-4 font-extrabold text-white transition hover:bg-[#0369a1]"
+                  >
+                    <RefreshCcw size={17} />
+                    Request Refund
+                  </button>
+                ) : null}
+
+                {refundStatus !== "Not Requested" ? (
+                  <div className="mt-4 rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0284c7]">
+                      Refund Status
+                    </p>
+                    <p className="mt-1 text-lg font-black text-[#102033]">
+                      {refundStatus}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      Amount: {formatCurrency(order?.refund?.amount || getTotal(order))}
+                    </p>
+                  </div>
                 ) : null}
               </div>
             </div>
@@ -726,6 +923,18 @@ export default function CheckoutOrderDetailPage() {
                 </p>
 
                 <p className="flex gap-3">
+                  <ShieldCheck className="shrink-0 text-[#2454b5]" size={20} />
+                  Payment Status: {paymentStatus}
+                </p>
+
+                {order?.payment?.proof?.utr ? (
+                  <p className="flex gap-3">
+                    <ReceiptText className="shrink-0 text-[#2454b5]" size={20} />
+                    UTR / Ref: {order.payment.proof.utr}
+                  </p>
+                ) : null}
+
+                <p className="flex gap-3">
                   <ReceiptText className="shrink-0 text-[#2454b5]" size={20} />
                   {getOrderNumber(order)}
                 </p>
@@ -757,6 +966,318 @@ export default function CheckoutOrderDetailPage() {
           </aside>
         </div>
       </main>
+
+      {showPaymentModal ? (
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
+          <div className="my-8 w-full max-w-[620px] rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
+              <div>
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#e0f5ff] text-[#0284c7]">
+                  <UploadCloud size={24} />
+                </div>
+
+                <h2 className="text-2xl font-black text-[#102033]">
+                  Upload Payment Proof
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-[#607287]">
+                  Payment karne ke baad UTR / transaction ID ya payment screenshot
+                  upload karein. Admin verify karne ke baad payment status Paid ho
+                  jayega.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="rounded-full bg-[#f3f7fb] p-2 text-[#607287]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
+                <p className="text-sm font-black text-[#102033]">
+                  Order Amount: {formatCurrency(getTotal(order))}
+                </p>
+                <p className="mt-1 text-sm text-[#075985]">
+                  Method: {formatPaymentMethod(paymentMethod)}
+                </p>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-black text-[#102033]">
+                  Payment Screenshot
+                </span>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
+                  className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-bold outline-none focus:border-[#0284c7]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-black text-[#102033]">
+                  UTR / Transaction ID
+                </span>
+                <input
+                  value={paymentUtr}
+                  onChange={(e) => setPaymentUtr(e.target.value)}
+                  placeholder="Enter UTR / transaction reference"
+                  className="h-12 w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-sm font-black text-[#102033]">
+                  Payment Note
+                </span>
+                <textarea
+                  rows={4}
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  placeholder="Example: Paid from SBI UPI at 11:30 AM"
+                  className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0284c7]"
+                />
+              </label>
+
+              <div className="rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4 text-sm leading-7 text-[#075985]">
+                Proof submit hone ke baad payment status “Awaiting Verification”
+                ho jayega. Royal Component team manually verify karegi.
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="h-[50px] flex-1 rounded-xl border border-[#dbe5f0] bg-white font-black text-[#334155]"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePaymentProofSubmit}
+                  disabled={paymentLoading}
+                  className="h-[50px] flex-1 rounded-xl bg-[#0284c7] font-black text-white hover:bg-[#0369a1] disabled:opacity-60"
+                >
+                  {paymentLoading ? "Submitting..." : "Submit Proof"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showRefundModal ? (
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
+          <div className="my-8 w-full max-w-[760px] rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
+              <div>
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#e0f5ff] text-[#0284c7]">
+                  <RefreshCcw size={24} />
+                </div>
+                <h2 className="text-2xl font-black text-[#102033]">
+                  Request Refund
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[#607287]">
+                  Refund request admin panel me review hoga. Approval ke baad refund
+                  UPI, bank account, card reference ya original payment method ke
+                  hisaab se process hoga.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowRefundModal(false)}
+                className="rounded-full bg-[#f3f7fb] p-2 text-[#607287]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <select
+                value={refundForm.reason}
+                onChange={(e) =>
+                  setRefundForm((prev) => ({
+                    ...prev,
+                    reason: e.target.value,
+                  }))
+                }
+                className="h-12 w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+              >
+                <option value="">Select refund reason</option>
+                <option value="Order cancelled after payment">
+                  Order cancelled after payment
+                </option>
+                <option value="Product returned after delivery">
+                  Product returned after delivery
+                </option>
+                <option value="Wrong product delivered">
+                  Wrong product delivered
+                </option>
+                <option value="Damaged or defective product">
+                  Damaged or defective product
+                </option>
+                <option value="Payment deducted but issue found">
+                  Payment deducted but issue found
+                </option>
+                <option value="Other reason">Other reason</option>
+              </select>
+
+              <select
+                value={refundForm.method}
+                onChange={(e) =>
+                  setRefundForm((prev) => ({
+                    ...prev,
+                    method: e.target.value,
+                  }))
+                }
+                className="h-12 w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+              >
+                {paymentMethod === "COD" ? (
+                  <option value="BANK_ACCOUNT">Bank Account</option>
+                ) : (
+                  <>
+                    <option value="ORIGINAL_PAYMENT">Original Payment Method</option>
+                    <option value="UPI">UPI</option>
+                    <option value="BANK_ACCOUNT">Bank Account</option>
+                    <option value="CARD">Card Reference</option>
+                  </>
+                )}
+              </select>
+
+              {refundForm.method === "UPI" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    value={refundForm.upiId}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({ ...prev, upiId: e.target.value }))
+                    }
+                    placeholder="UPI ID"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+
+                  <input
+                    value={refundForm.upiPhone}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        upiPhone: e.target.value,
+                      }))
+                    }
+                    placeholder="UPI registered phone"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+                </div>
+              ) : null}
+
+              {refundForm.method === "BANK_ACCOUNT" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    value={refundForm.accountHolderName}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        accountHolderName: e.target.value,
+                      }))
+                    }
+                    placeholder="Account holder name"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+
+                  <input
+                    value={refundForm.accountNumber}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        accountNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="Account number"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+
+                  <input
+                    value={refundForm.ifsc}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        ifsc: e.target.value.toUpperCase(),
+                      }))
+                    }
+                    placeholder="IFSC code"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold uppercase outline-none focus:border-[#0284c7]"
+                  />
+
+                  <input
+                    value={refundForm.bankName}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        bankName: e.target.value,
+                      }))
+                    }
+                    placeholder="Bank name"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+                </div>
+              ) : null}
+
+              {refundForm.method === "CARD" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    value={refundForm.cardLast4}
+                    maxLength={4}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        cardLast4: e.target.value,
+                      }))
+                    }
+                    placeholder="Card last 4 digits"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+
+                  <input
+                    value={refundForm.cardTransactionId}
+                    onChange={(e) =>
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        cardTransactionId: e.target.value,
+                      }))
+                    }
+                    placeholder="Transaction / payment reference ID"
+                    className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
+                  />
+                </div>
+              ) : null}
+
+              <textarea
+                rows={4}
+                value={refundForm.comment}
+                onChange={(e) =>
+                  setRefundForm((prev) => ({ ...prev, comment: e.target.value }))
+                }
+                placeholder="Write more details about refund request..."
+                className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0284c7]"
+              />
+
+              <button
+                type="button"
+                onClick={handleRefundRequest}
+                disabled={refundLoading}
+                className="h-[50px] w-full rounded-xl bg-[#0284c7] font-black text-white hover:bg-[#0369a1] disabled:opacity-60"
+              >
+                {refundLoading ? "Submitting..." : "Submit Refund"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
 
 
