@@ -9,7 +9,8 @@ const connectDB = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const chatRoutes = require("./routes/chatRoutes");
-
+const contactPageRoutes = require("./routes/contactPageRoutes");
+const aboutPageRoutes = require("./routes/aboutPageRoutes");
 
 dotenv.config();
 
@@ -116,6 +117,8 @@ app.use("/api/policies", require("./routes/policyRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/component-requests", require("./routes/componentRequestRoutes"));
 app.use("/api/supplier-sources", require("./routes/supplierSourceRoutes"));
+app.use("/api/contact-page", contactPageRoutes);
+app.use("/api/about-page", aboutPageRoutes);
 
 
 

@@ -8,6 +8,8 @@ import {
   BarChart3,
   Boxes,
   ChevronRight,
+  Contact,
+  Building2,
   Gift,
   Home,
   Layers,
@@ -19,6 +21,7 @@ import {
   Settings,
   ShoppingCart,
   FileText,
+  CreditCard,
   Users,
   Truck,
   X,
@@ -40,6 +43,8 @@ const navItems = [
   },
   { title: "Supplier Sources", href: "/admin/supplier-sources", icon: Truck },
   { title: "Policy Pages", href: "/admin/policies", icon: FileText },
+  { title: "About Page", href: "/admin/about", icon: Building2 },
+  { title: "Contact Page", href: "/admin/contact-page", icon: Contact },
   { title: "Home Sections", href: "/admin/home-sections", icon: LayoutPanelTop },
   {
     title: "Hero Banners",
@@ -49,6 +54,7 @@ const navItems = [
 
   { title: "Inventory", href: "/admin/inventory", icon: Boxes },
   { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { title: "Payments", href: "/admin/payments", icon: CreditCard },
   { title: "Customers", href: "/admin/customers", icon: Users },
   { title: "Coupons", href: "/admin/coupons", icon: Gift },
   { title: "Support Chats", href: "/admin/chats", icon: MessageSquareText },
