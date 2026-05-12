@@ -468,7 +468,7 @@ function RequestCard({ req, updateRequest }) {
                                         <div className="mt-3 grid gap-3 md:grid-cols-3">
                                             <InfoBox label="Last Price" value={`₹ ${source.purchasePrice || 0}`} />
                                             <InfoBox label="MOQ" value={source.moq || 1} />
-                                            <InfoBox label="Lead Time" value={source.leadTime || "N/A"} />
+                                            <InfoBox label="Purchase Date" value={formatDate(source.lastPurchaseDate)} />
                                         </div>
 
                                         <div className="mt-4 flex flex-wrap gap-3">

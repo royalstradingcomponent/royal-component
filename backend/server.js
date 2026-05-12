@@ -10,7 +10,13 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const couponRoutes = require("./routes/couponRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const contactPageRoutes = require("./routes/contactPageRoutes");
+const seoLoaderRoutes = require("./routes/seoLoaderRoutes");
 const aboutPageRoutes = require("./routes/aboutPageRoutes");
+const footerPageRoutes = require("./routes/footerPageRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+const blogCategoryRoutes = require("./routes/blogCategoryRoutes");
+const blogUploadRoutes = require("./routes/blogUploadRoutes");
+const blogPageSettingRoutes = require("./routes/blogPageSettingRoutes");
 
 dotenv.config();
 
@@ -61,9 +67,19 @@ app.use(compression());
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === "production" ? 500 : 2000,
+  max: process.env.NODE_ENV === "production" ? 1000 : 10000,
   standardHeaders: true,
   legacyHeaders: false,
+
+  skip: (req) => {
+    return (
+      req.path.startsWith("/footer-page") ||
+      req.path.startsWith("/home-sections") ||
+      req.path.startsWith("/hero-slides") ||
+      req.path.startsWith("/categories")
+    );
+  },
+
   message: {
     success: false,
     message: "Too many requests. Please try again later.",
@@ -102,6 +118,7 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/footer-page", footerPageRoutes);
 app.use("/api/users/address", require("./routes/addressRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
@@ -118,9 +135,12 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/component-requests", require("./routes/componentRequestRoutes"));
 app.use("/api/supplier-sources", require("./routes/supplierSourceRoutes"));
 app.use("/api/contact-page", contactPageRoutes);
+app.use("/api/seo-loader", seoLoaderRoutes);
 app.use("/api/about-page", aboutPageRoutes);
-
-
+app.use("/api/blogs", blogRoutes);
+app.use("/api/blog-categories", blogCategoryRoutes);
+app.use("/api/blog-upload", blogUploadRoutes);
+app.use("/api/blog-page-setting", blogPageSettingRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

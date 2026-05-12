@@ -3,7 +3,7 @@ const ComponentRequest = require("../models/ComponentRequest");
 const SupplierSource = require("../models/SupplierSource");
 
 function escapeRegex(value = "") {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // USER: create request
@@ -50,71 +50,72 @@ exports.createComponentRequest = async (req, res) => {
                 (file) => `/uploads/requests/${file.filename}`
             ) || [];
 
-        const request = await ComponentRequest.create({
-    items: parsedItems,
-    description,
-    customerName,
-    customerEmail,
-    customerPhone,
-    user: req.user?._id || null,
-    imageUrls,
-    datasheetUrls,
-    matchedSupplierSources,
-});
+
 
         const supplierFilters = [];
 
-parsedItems.forEach((item) => {
-    if (item.partNumber) {
-        supplierFilters.push({
-            partNumber: { $regex: escapeRegex(item.partNumber), $options: "i" },
+        parsedItems.forEach((item) => {
+            if (item.partNumber) {
+                supplierFilters.push({
+                    partNumber: { $regex: escapeRegex(item.partNumber), $options: "i" },
+                });
+            }
+
+            if (item.componentName) {
+                supplierFilters.push({
+                    componentName: {
+                        $regex: escapeRegex(item.componentName),
+                        $options: "i",
+                    },
+                });
+            }
+
+            if (item.brand) {
+                supplierFilters.push({
+                    brand: { $regex: escapeRegex(item.brand), $options: "i" },
+                });
+            }
         });
-    }
 
-    if (item.componentName) {
-        supplierFilters.push({
-            componentName: {
-                $regex: escapeRegex(item.componentName),
-                $options: "i",
-            },
+        let matchedSupplierSources = [];
+
+        if (supplierFilters.length) {
+            const suppliers = await SupplierSource.find({
+                isActive: true,
+                $or: supplierFilters,
+            })
+                .sort({ isPreferred: -1, updatedAt: -1 })
+                .limit(10);
+
+            matchedSupplierSources = suppliers.map((source) => ({
+                supplierSource: source._id,
+                supplierCompany: source.supplierCompany || "",
+                componentName: source.componentName || "",
+                partNumber: source.partNumber || "",
+                brand: source.brand || "",
+                purchasePrice: source.purchasePrice || 0,
+                moq: source.moq || 1,
+                leadTime: source.leadTime || "",
+                lastPurchaseDate: source.lastPurchaseDate || null,
+                phone: source.phone || "",
+                whatsapp: source.whatsapp || "",
+                email: source.email || "",
+                availabilityStatus: source.availabilityStatus || "",
+                isPreferred: Boolean(source.isPreferred),
+            }));
+        }
+
+        const request = await ComponentRequest.create({
+            items: parsedItems,
+            description,
+            customerName,
+            customerEmail,
+            customerPhone,
+            user: req.user?._id || null,
+            imageUrls,
+            datasheetUrls,
+            matchedSupplierSources,
         });
-    }
-
-    if (item.brand) {
-        supplierFilters.push({
-            brand: { $regex: escapeRegex(item.brand), $options: "i" },
-        });
-    }
-});
-
-let matchedSupplierSources = [];
-
-if (supplierFilters.length) {
-    const suppliers = await SupplierSource.find({
-        isActive: true,
-        $or: supplierFilters,
-    })
-        .sort({ isPreferred: -1, updatedAt: -1 })
-        .limit(10);
-
-    matchedSupplierSources = suppliers.map((source) => ({
-        supplierSource: source._id,
-        supplierCompany: source.supplierCompany || "",
-        componentName: source.componentName || "",
-        partNumber: source.partNumber || "",
-        brand: source.brand || "",
-        purchasePrice: source.purchasePrice || 0,
-        moq: source.moq || 1,
-        leadTime: source.leadTime || "",
-        phone: source.phone || "",
-        whatsapp: source.whatsapp || "",
-        email: source.email || "",
-        availabilityStatus: source.availabilityStatus || "",
-        isPreferred: Boolean(source.isPreferred),
-    }));
-}
-
-
 
         res.status(201).json({
             success: true,
@@ -275,67 +276,67 @@ exports.getMyComponentRequests = async (req, res) => {
 };
 
 exports.getComponentRequestsByEmail = async (req, res) => {
-  try {
-    const { search } = req.query;
+    try {
+        const { search } = req.query;
 
-    if (!search) {
-      return res.status(400).json({
-        success: false,
-        message: "Search value is required",
-      });
+        if (!search) {
+            return res.status(400).json({
+                success: false,
+                message: "Search value is required",
+            });
+        }
+
+        const value = String(search).trim();
+
+        const requests = await ComponentRequest.find({
+            $or: [
+                {
+                    customerEmail: {
+                        $regex: value,
+                        $options: "i",
+                    },
+                },
+
+                {
+                    customerPhone: {
+                        $regex: value,
+                        $options: "i",
+                    },
+                },
+
+                {
+                    "items.componentName": {
+                        $regex: value,
+                        $options: "i",
+                    },
+                },
+
+                {
+                    "items.partNumber": {
+                        $regex: value,
+                        $options: "i",
+                    },
+                },
+
+                {
+                    "items.brand": {
+                        $regex: value,
+                        $options: "i",
+                    },
+                },
+            ],
+        }).sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            requests,
+        });
+    } catch (error) {
+        console.error("Get component requests lookup error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error while fetching requests",
+        });
     }
-
-    const value = String(search).trim();
-
-    const requests = await ComponentRequest.find({
-      $or: [
-        {
-          customerEmail: {
-            $regex: value,
-            $options: "i",
-          },
-        },
-
-        {
-          customerPhone: {
-            $regex: value,
-            $options: "i",
-          },
-        },
-
-        {
-          "items.componentName": {
-            $regex: value,
-            $options: "i",
-          },
-        },
-
-        {
-          "items.partNumber": {
-            $regex: value,
-            $options: "i",
-          },
-        },
-
-        {
-          "items.brand": {
-            $regex: value,
-            $options: "i",
-          },
-        },
-      ],
-    }).sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      requests,
-    });
-  } catch (error) {
-    console.error("Get component requests lookup error:", error);
-
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching requests",
-    });
-  }
 };

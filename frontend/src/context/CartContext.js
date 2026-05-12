@@ -53,6 +53,14 @@ function clearGuestCartStorage() {
   localStorage.removeItem(GUEST_CART_KEY);
 }
 
+function isProductOutOfStock(product) {
+  return (
+    product?.isOutOfStock ||
+    product?.stockStatus === "out_of_stock" ||
+    Number(product?.stock || 0) <= 0
+  );
+}
+
 function buildGuestCartItemFromProduct(product, qty = 1) {
   const price = toNumber(product?.price, 0);
   const gstPercent = toNumber(product?.gstPercent, DEFAULT_GST_PERCENT);
@@ -245,8 +253,18 @@ export function CartProvider({ children }) {
   };
 
   const addToGuestCart = async ({ productId, qty = 1 }) => {
+
     const product = await fetchProductForGuestCart(productId);
-    const currentItems = getGuestCartFromStorage();
+
+if (isProductOutOfStock(product)) {
+  return {
+    success: false,
+    message: "This product is currently out of stock",
+  };
+}
+
+const currentItems = getGuestCartFromStorage();
+
     const existingIndex = currentItems.findIndex(
       (item) => String(item.productId) === String(productId)
     );

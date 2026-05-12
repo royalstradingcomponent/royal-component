@@ -9,6 +9,14 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
+const isProductOutOfStock = (product) => {
+  return (
+    product?.isOutOfStock ||
+    product?.stockStatus === "out_of_stock" ||
+    Number(product?.stock || 0) <= 0
+  );
+};
+
 const buildCartItemFromProduct = (product, qty = 1) => {
   const price = toNumber(product.price, 0);
   const mrp = toNumber(product.mrp, price);
@@ -76,7 +84,7 @@ exports.getCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ user: req.user._id }).populate(
       "items.product",
-      "name slug brand sku mpn thumbnail images stock price mrp hsnCode"
+      "name slug brand sku mpn thumbnail images stock stockStatus isOutOfStock allowBackorder price mrp hsnCode"
     );
 
     if (!cart) {
@@ -98,24 +106,24 @@ exports.getCart = async (req, res) => {
       .map((item) => formatCartItem(item, item.product));
 
     const subtotalExGst = formattedItems.reduce(
-  (sum, item) => sum + item.lineSubtotal,
-  0
-);
+      (sum, item) => sum + item.lineSubtotal,
+      0
+    );
 
-const gstTotal = formattedItems.reduce(
-  (sum, item) => sum + item.gstAmount,
-  0
-);
-    
+    const gstTotal = formattedItems.reduce(
+      (sum, item) => sum + item.gstAmount,
+      0
+    );
+
 
     let shipping = 0;
 
-// 🔥 DELIVERY RULE
-if (subtotalExGst < 5000) {
-  shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
-} else {
-  shipping = 0;
-}
+    // 🔥 DELIVERY RULE
+    if (subtotalExGst < 5000) {
+      shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
+    } else {
+      shipping = 0;
+    }
     const itemCount = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
 
     const discount = cart.coupon?.isApplied
@@ -125,22 +133,22 @@ if (subtotalExGst < 5000) {
     const grandTotal = Math.max(0, subtotalExGst + gstTotal + shipping - discount);
 
     return res.status(200).json({
-  success: true,
-  items: formattedItems,
-  summary: {
-    itemCount,
-    subtotalExGst,
-    gstTotal,
-    shipping,
-    discount,
-    grandTotal,
-    deliveryMessage:
-      subtotalExGst >= 5000
-        ? "FREE delivery"
-        : "₹150 delivery charge (Free above ₹5000)",
-    coupon: cart.coupon || null,
-  },
-});
+      success: true,
+      items: formattedItems,
+      summary: {
+        itemCount,
+        subtotalExGst,
+        gstTotal,
+        shipping,
+        discount,
+        grandTotal,
+        deliveryMessage:
+          subtotalExGst >= 5000
+            ? "FREE delivery"
+            : "₹150 delivery charge (Free above ₹5000)",
+        coupon: cart.coupon || null,
+      },
+    });
   } catch (error) {
     console.error("GET CART ERROR:", error);
     return res.status(500).json({
@@ -167,6 +175,13 @@ exports.addItemToCart = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Product not found",
+      });
+    }
+
+    if (isProductOutOfStock(product)) {
+      return res.status(400).json({
+        success: false,
+        message: "This product is currently out of stock",
       });
     }
 
@@ -233,6 +248,9 @@ exports.mergeGuestCart = async (req, res) => {
       const product = await Product.findById(productId);
 
       if (!product || !product.isActive || product.status !== "published") {
+        continue;
+      }
+      if (isProductOutOfStock(product)) {
         continue;
       }
 

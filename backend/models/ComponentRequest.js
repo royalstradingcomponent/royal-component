@@ -89,6 +89,7 @@ matchedSupplierSources: [
     purchasePrice: { type: Number, default: 0 },
     moq: { type: Number, default: 1 },
     leadTime: { type: String, default: "" },
+    lastPurchaseDate: { type: Date, default: null },
     phone: { type: String, default: "" },
     whatsapp: { type: String, default: "" },
     email: { type: String, default: "" },

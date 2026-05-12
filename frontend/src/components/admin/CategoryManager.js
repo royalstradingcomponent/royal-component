@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, X, Save, Search } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  Search,
+  UploadCloud,
+} from "lucide-react";
 import { toast } from "sonner";
 import { adminRequest, API_BASE } from "@/lib/api";
 
@@ -37,11 +45,7 @@ function imageUrl(src) {
   return `${API_BASE}${src}`;
 }
 
-export default function CategoryManager({
-  title,
-  subtitle,
-  level = "main",
-}) {
+export default function CategoryManager({ title, subtitle, level = "main" }) {
   const [categories, setCategories] = useState([]);
   const [mainCategories, setMainCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -53,8 +57,45 @@ export default function CategoryManager({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [form, setForm] = useState(emptyForm);
+
+  const uploadCategoryImage = async (file) => {
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "categories");
+
+      const data = await adminRequest("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const url = data?.file?.url || data?.url || "";
+
+      if (!url) {
+        toast.error("Image upload failed");
+        return;
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        image: url,
+        iconAlt: prev.iconAlt || prev.name || "category image",
+      }));
+
+      toast.success("Category image uploaded");
+    } catch (error) {
+      toast.error(error.message || "Image upload failed");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const loadMain = async () => {
     const data = await adminRequest("/api/admin/categories/main");
@@ -75,7 +116,10 @@ export default function CategoryManager({
     return data.categories || [];
   };
 
-  const loadList = async ({ mainSlug = selectedMain, subSlug = selectedSub } = {}) => {
+  const loadList = async ({
+    mainSlug = selectedMain,
+    subSlug = selectedSub,
+  } = {}) => {
     try {
       let data;
 
@@ -141,7 +185,6 @@ export default function CategoryManager({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-
     if (!q) return categories;
 
     return categories.filter((cat) =>
@@ -218,6 +261,7 @@ export default function CategoryManager({
 
       const payload = {
         ...form,
+        order: Number(form.order || 0),
         seo: {
           ...form.seo,
           metaKeywords: Array.isArray(form.seo.metaKeywords)
@@ -303,7 +347,8 @@ export default function CategoryManager({
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2454b5] px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#1f49a0]"
           >
             <Plus size={18} />
-            Add {level === "main" ? "Main" : level === "sub" ? "Sub" : "Child"} Category
+            Add {level === "main" ? "Main" : level === "sub" ? "Sub" : "Child"}{" "}
+            Category
           </button>
         </div>
 
@@ -428,7 +473,10 @@ export default function CategoryManager({
                 </p>
               </div>
 
-              <button onClick={() => setOpen(false)} className="rounded-xl border p-2">
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-xl border p-2"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -466,11 +514,39 @@ export default function CategoryManager({
               </Field>
 
               <Field label="Image URL">
-                <input
-                  className="input"
-                  value={form.image}
-                  onChange={(e) => updateForm("image", e.target.value)}
-                />
+                <div className="space-y-2">
+                  <input
+                    className="input"
+                    value={form.image}
+                    onChange={(e) => updateForm("image", e.target.value)}
+                    placeholder="/uploads/categories/image-name.jpg"
+                  />
+
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[#d8e1ec] bg-white px-4 py-2 text-xs font-extrabold text-[#102033] hover:bg-[#f3f7fb]">
+                    <UploadCloud size={16} />
+                    {uploadingImage ? "Uploading..." : "Upload Category Image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      disabled={uploadingImage}
+                      onChange={(e) => uploadCategoryImage(e.target.files?.[0])}
+                    />
+                  </label>
+
+                  {form.image ? (
+                    <div className="flex items-center gap-3 rounded-xl border bg-[#f8fcff] p-2">
+                      <img
+                        src={imageUrl(form.image)}
+                        alt="Category preview"
+                        className="h-16 w-16 rounded-lg border bg-white object-contain"
+                      />
+                      <span className="break-all text-xs font-semibold text-slate-500">
+                        {form.image}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
               </Field>
 
               <Field label="Image Alt">
@@ -574,7 +650,7 @@ export default function CategoryManager({
               </button>
               <button
                 onClick={saveCategory}
-                disabled={saving}
+                disabled={saving || uploadingImage}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#2454b5] px-5 py-3 font-bold text-white disabled:opacity-60"
               >
                 <Save size={18} />

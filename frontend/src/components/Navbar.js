@@ -18,6 +18,7 @@ import {
   CircleHelp,
   LogOut,
   LayoutDashboard,
+  BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import LoginModal from "@/app/authPage/LoginModel";
@@ -276,15 +277,15 @@ export default function Navbar() {
               <Link
                 href="/request-component"
                 className="hidden h-[46px] items-center gap-2 rounded-full border border-[#b9e6fb] bg-[#eaf7ff] px-5 text-sm font-extrabold text-[#0f6cbd] shadow-sm transition hover:border-[#38bdf8] hover:bg-[#dff2ff] md:flex"
-                >
+              >
                 <PackageSearch size={18} />
-                Request Component
+                Request BOM
               </Link>
 
               <Link
                 href="/request-component/my-requests"
                 className="hidden h-[46px] items-center gap-2 rounded-full border border-[#b9e6fb] bg-[#eaf7ff] px-5 text-sm font-extrabold text-[#0f6cbd] shadow-sm transition hover:border-[#38bdf8] hover:bg-[#dff2ff] md:flex"
-                >
+              >
                 <PackageSearch size={18} />
                 Track Request
               </Link>
@@ -374,6 +375,18 @@ export default function Navbar() {
                   </div>
                 </div>
               </div>
+
+              <Link
+                href="/blog"
+                className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold text-[#0f3d67] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen size={16} />
+                  Blogs
+                </span>
+
+                <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
+              </Link>
 
               {/* TOP 5 CATEGORIES AFTER ALL SEMICONDUCTORS */}
               {visibleCategories.map((item) => (
@@ -490,6 +503,19 @@ export default function Navbar() {
                 )}
 
                 <div className="space-y-2">
+
+                  <Link
+                    href="/blog"
+                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="flex items-center gap-3">
+                      <BookOpen size={17} />
+                      Blogs
+                    </span>
+
+                    <ChevronRight size={17} />
+                  </Link>
                   {categories.map((item) => (
                     <Link
                       key={item._id || item.slug}

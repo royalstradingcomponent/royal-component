@@ -15,26 +15,41 @@ const getImageUrl = (url) => {
   return `${API_BASE}${url}`;
 };
 
-function getStockData(stock) {
-  const qty = Number(stock || 0);
+function getStockData(product) {
+  const qty = Number(product?.stock || 0);
 
-  if (qty <= 0) {
+  const isOut =
+    product?.isOutOfStock ||
+    product?.stockStatus === "out_of_stock" ||
+    qty <= 0;
+
+  if (isOut) {
     return {
-      label: "Temporarily out of stock",
-      className: "bg-[#f3e8ff] text-[#6b21a8]",
+      label: product?.allowBackorder
+        ? "Available on Request"
+        : "Out of Stock",
+
+      className:
+        product?.allowBackorder
+          ? "bg-[#fff7ed] text-[#c2410c]"
+          : "bg-[#fee2e2] text-[#b91c1c]",
+
+      isOut: true,
     };
   }
 
-  if (qty <= 10) {
+  if (qty <= 10 || product?.stockStatus === "low_stock") {
     return {
       label: "Only few left",
       className: "bg-[#fff4e5] text-[#c26a00]",
+      isOut: false,
     };
   }
 
   return {
     label: "In Stock",
     className: "bg-[#e8f8ee] text-[#0f8a4b]",
+    isOut: false,
   };
 }
 
@@ -46,7 +61,7 @@ export default function ProductCard({ product }) {
     "";
 
   const productLink = `/product/${product?.slug || product?._id}`;
-  const stockData = getStockData(product?.stock);
+  const stockData = getStockData(product);
   const price = Number(product?.price || 0);
   const mrp = Number(product?.mrp || 0);
   const moq = Number(product?.moq || 1);
@@ -138,13 +153,22 @@ export default function ProductCard({ product }) {
           </p>
         </div>
 
-        <Link
-          href={productLink}
-          className="mt-4 flex h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[#d6ecff] text-[14px] font-extrabold text-[#000000] border border-[#b6dcff] transition hover:bg-[#c5e4ff]"
-        >
-          <ShoppingCart size={16} className="text-[#0b6aa2]" />
-          View Details
-        </Link>
+        {stockData.isOut ? (
+          <div className="mt-4 flex h-[44px] w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 text-[14px] font-extrabold text-red-700">
+            <ShoppingCart size={16} />
+            {product?.allowBackorder
+              ? "Request Availability"
+              : "Out Of Stock"}
+          </div>
+        ) : (
+          <Link
+            href={productLink}
+            className="mt-4 flex h-[44px] w-full items-center justify-center gap-2 rounded-full border border-[#b6dcff] bg-[#d6ecff] text-[14px] font-extrabold text-[#000000] transition hover:bg-[#c5e4ff]"
+          >
+            <ShoppingCart size={16} className="text-[#0b6aa2]" />
+            View Details
+          </Link>
+        )}
       </div>
     </div>
   );

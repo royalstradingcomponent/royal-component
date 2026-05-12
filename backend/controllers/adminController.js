@@ -144,20 +144,20 @@ const serializeOrder = (orderDoc) => {
     finalAmount: pricing.totalAmount || pricing.grandTotal || 0,
 
     payment: {
-  method: payment.method || "",
-  status: payment.status || "Pending",
-  transactionId: payment.transactionId || payment.paymentId || "",
-  amountPaid: payment.amountPaid || 0,
-  paidAt: payment.paidAt || null,
-  proof: {
-    image: payment.proof?.image || "",
-    utr: payment.proof?.utr || "",
-    note: payment.proof?.note || "",
-    uploadedAt: payment.proof?.uploadedAt || null,
-  },
-  verifiedAt: payment.verifiedAt || null,
-  adminNote: payment.adminNote || "",
-},
+      method: payment.method || "",
+      status: payment.status || "Pending",
+      transactionId: payment.transactionId || payment.paymentId || "",
+      amountPaid: payment.amountPaid || 0,
+      paidAt: payment.paidAt || null,
+      proof: {
+        image: payment.proof?.image || "",
+        utr: payment.proof?.utr || "",
+        note: payment.proof?.note || "",
+        uploadedAt: payment.proof?.uploadedAt || null,
+      },
+      verifiedAt: payment.verifiedAt || null,
+      adminNote: payment.adminNote || "",
+    },
 
     paymentMethod: payment.method || "",
 
@@ -362,9 +362,25 @@ exports.createProduct = async (req, res) => {
       customSections: parseArray(data.customSections),
       price: Number(data.price || 0),
       mrp: Number(data.mrp || 0),
+
       stock: Number(data.stock || 0),
+
+      stockStatus:
+        data.stockStatus ||
+        (Number(data.stock || 0) <= 0 ? "out_of_stock" : "in_stock"),
+
+      isOutOfStock:
+        data.isOutOfStock === true ||
+        data.isOutOfStock === "true" ||
+        data.stockStatus === "out_of_stock" ||
+        Number(data.stock || 0) <= 0,
+
+      allowBackorder:
+        data.allowBackorder === true || data.allowBackorder === "true",
+
       moq: Math.max(1, Number(data.moq || 1)),
       unit: data.unit || "piece",
+
       leadTimeDays: Number(data.leadTimeDays || 0),
       countryOfOrigin: data.countryOfOrigin || "",
       warranty: data.warranty || "",
@@ -413,10 +429,47 @@ exports.updateProduct = async (req, res) => {
     if (data.applications !== undefined) data.applications = parseArray(data.applications);
     if (data.customSections !== undefined) data.customSections = parseArray(data.customSections);
     if (data.tags !== undefined) data.tags = parseArray(data.tags);
-
     ["price", "mrp", "stock", "moq", "leadTimeDays"].forEach((field) => {
       if (data[field] !== undefined) data[field] = Number(data[field]);
     });
+
+    if (data.stockStatus !== undefined) {
+      const allowedStockStatus = [
+        "in_stock",
+        "low_stock",
+        "out_of_stock",
+      ];
+
+      if (!allowedStockStatus.includes(data.stockStatus)) {
+        data.stockStatus = "in_stock";
+      }
+    }
+
+    if (data.allowBackorder !== undefined) {
+      data.allowBackorder =
+        data.allowBackorder === true ||
+        data.allowBackorder === "true";
+    }
+
+    if (data.stock !== undefined || data.stockStatus !== undefined) {
+      const stockQty = Number(data.stock || 0);
+
+      data.isOutOfStock =
+        data.stockStatus === "out_of_stock" ||
+        stockQty <= 0;
+
+      if (stockQty <= 0) {
+        data.stockStatus = "out_of_stock";
+        data.isOutOfStock = true;
+      }
+
+      if (
+        stockQty > 0 &&
+        data.stockStatus !== "out_of_stock"
+      ) {
+        data.isOutOfStock = false;
+      }
+    }
 
     if (data.metaTitle || data.metaDescription || data.metaKeywords) {
       data.seo = {
@@ -542,7 +595,19 @@ exports.getInventory = async (req, res) => {
 
 exports.updateInventory = async (req, res) => {
   try {
-    const allowed = ["price", "mrp", "stock", "moq", "sku", "mpn", "leadTimeDays", "status"];
+    const allowed = [
+      "price",
+      "mrp",
+      "stock",
+      "moq",
+      "sku",
+      "mpn",
+      "leadTimeDays",
+      "status",
+      "stockStatus",
+      "isOutOfStock",
+      "allowBackorder",
+    ];
     const payload = {};
 
     allowed.forEach((key) => {
@@ -553,7 +618,42 @@ exports.updateInventory = async (req, res) => {
       if (payload[key] !== undefined) payload[key] = Number(payload[key]);
     });
 
-    if (payload.sku) payload.sku = String(payload.sku).toUpperCase().trim();
+    if (payload.sku) payload.sku = String(payload.sku).toUpperCase().trim(); 
+    if (payload.allowBackorder !== undefined) {
+      payload.allowBackorder =
+        payload.allowBackorder === true ||
+        payload.allowBackorder === "true";
+    }
+
+    if (payload.isOutOfStock !== undefined) {
+      payload.isOutOfStock =
+        payload.isOutOfStock === true ||
+        payload.isOutOfStock === "true";
+    }
+
+    if (
+      payload.stock !== undefined ||
+      payload.stockStatus !== undefined
+    ) {
+      const stockQty = Number(payload.stock || 0);
+
+      if (
+        payload.stockStatus === "out_of_stock" ||
+        stockQty <= 0
+      ) {
+        payload.stockStatus = "out_of_stock";
+        payload.isOutOfStock = true;
+      }
+
+      if (
+        stockQty > 0 &&
+        payload.stockStatus !== "out_of_stock"
+      ) {
+        payload.isOutOfStock = false;
+        payload.stockStatus =
+          payload.stockStatus || "in_stock";
+      }
+    }
 
     const product = await Product.findByIdAndUpdate(req.params.id, payload, {
       new: true,
@@ -567,6 +667,95 @@ exports.updateInventory = async (req, res) => {
     res.json({ success: true, message: "Inventory updated", product });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.getOutOfStockProducts = async (req, res) => {
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 25, 1),
+      200
+    );
+
+    const keyword =
+      req.query.keyword || req.query.search || "";
+
+    const filter = {
+      isActive: true,
+      $or: [
+        { stockStatus: "out_of_stock" },
+        { isOutOfStock: true },
+        { stock: { $lte: 0 } },
+      ],
+    };
+
+    if (keyword) {
+      const regex = new RegExp(keyword, "i");
+
+      filter.$and = [
+        {
+          $or: [
+            { name: regex },
+            { sku: regex },
+            { mpn: regex },
+            { brand: regex },
+            { category: regex },
+            { subCategory: regex },
+          ],
+        },
+      ];
+    }
+
+    const total =
+      await Product.countDocuments(filter);
+
+    const products = await Product.find(filter)
+      .select(
+        `
+        name
+        slug
+        sku
+        mpn
+        brand
+        category
+        subCategory
+        thumbnail
+        images
+        price
+        mrp
+        stock
+        moq
+        unit
+        stockStatus
+        isOutOfStock
+        allowBackorder
+        status
+        updatedAt
+      `
+      )
+      .sort({ updatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
+
+    res.json({
+      success: true,
+      products,
+      total,
+      page,
+      pages: Math.ceil(total / limit) || 1,
+    });
+  } catch (error) {
+    console.error(
+      "OUT OF STOCK PRODUCTS ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -1543,9 +1732,9 @@ const makePolicyPayload = (body = {}) => {
       metaTitle: String(body.seo?.metaTitle || body.metaTitle || title).trim(),
       metaDescription: String(
         body.seo?.metaDescription ||
-          body.metaDescription ||
-          body.shortDescription ||
-          ""
+        body.metaDescription ||
+        body.shortDescription ||
+        ""
       ).trim(),
       metaKeywords: parsePolicyArray(
         body.seo?.metaKeywords || body.metaKeywords

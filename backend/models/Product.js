@@ -126,6 +126,12 @@ const productSchema = new mongoose.Schema(
       index: true,
     },
 
+    childCategory: {
+      type: String,
+      default: "",
+      index: true,
+    },
+
     shortDescription: {
       type: String,
       default: "",
@@ -161,19 +167,19 @@ const productSchema = new mongoose.Schema(
     },
 
     highlights: {
-  type: [highlightSchema],
-  default: [],
-},
+      type: [highlightSchema],
+      default: [],
+    },
 
-applications: {
-  type: [applicationSchema],
-  default: [],
-},
+    applications: {
+      type: [applicationSchema],
+      default: [],
+    },
 
-customSections: {
-  type: [customSectionSchema],
-  default: [],
-},
+    customSections: {
+      type: [customSectionSchema],
+      default: [],
+    },
 
     price: {
       type: Number,
@@ -200,6 +206,23 @@ customSections: {
       min: 0,
       default: 0,
       index: true,
+    },
+    stockStatus: {
+      type: String,
+      enum: ["in_stock", "low_stock", "out_of_stock"],
+      default: "in_stock",
+      index: true,
+    },
+
+    isOutOfStock: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    allowBackorder: {
+      type: Boolean,
+      default: false,
     },
 
     moq: {
@@ -292,6 +315,21 @@ productSchema.pre("validate", function () {
   if (!this.thumbnail && this.images.length > 0) {
     const primary = this.images.find((img) => img.isPrimary) || this.images[0];
     this.thumbnail = primary?.url || "";
+  }
+  this.isOutOfStock =
+    this.stockStatus === "out_of_stock" || Number(this.stock || 0) <= 0;
+
+  if (Number(this.stock || 0) <= 0) {
+    this.stockStatus = "out_of_stock";
+    this.isOutOfStock = true;
+  }
+
+  if (Number(this.stock || 0) > 0 && this.stockStatus !== "out_of_stock") {
+    this.isOutOfStock = false;
+
+    if (!this.stockStatus) {
+      this.stockStatus = "in_stock";
+    }
   }
 });
 module.exports = mongoose.model("Product", productSchema);

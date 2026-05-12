@@ -87,22 +87,35 @@ function formatCurrency(value) {
   })}`;
 }
 
-function getStockMeta(stock) {
-  const qty = Number(stock || 0);
+function getStockMeta(product) {
+  const qty = Number(product?.stock || 0);
 
-  if (qty <= 0) {
+  const isOut =
+    product?.isOutOfStock ||
+    product?.stockStatus === "out_of_stock" ||
+    qty <= 0;
+
+  if (isOut) {
     return {
-      label: "Temporarily out of stock",
-      className: "bg-[#ead9fb] text-[#4d1d95]",
-      note: "Availability will be shared on request for bulk procurement.",
+      label: product?.allowBackorder
+        ? "Available on Request"
+        : "Currently Out of Stock",
+      className: product?.allowBackorder
+        ? "bg-[#fff7ed] text-[#c2410c]"
+        : "bg-[#fee2e2] text-[#b91c1c]",
+      note: product?.allowBackorder
+        ? "This component is available through procurement request or backorder."
+        : "This component is temporarily unavailable for direct purchase.",
+      isOut: true,
     };
   }
 
-  if (qty <= 20) {
+  if (qty <= 20 || product?.stockStatus === "low_stock") {
     return {
       label: "Limited stock available",
       className: "bg-[#fff3cd] text-[#7a5200]",
       note: `${qty} unit(s) ready for dispatch.`,
+      isOut: false,
     };
   }
 
@@ -110,6 +123,7 @@ function getStockMeta(stock) {
     label: "In stock",
     className: "bg-[#e2f5ea] text-[#067647]",
     note: `${qty} unit(s) available for immediate dispatch.`,
+    isOut: false,
   };
 }
 
@@ -281,7 +295,7 @@ export default async function ProductDetailPage({ params }) {
   const similarProducts = await getSimilarProducts(product);
 
   const primaryImage = getPrimaryImage(product);
-  const stockMeta = getStockMeta(product?.stock);
+  const stockMeta = getStockMeta(product);
 
   const packPriceExGst = Number(product?.price || 0);
   const packPriceIncGst = getIncGstPrice(packPriceExGst);
@@ -572,13 +586,38 @@ export default async function ProductDetailPage({ params }) {
               </div>
 
               <div className="mt-5">
-                <AddToCartButton
-                  productId={product?._id}
-                  moq={product?.moq || 1}
-                  showQuantity={true}
-                />
-              </div>
+                {stockMeta.isOut ? (
+                  <div className="rounded-sm border border-red-200 bg-red-50 p-5">
+                    <p className="text-[20px] font-extrabold text-red-700">
+                      {product?.allowBackorder
+                        ? "Available on Request"
+                        : "Currently Out of Stock"}
+                    </p>
 
+                    <p className="mt-2 text-[15px] leading-7 text-red-700">
+                      {product?.allowBackorder
+                        ? "This component is not available for instant checkout, but our procurement team can arrange availability, bulk quotation, or alternate compatible parts."
+                        : "This component is temporarily unavailable for direct purchase. You can request availability or ask our team for an alternate compatible part."}
+                    </p>
+
+                    <Link
+                      href={`/request-component?product=${encodeURIComponent(
+                        product?.name || ""
+                      )}&sku=${encodeURIComponent(product?.sku || "")}`}
+                      className="mt-4 inline-flex h-[48px] w-full items-center justify-center bg-red-600 px-5 text-[16px] font-bold text-white transition hover:bg-red-700"
+                    >
+                      Request Availability
+                    </Link>
+                  </div>
+                ) : (
+                  <AddToCartButton
+                    productId={product?._id}
+                    moq={product?.moq || 1}
+                    showQuantity={true}
+                  />
+                )}
+              </div>
+              
               <button
                 type="button"
                 className="mt-5 inline-flex items-center gap-2 text-[18px] font-medium text-[#2452c6] transition hover:underline"

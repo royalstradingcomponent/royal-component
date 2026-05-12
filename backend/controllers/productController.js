@@ -17,7 +17,7 @@ const slugify = (value = "") =>
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 
-    const normalizeSubCategoryFilter = (value = "") => {
+const normalizeSubCategoryFilter = (value = "") => {
   return String(value)
     .toLowerCase()
     .trim()
@@ -187,8 +187,17 @@ const buildProductFilter = (query = {}) => {
     const subCategories = parseCsv(query.subCategory.toLowerCase());
     if (subCategories.length) {
       filter.subCategory = {
-  $in: subCategories.map((item) => normalizeSubCategoryFilter(item)),
-};
+        $in: subCategories.map((item) => normalizeSubCategoryFilter(item)),
+      };
+    }
+  }
+
+  if (query.childCategory) {
+    const childCategories = parseCsv(query.childCategory.toLowerCase());
+    if (childCategories.length) {
+      filter.childCategory = {
+        $in: childCategories.map((item) => normalizeSubCategoryFilter(item)),
+      };
     }
   }
 
@@ -201,18 +210,19 @@ const buildProductFilter = (query = {}) => {
 
   const searchValue = query.keyword || query.search;
 
-if (searchValue) {
-  const regex = new RegExp(searchValue, "i");
-  filter.$or = [
-    { name: regex },
-    { brand: regex },
-    { sku: regex },
-    { mpn: regex },
-    { shortDescription: regex },
-    { description: regex },
-    { subCategory: regex },
-  ];
-}
+  if (searchValue) {
+    const regex = new RegExp(searchValue, "i");
+    filter.$or = [
+      { name: regex },
+      { brand: regex },
+      { sku: regex },
+      { mpn: regex },
+      { shortDescription: regex },
+      { description: regex },
+      { subCategory: regex },
+      { childCategory: regex },
+    ];
+  }
 
   if (query.minPrice || query.maxPrice) {
     filter.price = {};
@@ -273,6 +283,7 @@ const buildSeedProduct = (item) => {
     brand: item.brand || "Generic",
     category: normalizeCategorySlug(item.category),
     subCategory: item.subCategory ? normalizeSubCategoryFilter(item.subCategory) : "",
+    childCategory: item.childCategory ? normalizeSubCategoryFilter(item.childCategory) : "",
     shortDescription: item.shortDescription || "",
     description: item.description || item.shortDescription || "",
     thumbnail: primaryFile ? makeImagePath(primaryFile) : "",
@@ -312,6 +323,7 @@ const dedupeAndInsert = async (products) => {
     sku: item.sku ? String(item.sku).toUpperCase() : undefined,
     category: normalizeCategorySlug(item.category),
     subCategory: item.subCategory ? normalizeSubCategoryFilter(item.subCategory) : "",
+    childCategory: item.childCategory ? normalizeSubCategoryFilter(item.childCategory) : "",
     status: item.status || "published",
     isActive: item.isActive !== false,
     isFeatured: item.isFeatured || false,
@@ -370,10 +382,10 @@ const dedupeAndInsert = async (products) => {
         reason: slugExistsInDb
           ? "slug already exists in database"
           : skuExistsInDb
-          ? "sku already exists in database"
-          : slugDuplicateInRequest
-          ? "duplicate slug in same request"
-          : "duplicate sku in same request",
+            ? "sku already exists in database"
+            : slugDuplicateInRequest
+              ? "duplicate slug in same request"
+              : "duplicate sku in same request",
       });
       continue;
     }
@@ -404,7 +416,7 @@ exports.getProducts = async (req, res) => {
     const filter = buildProductFilter(req.query);
 
     console.log("PRODUCT QUERY:", req.query);
-console.log("PRODUCT FILTER:", JSON.stringify(filter, null, 2));
+    console.log("PRODUCT FILTER:", JSON.stringify(filter, null, 2));
 
     let sortOption = { createdAt: -1 };
 
@@ -430,55 +442,55 @@ console.log("PRODUCT FILTER:", JSON.stringify(filter, null, 2));
 
     let total = await Product.countDocuments(filter);
 
-/*
-  Fallback logic:
-  Agar exact child category me product nahi mila,
-  to us child ke parent + siblings bucket ke products dikhao.
-*/
-if (total === 0 && req.query.subCategory) {
-  const requestedSubCategory = normalizeSubCategoryFilter(req.query.subCategory);
+    /*
+      Fallback logic:
+      Agar exact child category me product nahi mila,
+      to us child ke parent + siblings bucket ke products dikhao.
+    */
+    if (total === 0 && req.query.subCategory) {
+      const requestedSubCategory = normalizeSubCategoryFilter(req.query.subCategory);
 
-  const currentCategory = await Category.findOne({
-    slug: requestedSubCategory,
-    isActive: true,
-  }).lean();
+      const currentCategory = await Category.findOne({
+        slug: requestedSubCategory,
+        isActive: true,
+      }).lean();
 
-  if (currentCategory) {
-    const children = await Category.find({
-      parentSlug: currentCategory.slug,
-      isActive: true,
-    })
-      .select("slug")
-      .lean();
-
-    const siblings = currentCategory.parentSlug
-      ? await Category.find({
-          parentSlug: currentCategory.parentSlug,
+      if (currentCategory) {
+        const children = await Category.find({
+          parentSlug: currentCategory.slug,
           isActive: true,
         })
           .select("slug")
-          .lean()
-      : [];
+          .lean();
 
-    const fallbackSubCategories = [
-      requestedSubCategory,
-      normalizeSubCategoryFilter(currentCategory.slug),
-      normalizeSubCategoryFilter(currentCategory.parentSlug || ""),
-      ...children.map((item) => normalizeSubCategoryFilter(item.slug)),
-      ...siblings.map((item) => normalizeSubCategoryFilter(item.slug)),
-    ].filter(Boolean);
+        const siblings = currentCategory.parentSlug
+          ? await Category.find({
+            parentSlug: currentCategory.parentSlug,
+            isActive: true,
+          })
+            .select("slug")
+            .lean()
+          : [];
 
-    filter.subCategory = {
-      $in: [...new Set(fallbackSubCategories)],
-    };
+        const fallbackSubCategories = [
+          requestedSubCategory,
+          normalizeSubCategoryFilter(currentCategory.slug),
+          normalizeSubCategoryFilter(currentCategory.parentSlug || ""),
+          ...children.map((item) => normalizeSubCategoryFilter(item.slug)),
+          ...siblings.map((item) => normalizeSubCategoryFilter(item.slug)),
+        ].filter(Boolean);
 
-    total = await Product.countDocuments(filter);
-  }
-}
+        filter.subCategory = {
+          $in: [...new Set(fallbackSubCategories)],
+        };
 
-const products = await Product.find(filter)
+        total = await Product.countDocuments(filter);
+      }
+    }
+
+    const products = await Product.find(filter)
       .select(
-        "name slug sku brand category subCategory thumbnail images price mrp discount stock moq unit shortDescription description isFeatured isBestSeller createdAt"
+        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription description isFeatured isBestSeller createdAt"
       )
       .sort(sortOption)
       .skip((page - 1) * limit)
@@ -508,7 +520,7 @@ exports.getFeaturedProducts = async (req, res) => {
       status: "published",
     })
       .select(
-        "name slug sku brand thumbnail images price mrp discount stock shortDescription"
+        "name slug sku brand thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder shortDescription"
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -685,7 +697,8 @@ exports.createProduct = async (req, res) => {
       slug,
       sku: data.sku ? data.sku.toUpperCase() : undefined,
       category: normalizeCategorySlug(data.category),
-      subCategory: data.subCategory ? slugify(data.subCategory) : "",
+      subCategory: data.subCategory ? normalizeSubCategoryFilter(data.subCategory) : "",
+      childCategory: data.childCategory ? normalizeSubCategoryFilter(data.childCategory) : "",
     });
 
     res.status(201).json({
@@ -792,6 +805,10 @@ exports.updateProduct = async (req, res) => {
         product[key] = normalizeCategorySlug(req.body[key]);
       } else if (key === "subCategory" && req.body[key]) {
         product[key] = normalizeSubCategoryFilter(req.body[key]);
+
+      } else if (key === "childCategory" && req.body[key]) {
+        product[key] = normalizeSubCategoryFilter(req.body[key]);
+
       } else {
         product[key] = req.body[key];
       }
@@ -862,10 +879,11 @@ exports.getSimilarProducts = async (req, res) => {
         { category: { $in: aliases.map((item) => item.toLowerCase()) } },
         { brand: current.brand },
         { subCategory: current.subCategory },
+        { childCategory: current.childCategory },
       ],
     })
       .select(
-        "name slug sku brand thumbnail images price mrp discount stock shortDescription"
+        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder shortDescription"
       )
       .limit(12)
       .lean();
@@ -913,13 +931,14 @@ exports.searchProductsByImage = async (req, res) => {
         { brand: regex },
         { category: regex },
         { subCategory: regex },
+        { childCategory: regex },
         { shortDescription: regex },
         { description: regex },
         { tags: regex },
       ],
     })
       .select(
-        "name slug sku brand category subCategory thumbnail images price mrp discount stock moq unit shortDescription"
+       "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription"
       )
       .limit(40)
       .lean();

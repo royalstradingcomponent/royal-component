@@ -51,6 +51,13 @@ router.delete("/home-sections/:id", protect, admin, adminController.deleteHomeSe
 router.get("/inventory", protect, admin, adminController.getInventory);
 router.patch("/inventory/:id", protect, admin, adminController.updateInventory);
 
+router.get(
+  "/inventory/out-of-stock",
+  protect,
+  admin,
+  adminController.getOutOfStockProducts
+);
+
 /* ================= CATEGORIES ================= */
 router.get("/categories", protect, admin, adminController.getCategories);
 router.post("/categories", protect, admin, adminController.createCategory);
