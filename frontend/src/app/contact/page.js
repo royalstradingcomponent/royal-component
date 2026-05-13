@@ -79,8 +79,90 @@ export async function generateMetadata() {
   };
 }
 
+
+function generateLocalBusinessSchema(page) {
+  return {
+    "@context": "https://schema.org",
+
+    "@type": "LocalBusiness",
+
+    name: "Royal Trading Component",
+
+    image: "https://www.royalsmd.com/logo.png",
+
+    "@id": "https://www.royalsmd.com",
+
+    url: "https://www.royalsmd.com",
+
+    telephone: page?.phone || "",
+
+    email: page?.email || "",
+
+    address: {
+      "@type": "PostalAddress",
+
+      streetAddress: page?.address || "",
+
+      addressLocality: "Delhi",
+
+      addressRegion: "Delhi",
+
+      postalCode: "110059",
+
+      addressCountry: "IN",
+    },
+
+    geo: {
+      "@type": "GeoCoordinates",
+
+      latitude: "28.6219",
+
+      longitude: "77.0555",
+    },
+
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+
+        dayOfWeek: [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ],
+
+        opens: "10:00",
+
+        closes: "19:00",
+      },
+    ],
+
+    sameAs: [
+      "https://www.facebook.com/",
+      "https://www.instagram.com/",
+      "https://www.linkedin.com/",
+    ],
+
+    priceRange: "₹₹",
+
+    areaServed: [
+      "Delhi",
+      "Noida",
+      "Gurugram",
+      "India",
+    ],
+
+    description:
+      "Royal Trading Component is a trusted electronic components supplier in Delhi India offering semiconductors, ICs, industrial electronics and wholesale procurement support.",
+  };
+}
 export default async function ContactPage() {
   const page = await getContactPage();
+
+  const localBusinessSchema =
+    generateLocalBusinessSchema(page);
 
   const cards =
     page?.cards?.filter((c) => c.isActive)?.sort((a, b) => a.order - b.order) ||
@@ -89,6 +171,13 @@ export default async function ContactPage() {
   return (
     <div className="min-h-screen bg-[#f3f8fd]">
       <Navbar />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(localBusinessSchema),
+        }}
+      />
 
       <main>
         <section className="relative overflow-hidden border-b border-sky-100 bg-gradient-to-br from-sky-50 via-white to-blue-50">

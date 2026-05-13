@@ -76,6 +76,179 @@ export default async function AboutPage() {
             About page content not available
           </h1>
         </main>
+
+        <section className="bg-white border-t border-sky-100 py-16">
+  <div className="mx-auto max-w-7xl px-4 md:px-6">
+
+    <div className="prose prose-lg max-w-none text-slate-700">
+
+      <h2 className="text-[38px] font-black text-[#082f49] leading-tight">
+        Leading Electronic Components Supplier in India
+      </h2>
+
+      <p>
+        Royal Trading Component is one of the leading industrial
+        electronic components suppliers in India offering
+        semiconductors, integrated circuits, embedded electronics,
+        industrial automation products, displays, sensors,
+        communication modules, PCB components and industrial
+        hardware solutions for engineers, OEM manufacturers,
+        industrial buyers and B2B procurement companies.
+      </p>
+
+      <p>
+        Our platform is designed to simplify industrial procurement
+        by providing access to high quality electronic components,
+        industrial spare parts, automation hardware and semiconductor
+        solutions suitable for manufacturing, repair industries,
+        embedded systems, robotics, consumer electronics and
+        industrial automation applications.
+      </p>
+
+      <h2 className="mt-14 text-[34px] font-black text-[#082f49] leading-tight">
+        Trusted Semiconductor & IC Supplier in Delhi India
+      </h2>
+
+      <p>
+        Royal Trading Component supplies industrial electronic
+        components across Delhi, Uttam Nagar, Janakpuri,
+        Lajpat Rai Market, Nehru Place, Noida, Gurugram and
+        major industrial cities across India. Businesses trust
+        us for semiconductor sourcing, IC procurement,
+        embedded electronics support and industrial automation
+        component supply.
+      </p>
+
+      <p>
+        Our procurement support system helps industries source
+        electronic components using part number verification,
+        datasheet validation, MOQ support, GST billing and
+        technical procurement assistance.
+      </p>
+
+      <h3 className="mt-10 text-[28px] font-bold text-[#082f49]">
+        Electronics Department & Semiconductor Expertise
+      </h3>
+
+      <p>
+        The electronics department at Royal Trading Component
+        focuses on semiconductor products, logic ICs,
+        power management ICs, communication modules,
+        embedded processors, wireless electronics,
+        sensor modules and industrial electronic systems.
+      </p>
+
+      <p>
+        We support engineers, repair professionals,
+        industrial maintenance teams, PCB developers,
+        OEM manufacturers and embedded hardware
+        designers looking for reliable semiconductor
+        sourcing solutions in India.
+      </p>
+
+      <h3 className="mt-10 text-[28px] font-bold text-[#082f49]">
+        Popular Electronic Components Categories
+      </h3>
+
+      <ul>
+        <li>Semiconductor Components</li>
+        <li>Integrated Circuits (ICs)</li>
+        <li>Logic ICs</li>
+        <li>Power Management ICs</li>
+        <li>Microcontrollers & Processors</li>
+        <li>Communication Modules</li>
+        <li>Wireless Electronics</li>
+        <li>Sensor Modules</li>
+        <li>Displays & LCD Modules</li>
+        <li>Embedded Electronics</li>
+        <li>PCB Components</li>
+        <li>Industrial Automation Products</li>
+        <li>Electrical Control Components</li>
+        <li>Relays & Connectors</li>
+        <li>Voltage Regulators</li>
+      </ul>
+
+      <h2 className="mt-14 text-[34px] font-black text-[#082f49] leading-tight">
+        Industrial Procurement Support for Businesses
+      </h2>
+
+      <p>
+        Royal Trading Component supports OEM manufacturers,
+        industrial procurement teams, engineering companies,
+        repair workshops and industrial buyers with bulk
+        electronic component sourcing and wholesale
+        procurement support.
+      </p>
+
+      <p>
+        We help businesses source industrial components
+        with quantity verification, supplier coordination,
+        GST invoice support, dispatch management and
+        technical product identification assistance.
+      </p>
+
+      <h3 className="mt-10 text-[28px] font-bold text-[#082f49]">
+        Industrial Applications & Engineering Solutions
+      </h3>
+
+      <p>
+        Our electronic components are used in industrial
+        automation systems, robotics, embedded hardware,
+        communication systems, consumer electronics,
+        IoT devices, industrial machinery, PCB
+        manufacturing, repair industries and educational
+        engineering projects.
+      </p>
+
+      <p>
+        Semiconductor components and industrial electronics
+        are essential for modern manufacturing and smart
+        automation systems. Royal Trading Component focuses
+        on providing reliable sourcing support for these
+        high-demand industries.
+      </p>
+
+      <h2 className="mt-14 text-[34px] font-black text-[#082f49] leading-tight">
+        Why Businesses Choose Royal Trading Component
+      </h2>
+
+      <ul>
+        <li>Trusted electronic components supplier in India</li>
+        <li>Semiconductor sourcing expertise</li>
+        <li>Industrial automation component support</li>
+        <li>Bulk procurement assistance</li>
+        <li>GST billing support</li>
+        <li>OEM procurement solutions</li>
+        <li>Technical sourcing assistance</li>
+        <li>Embedded electronics expertise</li>
+        <li>Wholesale electronic components supply</li>
+        <li>Fast dispatch and nationwide delivery</li>
+      </ul>
+
+      <h2 className="mt-14 text-[34px] font-black text-[#082f49] leading-tight">
+        Buy Electronic Components Online in India
+      </h2>
+
+      <p>
+        Buy semiconductors, ICs, industrial electronics,
+        embedded hardware, displays, communication modules,
+        power management components and automation products
+        online from Royal Trading Component with secure
+        ordering, fast shipping and professional procurement
+        support.
+      </p>
+
+      <p>
+        Explore our wide range of industrial electronic
+        components and semiconductor products suitable
+        for engineering, manufacturing, automation,
+        repair and commercial applications across India.
+      </p>
+
+    </div>
+
+  </div>
+</section>
         <Footer />
       </div>
     );
@@ -256,6 +429,98 @@ export default async function AboutPage() {
             </div>
           </div>
         </section>
+
+        <section className="bg-white py-16">
+  <div className="mx-auto max-w-7xl px-4 md:px-6">
+
+    <div className="text-center">
+      <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-sky-100 px-4 py-2 text-sm font-black text-[#075985]">
+        <Cpu size={17} />
+        Electronics Expertise
+      </div>
+
+      <h2 className="text-3xl font-black text-[#082f49] md:text-5xl">
+        Advanced Electronics Department Solutions
+      </h2>
+
+      <p className="mx-auto mt-5 max-w-4xl text-lg leading-8 text-slate-600">
+        Royal Trading Component supports semiconductor sourcing,
+        embedded electronics, industrial automation systems,
+        PCB development, communication modules and industrial
+        procurement requirements for engineers and manufacturers.
+      </p>
+    </div>
+
+    <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+
+      <div className="rounded-[30px] border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-7 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100 text-[#0284c7]">
+          <Cpu size={32} />
+        </div>
+
+        <h3 className="text-2xl font-black text-[#082f49]">
+          Semiconductor Components
+        </h3>
+
+        <p className="mt-4 text-[15px] leading-8 text-slate-600">
+          Logic ICs, power management ICs, voltage regulators,
+          embedded processors and semiconductor products for
+          industrial electronics applications.
+        </p>
+      </div>
+
+      <div className="rounded-[30px] border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-7 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100 text-[#0284c7]">
+          <Factory size={32} />
+        </div>
+
+        <h3 className="text-2xl font-black text-[#082f49]">
+          Industrial Automation
+        </h3>
+
+        <p className="mt-4 text-[15px] leading-8 text-slate-600">
+          Automation components, industrial control systems,
+          relays, sensors and embedded hardware for smart
+          manufacturing solutions.
+        </p>
+      </div>
+
+      <div className="rounded-[30px] border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-7 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100 text-[#0284c7]">
+          <Layers size={32} />
+        </div>
+
+        <h3 className="text-2xl font-black text-[#082f49]">
+          PCB & Embedded Systems
+        </h3>
+
+        <p className="mt-4 text-[15px] leading-8 text-slate-600">
+          PCB components, embedded electronics,
+          communication modules and hardware solutions
+          for engineering projects and OEM industries.
+        </p>
+      </div>
+
+      <div className="rounded-[30px] border border-sky-100 bg-gradient-to-br from-white to-sky-50 p-7 shadow-lg transition hover:-translate-y-1 hover:shadow-2xl">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100 text-[#0284c7]">
+          <Truck size={32} />
+        </div>
+
+        <h3 className="text-2xl font-black text-[#082f49]">
+          Bulk Procurement
+        </h3>
+
+        <p className="mt-4 text-[15px] leading-8 text-slate-600">
+          Wholesale electronic component sourcing,
+          GST billing, industrial procurement support
+          and nationwide delivery across India.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</section>
 
         <LandingGrid
           badge="Product Range"

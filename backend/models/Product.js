@@ -156,6 +156,16 @@ const productSchema = new mongoose.Schema(
       default: [],
     },
 
+    imageHashes: {
+  type: [
+    {
+      url: String,
+      hash: String,
+    },
+  ],
+  default: [],
+},
+
     specifications: {
       type: [specificationSchema],
       default: [],

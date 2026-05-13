@@ -20,13 +20,103 @@ async function getCategoryTree(slug) {
   }
 }
 
-export async function generateMetadata({ params }) {
+export async function generateMetadata({ params, searchParams }) {
   const { slug } = await params;
+  const query = await searchParams;
+
+  const selectedSubCategory = query?.subCategory || "";
+
   const data = await getCategoryTree(slug);
 
+  const subCategoryData = selectedSubCategory
+    ? await getCategoryTree(selectedSubCategory)
+    : null;
+
+  const currentCategory =
+    subCategoryData?.category || data?.category;
+
+  const categoryName =
+    currentCategory?.name || "Electronic Components";
+
+  const description =
+    currentCategory?.seo?.metaDescription ||
+    currentCategory?.description ||
+    `Buy ${categoryName} online in India from Royal Trading Component. Wholesale electronic components supplier in Delhi India.`;
+
+  const image = currentCategory?.image
+    ? currentCategory.image.startsWith("http")
+      ? currentCategory.image
+      : `${API_BASE}${currentCategory.image}`
+    : "/og-image.jpg";
+
+  const currentUrl = selectedSubCategory
+    ? `https://www.royalsmd.com/category/${slug}?subCategory=${selectedSubCategory}`
+    : `https://www.royalsmd.com/category/${slug}`;
+
   return {
-    title: data?.category?.seo?.metaTitle || `${data?.category?.name || "Category"} | Royal Component`,
-    description: data?.category?.seo?.metaDescription || data?.category?.description || "",
+    title:
+      currentCategory?.seo?.metaTitle ||
+      `${categoryName} Supplier India | Delhi Electronics Store | Royal Trading Component`,
+
+    description,
+
+    keywords: [
+      `${categoryName}`,
+      `${categoryName} supplier India`,
+      `${categoryName} Delhi`,
+      `${categoryName} online`,
+      `${categoryName} wholesaler`,
+      `${categoryName} distributor`,
+      "Electronic Components India",
+      "IC Supplier Delhi",
+      "Electronics Store Delhi",
+      "Semiconductor Supplier India",
+      "Royal Trading Component",
+    ],
+
+    alternates: {
+      canonical: currentUrl,
+    },
+
+    openGraph: {
+      title:
+        `${categoryName} | Royal Trading Component`,
+
+      description,
+
+      url: currentUrl,
+
+      siteName: "Royal Trading Component",
+
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: categoryName,
+        },
+      ],
+
+      locale: "en_IN",
+
+      type: "website",
+    },
+
+    twitter: {
+      card: "summary_large_image",
+
+      title:
+        `${categoryName} | Royal Trading Component`,
+
+      description,
+
+      images: [image],
+    },
+
+    robots: {
+      index: true,
+      follow: true,
+    },
   };
 }
 
@@ -118,6 +208,58 @@ export default async function CategoryPage({ params, searchParams }) {
             </div>
           ) : null}
 
+          <section className="mt-8 rounded-sm bg-white p-6 shadow-sm">
+            <h2 className="text-[28px] font-extrabold text-[#111827]">
+              Popular Electronic Component Categories
+            </h2>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+
+              <Link
+                href="/category/semiconductors"
+                className="rounded-full border border-[#dbe4f0] px-5 py-3 text-[15px] font-semibold text-[#174ea6] transition hover:bg-[#174ea6] hover:text-white"
+              >
+                Semiconductor Components
+              </Link>
+
+              <Link
+                href="/category/semiconductors?subCategory=logic-ics"
+                className="rounded-full border border-[#dbe4f0] px-5 py-3 text-[15px] font-semibold text-[#174ea6] transition hover:bg-[#174ea6] hover:text-white"
+              >
+                Logic ICs
+              </Link>
+
+              <Link
+                href="/category/semiconductors?subCategory=power-management-ics"
+                className="rounded-full border border-[#dbe4f0] px-5 py-3 text-[15px] font-semibold text-[#174ea6] transition hover:bg-[#174ea6] hover:text-white"
+              >
+                Power Management ICs
+              </Link>
+
+              <Link
+                href="/category/semiconductors?subCategory=sensor-ics"
+                className="rounded-full border border-[#dbe4f0] px-5 py-3 text-[15px] font-semibold text-[#174ea6] transition hover:bg-[#174ea6] hover:text-white"
+              >
+                Sensor ICs
+              </Link>
+
+              <Link
+                href="/category/semiconductors?subCategory=amplifiers-comparators"
+                className="rounded-full border border-[#dbe4f0] px-5 py-3 text-[15px] font-semibold text-[#174ea6] transition hover:bg-[#174ea6] hover:text-white"
+              >
+                Amplifiers & Comparators
+              </Link>
+
+              <Link
+                href="/products"
+                className="rounded-full border border-[#dbe4f0] px-5 py-3 text-[15px] font-semibold text-[#174ea6] transition hover:bg-[#174ea6] hover:text-white"
+              >
+                Buy Electronic Components Online
+              </Link>
+
+            </div>
+          </section>
+
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {filteredCards.map((item) => {
               const productSubCategory =
@@ -153,6 +295,244 @@ export default async function CategoryPage({ params, searchParams }) {
               );
             })}
           </div>
+        </div>
+      </section>
+      <section className="bg-white py-14 border-t border-[#e5e7eb]">
+        <div className="container-royal">
+
+          <div className="max-w-7xl mx-auto prose prose-lg max-w-none text-[#172033]">
+
+            <h2 className="text-[34px] font-extrabold text-[#111827] leading-tight">
+              Buy Industrial & Electronic Components Online in India
+            </h2>
+
+            <p>
+              Royal Trading Component is one of the leading suppliers of industrial,
+              electrical, electronic and semiconductor components in India. We provide
+              high quality electronic spare parts, integrated circuits, connectors,
+              modules, sensors, automation products, development boards, relays,
+              displays and industrial components for manufacturers, repair engineers,
+              service centers, OEM industries, educational institutions and B2B buyers.
+            </p>
+
+            <p>
+              Our online electronics store helps businesses and engineers source
+              genuine electronic components with fast delivery, competitive pricing,
+              GST billing support and bulk procurement assistance. Whether you are
+              looking for ICs, power management components, voltage regulators,
+              transistors, logic ICs, wireless communication modules or embedded
+              development boards, Royal Trading Component offers a wide range of
+              products suitable for industrial and commercial applications.
+            </p>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Trusted Electronic Components Supplier in Delhi India
+            </h2>
+
+            <p>
+              Royal Trading Component supplies electronic components across Delhi,
+              Uttam Nagar, Janakpuri, Nehru Place, Lajpat Rai Market, Karol Bagh,
+              Noida, Gurugram and all major industrial regions of India. Our goal is
+              to simplify electronic component sourcing for engineers, technicians,
+              manufacturers and wholesalers.
+            </p>
+
+            <p>
+              We specialize in semiconductor components, industrial automation
+              products, development modules, connectors, relays, displays and embedded
+              electronics. Businesses trust us for quality products, reliable customer
+              support and secure online ordering.
+            </p>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Wide Range of Electronic & Semiconductor Components
+            </h2>
+
+            <p>
+              Our platform includes thousands of industrial and electronic products
+              suitable for automation, robotics, embedded systems, repair projects,
+              educational training, IoT development and industrial manufacturing.
+            </p>
+
+            <ul>
+              <li>Integrated Circuits (ICs)</li>
+              <li>Logic ICs & Power Management ICs</li>
+              <li>Amplifiers & Comparators</li>
+              <li>Communication & Wireless Modules</li>
+              <li>Sensors & Sensor Modules</li>
+              <li>Microcontrollers & Processors</li>
+              <li>Arduino & Development Boards</li>
+              <li>Displays, LCDs & LED Modules</li>
+              <li>Voltage Regulators & Transistors</li>
+              <li>Industrial Automation Components</li>
+              <li>Capacitors, Resistors & Connectors</li>
+              <li>Power Supply Components</li>
+            </ul>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Bulk Procurement & B2B Electronic Component Supply
+            </h2>
+
+            <p>
+              Royal Trading Component supports B2B buyers, industrial companies,
+              educational institutions and electronics manufacturers with wholesale
+              procurement solutions. We help businesses source industrial components
+              in bulk with GST invoices, quantity pricing support and dedicated order
+              assistance.
+            </p>
+
+            <p>
+              If you are searching for a reliable electronic components wholesaler in
+              Delhi India, our platform provides access to thousands of components for
+              industrial and commercial applications. Our procurement support team can
+              help businesses identify suitable replacement parts and compatible
+              electronic modules.
+            </p>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Electronic Components for Industrial Applications
+            </h2>
+
+            <p>
+              Modern industries require high performance electronic and semiconductor
+              components for automation, monitoring and control systems. Royal Trading
+              Component supplies products used in manufacturing equipment, robotics,
+              embedded systems, consumer electronics, repair industries, industrial
+              machines, automation systems and smart electronic devices.
+            </p>
+
+            <p>
+              We regularly update our inventory with high demand industrial products,
+              semiconductor components and embedded development tools suitable for
+              engineers, developers and electronics professionals.
+            </p>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Why Choose Royal Trading Component
+            </h2>
+
+            <ul>
+              <li>Large collection of electronic components</li>
+              <li>Trusted supplier in Delhi India</li>
+              <li>Fast delivery support</li>
+              <li>Bulk order & B2B procurement assistance</li>
+              <li>GST invoice support</li>
+              <li>Industrial quality components</li>
+              <li>Competitive wholesale pricing</li>
+              <li>Secure online ordering experience</li>
+              <li>Wide semiconductor inventory</li>
+              <li>Professional customer support</li>
+            </ul>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Online Electronics Store for Engineers & Businesses
+            </h2>
+
+            <p>
+              Royal Trading Component is designed for electronics engineers,
+              industrial procurement teams, students, developers, manufacturers,
+              service engineers and repair professionals looking for high quality
+              electronic components online in India.
+            </p>
+
+            <p>
+              Our goal is to become one of the most trusted online electronic
+              component suppliers in India by providing genuine products, reliable
+              procurement support and a modern digital buying experience.
+            </p>
+
+            <h2 className="mt-12 text-[30px] font-extrabold text-[#111827] leading-tight">
+              Buy Electronic Components Online from Royal Trading Component
+            </h2>
+
+            <p>
+              Whether you need semiconductors, logic ICs, wireless communication
+              modules, industrial automation products, voltage regulators, displays,
+              development boards or embedded electronics, Royal Trading Component
+              offers a professional platform for industrial and commercial sourcing.
+            </p>
+
+            <p>
+              Explore our wide range of electronic components and industrial products
+              with fast online ordering, secure payments and nationwide delivery
+              support across India.
+            </p>
+
+          </div>
+
+        </div>
+      </section>
+
+      <section className="rounded-sm bg-white p-8 shadow-sm mt-8">
+        <h2 className="text-[32px] font-extrabold text-[#111827]">
+          Frequently Asked Questions
+        </h2>
+
+        <div className="mt-8 space-y-6">
+
+          <div>
+            <h3 className="text-[22px] font-bold text-[#111827]">
+              What is {product?.name} used for?
+            </h3>
+
+            <p className="mt-3 text-[17px] leading-8 text-[#374151]">
+              {product?.name} is commonly used in electronic circuits,
+              embedded systems, PCB projects, industrial automation,
+              repair applications, IoT projects and semiconductor-based
+              electronic designs.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-[22px] font-bold text-[#111827]">
+              Where to buy {product?.name} online in India?
+            </h3>
+
+            <p className="mt-3 text-[17px] leading-8 text-[#374151]">
+              You can buy {product?.name} online from Royal Trading
+              Component, a trusted electronic components supplier in
+              Delhi India offering wholesale pricing, bulk procurement
+              support and nationwide delivery.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-[22px] font-bold text-[#111827]">
+              Is {product?.name} available for bulk orders?
+            </h3>
+
+            <p className="mt-3 text-[17px] leading-8 text-[#374151]">
+              Yes, Royal Trading Component supports bulk quantity orders,
+              OEM procurement, industrial sourcing and wholesale electronic
+              component supply for manufacturers and businesses.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-[22px] font-bold text-[#111827]">
+              Do you provide GST invoices?
+            </h3>
+
+            <p className="mt-3 text-[17px] leading-8 text-[#374151]">
+              Yes, GST invoices are available for industrial buyers,
+              businesses, resellers, educational institutes and
+              procurement companies across India.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-[22px] font-bold text-[#111827]">
+              Which industries use {product?.name}?
+            </h3>
+
+            <p className="mt-3 text-[17px] leading-8 text-[#374151]">
+              {product?.name} is used in industrial automation,
+              embedded electronics, robotics, PCB manufacturing,
+              consumer electronics, IoT systems, repair industries
+              and OEM manufacturing applications.
+            </p>
+          </div>
+
         </div>
       </section>
 

@@ -899,57 +899,84 @@ exports.getSimilarProducts = async (req, res) => {
     });
   }
 };
+const fs = require("fs");
+const path = require("path");
+const { generateImageHash } = require("../utils/imageHash");
+
 exports.searchProductsByImage = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Image is required",
+        message: "Image required",
       });
     }
 
-    const fileName = String(req.file.originalname || "")
-      .toLowerCase()
-      .replace(/\.[^/.]+$/, "")
-      .replace(/[-_]/g, " ")
-      .trim();
+    const uploadedHash = await generateImageHash(req.file.path);
 
-    const keywords = fileName.split(" ").filter(Boolean);
-
-    const regex = keywords.length
-      ? new RegExp(keywords.join("|"), "i")
-      : new RegExp("", "i");
+    if (!uploadedHash) {
+      return res.status(400).json({
+        success: false,
+        message: "Image processing failed",
+      });
+    }
 
     const products = await Product.find({
       isActive: true,
       status: "published",
-      $or: [
-        { name: regex },
-        { slug: regex },
-        { sku: regex },
-        { mpn: regex },
-        { brand: regex },
-        { category: regex },
-        { subCategory: regex },
-        { childCategory: regex },
-        { shortDescription: regex },
-        { description: regex },
-        { tags: regex },
-      ],
+      imageHashes: { $exists: true, $ne: [] },
     })
       .select(
-       "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription"
+        "name slug sku brand category subCategory childCategory thumbnail images imageHashes price mrp stock shortDescription"
       )
-      .limit(40)
       .lean();
 
-    res.json({
+    const matchedProducts = [];
+
+    for (const product of products) {
+      let bestDifference = 9999;
+
+      for (const item of product.imageHashes || []) {
+        const dbHash = item.hash || "";
+
+        let difference = 0;
+
+        for (
+          let i = 0;
+          i < Math.min(uploadedHash.length, dbHash.length);
+          i++
+        ) {
+          if (uploadedHash[i] !== dbHash[i]) {
+            difference++;
+          }
+        }
+
+        if (difference < bestDifference) {
+          bestDifference = difference;
+        }
+      }
+
+      if (bestDifference <= 12) {
+        matchedProducts.push({
+          ...product,
+          similarity: bestDifference,
+        });
+      }
+    }
+
+    matchedProducts.sort(
+      (a, b) => a.similarity - b.similarity
+    );
+
+    return res.status(200).json({
       success: true,
-      products,
+      total: matchedProducts.length,
+      products: matchedProducts.slice(0, 40),
     });
   } catch (error) {
-    console.error("Image search error:", error);
-    res.status(500).json({
+    console.log(error);
+
+    return res.status(500).json({
       success: false,
       message: "Image search failed",
     });

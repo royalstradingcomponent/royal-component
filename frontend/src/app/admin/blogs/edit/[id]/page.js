@@ -17,6 +17,8 @@ export default function EditBlogPage({ params }) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bulkBlogPaste, setBulkBlogPaste] =
+  useState("");
   const [uploading, setUploading] = useState("");
 
   const [form, setForm] = useState({
@@ -39,6 +41,36 @@ export default function EditBlogPage({ params }) {
     isTrending: false,
     relatedProductSlugsText: "",
     relatedCategorySlugsText: "",
+
+    primaryKeyword: "",
+
+    secondaryKeywordsText: "",
+
+    tableOfContentsText: "",
+
+    industriesText: "",
+
+    applicationsText: "",
+
+    advantagesText: "",
+
+    specificationsText: "",
+
+    locationsText: "",
+
+    trustSignalsText: "",
+
+    ctaTitle: "",
+
+    ctaDescription: "",
+
+    ctaButtonText: "",
+
+    youtubeUrl: "",
+
+    datasheetUrl: "",
+
+    schemaType: "Article",
   });
 
   const [sections, setSections] = useState([{ ...emptySection }]);
@@ -50,6 +82,213 @@ export default function EditBlogPage({ params }) {
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+  const handleApplyBlogPaste = () => {
+  const lines = bulkBlogPaste
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const parsed = {};
+
+  lines.forEach((line) => {
+    const [key, ...rest] = line.split("=");
+
+    if (!key || !rest.length) return;
+
+    parsed[key.trim()] =
+      rest.join("=").trim();
+  });
+
+  updateForm(
+    "title",
+    parsed.Title || ""
+  );
+
+  updateForm(
+    "slug",
+    (parsed.Title || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, "")
+      .replace(/\s+/g, "-")
+  );
+
+  updateForm(
+    "canonicalUrl",
+    `https://www.royalsmd.com/blog/${(parsed.Title || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, "")
+      .replace(/\s+/g, "-")}`
+  );
+
+  updateForm(
+    "excerpt",
+    parsed.Excerpt || ""
+  );
+
+  updateForm(
+    "category",
+    parsed.Category ||
+      "semiconductors"
+  );
+
+  updateForm(
+    "content",
+    parsed.Content || ""
+  );
+
+  updateForm(
+    "metaTitle",
+    parsed.MetaTitle ||
+      parsed.Title ||
+      ""
+  );
+
+  updateForm(
+    "metaDescription",
+    parsed.MetaDescription ||
+      parsed.Excerpt ||
+      ""
+  );
+
+  updateForm(
+    "metaKeywordsText",
+    parsed.MetaKeywords || ""
+  );
+
+  updateForm(
+    "primaryKeyword",
+    parsed.PrimaryKeyword || ""
+  );
+
+  updateForm(
+    "secondaryKeywordsText",
+    parsed.SecondaryKeywords ||
+      ""
+  );
+
+  updateForm(
+    "tagsText",
+    parsed.Tags || ""
+  );
+
+  updateForm(
+    "applicationsText",
+    parsed.Applications || ""
+  );
+  updateForm(
+  "specificationsText",
+  parsed.Specifications || ""
+);
+
+updateForm(
+  "trustSignalsText",
+  parsed.TrustSignals || ""
+);
+
+updateForm(
+  "tableOfContentsText",
+  parsed.TableOfContents || ""
+);
+
+  updateForm(
+    "advantagesText",
+    parsed.Advantages || ""
+  );
+
+  updateForm(
+    "industriesText",
+    parsed.Industries || ""
+  );
+
+  updateForm(
+    "locationsText",
+    parsed.Locations || ""
+  );
+
+  updateForm(
+    "ctaTitle",
+    parsed.CTATitle || ""
+  );
+
+  updateForm(
+    "ctaDescription",
+    parsed.CTADescription ||
+      ""
+  );
+
+  updateForm(
+    "ctaButtonText",
+    parsed.CTAButtonText ||
+      ""
+  );
+
+  updateForm(
+  "youtubeUrl",
+  parsed.YouTubeURL || ""
+);
+
+updateForm(
+  "datasheetUrl",
+  parsed.DatasheetURL || ""
+);
+
+updateForm(
+  "metaKeywordsText",
+  parsed.MetaKeywords || ""
+);
+
+updateForm(
+  "relatedProductSlugsText",
+  parsed.RelatedProducts || ""
+);
+
+updateForm(
+  "relatedCategorySlugsText",
+  parsed.RelatedCategories || ""
+);
+
+  const faqData = [];
+
+  for (let i = 1; i <= 20; i++) {
+    if (parsed[`FAQ${i}`]) {
+      faqData.push({
+        question:
+          parsed[`FAQ${i}`],
+
+        answer:
+          parsed[
+            `FAQ${i}Answer`
+          ] || "",
+      });
+    }
+  }
+
+  if (faqData.length) {
+    setFaqs(faqData);
+  }
+
+  const sectionData = [];
+
+  for (let i = 1; i <= 20; i++) {
+    if (parsed[`Section${i}`]) {
+      sectionData.push({
+        heading:
+          parsed[`Section${i}`],
+
+        content:
+          parsed[
+            `Section${i}Content`
+          ] || "",
+
+        image: "",
+      });
+    }
+  }
+
+  if (sectionData.length) {
+    setSections(sectionData);
+  }
+};
 
   const splitText = (text = "") =>
     text
@@ -105,6 +344,51 @@ export default function EditBlogPage({ params }) {
           isTrending: !!blog.isTrending,
           relatedProductSlugsText: (blog.relatedProductSlugs || []).join(", "),
           relatedCategorySlugsText: (blog.relatedCategorySlugs || []).join(", "),
+
+          primaryKeyword:
+            blog.primaryKeyword || "",
+
+          secondaryKeywordsText:
+            (blog.secondaryKeywords || []).join(", "),
+
+          tableOfContentsText:
+            (blog.tableOfContents || []).join(", "),
+
+          industriesText:
+            (blog.industries || []).join(", "),
+
+          applicationsText:
+            (blog.applications || []).join(", "),
+
+          advantagesText:
+            (blog.advantages || []).join(", "),
+
+          specificationsText:
+            (blog.specifications || []).join(", "),
+
+          locationsText:
+            (blog.locations || []).join(", "),
+
+          trustSignalsText:
+            (blog.trustSignals || []).join(", "),
+
+          ctaTitle:
+            blog.ctaTitle || "",
+
+          ctaDescription:
+            blog.ctaDescription || "",
+
+          ctaButtonText:
+            blog.ctaButtonText || "",
+
+          youtubeUrl:
+            blog.youtubeUrl || "",
+
+          datasheetUrl:
+            blog.datasheetUrl || "",
+
+          schemaType:
+            blog.schemaType || "Article",
         });
 
         setSections(
@@ -203,7 +487,7 @@ export default function EditBlogPage({ params }) {
     e.preventDefault();
 
     if (!form.title.trim()) {
-     toast.error("Blog title required");
+      toast.error("Blog title required");
       return;
     }
 
@@ -237,6 +521,67 @@ export default function EditBlogPage({ params }) {
         status: form.status,
         isFeatured: form.isFeatured,
         isTrending: form.isTrending,
+
+        primaryKeyword:
+          form.primaryKeyword,
+
+        secondaryKeywords:
+          splitText(
+            form.secondaryKeywordsText
+          ),
+
+        tableOfContents:
+          splitText(
+            form.tableOfContentsText
+          ),
+
+        industries:
+          splitText(
+            form.industriesText
+          ),
+
+        applications:
+          splitText(
+            form.applicationsText
+          ),
+
+        advantages:
+          splitText(
+            form.advantagesText
+          ),
+
+        specifications:
+          splitText(
+            form.specificationsText
+          ),
+
+        locations:
+          splitText(
+            form.locationsText
+          ),
+
+        trustSignals:
+          splitText(
+            form.trustSignalsText
+          ),
+
+        ctaTitle:
+          form.ctaTitle,
+
+        ctaDescription:
+          form.ctaDescription,
+
+        ctaButtonText:
+          form.ctaButtonText,
+
+        youtubeUrl:
+          form.youtubeUrl,
+
+        datasheetUrl:
+          form.datasheetUrl,
+
+        schemaType:
+          form.schemaType,
       };
 
       const res = await fetch(`${API_BASE}/api/blogs/admin/${blogId}`, {
@@ -276,6 +621,66 @@ export default function EditBlogPage({ params }) {
   return (
     <div className="min-h-screen bg-[#f4f8ff] px-4 py-8">
       <form onSubmit={submitBlog} className="mx-auto max-w-7xl">
+
+        <div className="mb-6 rounded-3xl border border-dashed border-blue-300 bg-white p-6">
+  <div className="mb-4 flex items-center justify-between">
+    <div>
+      <h2 className="text-2xl font-bold text-slate-900">
+        Bulk Paste Blog Data
+      </h2>
+
+      <p className="text-sm text-slate-500">
+        Paste SEO structured blog content
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={handleApplyBlogPaste}
+      className="rounded-2xl bg-blue-700 px-5 py-3 text-sm font-bold text-white"
+    >
+      Apply Paste Data
+    </button>
+  </div>
+
+  <textarea
+    value={bulkBlogPaste}
+    onChange={(e) =>
+      setBulkBlogPaste(e.target.value)
+    }
+    placeholder={`Title=LM358 IC Complete Guide
+
+Category=semiconductors
+
+Excerpt=LM358 operational amplifier used in industrial electronics.
+
+PrimaryKeyword=LM358 IC
+
+SecondaryKeywords=LM358 datasheet, LM358 operational amplifier
+
+Applications=automation,power supply,pcb
+
+Advantages=low power,dual op amp
+
+Industries=automation,pcb manufacturing
+
+Locations=Delhi,Mumbai,Noida
+
+FAQ1=What is LM358 IC?
+FAQ1Answer=LM358 is a dual operational amplifier IC.
+
+Section1=Applications of LM358
+Section1Content=LM358 used in automation and robotics.
+
+CTATitle=Need LM358 IC in Bulk?
+
+CTADescription=Royal Component supplies original LM358 IC.
+
+CTAButtonText=Request Quote`}
+    className="h-[320px] w-full rounded-2xl border border-slate-200 p-4 text-sm outline-none"
+  />
+</div>
+
         <div className="mb-6 flex flex-col justify-between gap-4 rounded-3xl bg-white p-6 shadow-sm md:flex-row md:items-center">
           <div>
             <Link
@@ -311,7 +716,27 @@ export default function EditBlogPage({ params }) {
               <Label>Blog Title *</Label>
               <Input
                 value={form.title}
-                onChange={(e) => updateForm("title", e.target.value)}
+                onChange={(e) => {
+  const value = e.target.value;
+
+  updateForm("title", value);
+
+  updateForm(
+    "slug",
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, "")
+      .replace(/\s+/g, "-")
+  );
+
+  updateForm(
+    "canonicalUrl",
+    `https://www.royalsmd.com/blog/${value
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, "")
+      .replace(/\s+/g, "-")}`
+  );
+}}
               />
 
               <Label>Slug</Label>
@@ -541,6 +966,215 @@ export default function EditBlogPage({ params }) {
                 value={form.canonicalUrl}
                 onChange={(e) => updateForm("canonicalUrl", e.target.value)}
               />
+
+              <Label>Primary Keyword</Label>
+              <Input
+                value={form.primaryKeyword}
+                onChange={(e) =>
+                  updateForm(
+                    "primaryKeyword",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>
+                Secondary Keywords
+              </Label>
+              <Textarea
+                rows={4}
+                value={
+                  form.secondaryKeywordsText
+                }
+                onChange={(e) =>
+                  updateForm(
+                    "secondaryKeywordsText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>
+                Table Of Contents
+              </Label>
+              <Textarea
+                rows={4}
+                value={
+                  form.tableOfContentsText
+                }
+                onChange={(e) =>
+                  updateForm(
+                    "tableOfContentsText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Industries</Label>
+              <Textarea
+                rows={4}
+                value={form.industriesText}
+                onChange={(e) =>
+                  updateForm(
+                    "industriesText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Applications</Label>
+              <Textarea
+                rows={4}
+                value={
+                  form.applicationsText
+                }
+                onChange={(e) =>
+                  updateForm(
+                    "applicationsText",
+                    e.target.value
+                  )
+                }
+              />
+
+              
+
+              <Label>Advantages</Label>
+              <Textarea
+                rows={4}
+                value={form.advantagesText}
+                onChange={(e) =>
+                  updateForm(
+                    "advantagesText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Specifications</Label>
+              <Textarea
+                rows={4}
+                value={
+                  form.specificationsText
+                }
+                onChange={(e) =>
+                  updateForm(
+                    "specificationsText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Locations</Label>
+              <Textarea
+                rows={4}
+                value={form.locationsText}
+                onChange={(e) =>
+                  updateForm(
+                    "locationsText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Trust Signals</Label>
+              <Textarea
+                rows={4}
+                value={
+                  form.trustSignalsText
+                }
+                onChange={(e) =>
+                  updateForm(
+                    "trustSignalsText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>CTA Title</Label>
+              <Input
+                value={form.ctaTitle}
+                onChange={(e) =>
+                  updateForm(
+                    "ctaTitle",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>
+                CTA Description
+              </Label>
+              <Textarea
+                rows={4}
+                value={
+                  form.ctaDescription
+                }
+                onChange={(e) =>
+                  updateForm(
+                    "ctaDescription",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>
+                CTA Button Text
+              </Label>
+              <Input
+                value={form.ctaButtonText}
+                onChange={(e) =>
+                  updateForm(
+                    "ctaButtonText",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>YouTube URL</Label>
+              <Input
+                value={form.youtubeUrl}
+                onChange={(e) =>
+                  updateForm(
+                    "youtubeUrl",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Datasheet URL</Label>
+              <Input
+                value={form.datasheetUrl}
+                onChange={(e) =>
+                  updateForm(
+                    "datasheetUrl",
+                    e.target.value
+                  )
+                }
+              />
+
+              <Label>Schema Type</Label>
+              <select
+                value={form.schemaType}
+                onChange={(e) =>
+                  updateForm(
+                    "schemaType",
+                    e.target.value
+                  )
+                }
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none"
+              >
+                <option value="Article">
+                  Article
+                </option>
+
+                <option value="TechArticle">
+                  TechArticle
+                </option>
+
+                <option value="FAQPage">
+                  FAQPage
+                </option>
+              </select>
             </Box>
 
             <Box title="Related Linking">
@@ -599,8 +1233,8 @@ function Textarea(props) {
   return (
     <textarea
       {...props}
-      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500"
-    />
+      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-7 outline-none focus:border-blue-500"
+      ></textarea>
   );
 }
 
@@ -634,7 +1268,7 @@ function ImageUpload({ value, preview, uploading, onFile }) {
 
       <input
         value={value || ""}
-        onChange={() => {}}
+        onChange={() => { }}
         readOnly
         placeholder="/uploads/blogs/image.webp"
         className="mb-3 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs outline-none"

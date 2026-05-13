@@ -9,9 +9,113 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ChatProvider } from "@/context/ChatContext";
 
 export const metadata = {
-  title: "Royal Component | Industrial Components Store",
+  metadataBase: new URL("https://www.royalsmd.com"),
+
+  title: {
+    default:
+      "Royal Trading Component | Electronic Components Supplier India",
+    template: "%s | Royal Trading Component",
+  },
+
   description:
-    "Buy industrial, electrical and electronic components online with technical specifications, trusted brands and fast delivery.",
+    "Royal Trading Component is a leading electronic components supplier in India offering ICs, LCD displays, voltage regulators, sensors, modules, industrial electronics and wholesale electronic spare parts online.",
+
+  keywords: [
+  "Electronics Components Supplier India",
+  "Electronic Parts Wholesale",
+  "IC Components Supplier",
+  "Electronic Components Store",
+  "Industrial Electronics",
+  "Voltage Regulator IC",
+  "LCD Display Supplier",
+  "Arduino Components",
+  "PCB Components",
+  "Sensors Modules",
+  "Electronic Spare Parts",
+  "Buy Electronic Components Online",
+  "Semiconductor Supplier India",
+  "Wholesale Electronics India",
+
+  "Electronic Components Delhi",
+  "Electronics Parts Delhi",
+  "IC Supplier Delhi",
+  "Electronics Market Delhi",
+  "Electronic Components Uttam Nagar",
+  "Electronic Components Janakpuri",
+  "Electronic Components Nehru Place",
+  "Electronic Components Lajpat Rai Market",
+  "Wholesale Electronics Delhi",
+  "Industrial Electronics Delhi",
+  "PCB Components Delhi",
+  "Arduino Components Delhi",
+  "LCD Display Supplier Delhi",
+  "Electronics Shop Delhi",
+  "Semiconductor Supplier Delhi",
+
+  "Royal Trading Component",
+],
+
+  authors: [{ name: "Royal Trading Component" }],
+
+  creator: "Royal Trading Component",
+
+  publisher: "Royal Trading Component",
+
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+
+  alternates: {
+    canonical: "https://www.royalsmd.com",
+  },
+
+  openGraph: {
+    title:
+      "Royal Trading Component | Electronic Components Supplier India",
+
+    description:
+      "Buy ICs, LCD displays, voltage regulators, sensors, modules and industrial electronic components online in India.",
+
+    url: "https://www.royalsmd.com",
+
+    siteName: "Royal Trading Component",
+
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Royal Trading Component",
+      },
+    ],
+
+    locale: "en_IN",
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+
+    title:
+      "Royal Trading Component | Electronic Components Supplier India",
+
+    description:
+      "Buy electronic components, ICs, LCD displays, sensors and industrial electronics online.",
+
+    images: ["/og-image.jpg"],
+  },
+
+  category: "Electronics",
 };
 
 export default function RootLayout({ children }) {

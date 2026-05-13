@@ -288,6 +288,52 @@ exports.adminCreateBlog = async (req, res) => {
       metaTitle: body.metaTitle || body.title,
       metaDescription: body.metaDescription || body.excerpt || "",
       metaKeywords: body.metaKeywords || body.tags || [],
+
+      primaryKeyword:
+  body.primaryKeyword || "",
+
+secondaryKeywords:
+  body.secondaryKeywords || [],
+
+tableOfContents:
+  body.tableOfContents || [],
+
+industries:
+  body.industries || [],
+
+applications:
+  body.applications || [],
+
+advantages:
+  body.advantages || [],
+
+specifications:
+  body.specifications || [],
+
+locations:
+  body.locations || [],
+
+trustSignals:
+  body.trustSignals || [],
+
+ctaTitle:
+  body.ctaTitle || "",
+
+ctaDescription:
+  body.ctaDescription || "",
+
+ctaButtonText:
+  body.ctaButtonText || "",
+
+youtubeUrl:
+  body.youtubeUrl || "",
+
+datasheetUrl:
+  body.datasheetUrl || "",
+
+schemaType:
+  body.schemaType || "Article",
+
       canonicalUrl: body.canonicalUrl || "",
       status: body.status || "draft",
       isFeatured: !!body.isFeatured,
@@ -369,6 +415,67 @@ exports.adminUpdateBlog = async (req, res) => {
     blog.metaTitle = body.metaTitle ?? blog.metaTitle;
     blog.metaDescription = body.metaDescription ?? blog.metaDescription;
     blog.metaKeywords = body.metaKeywords ?? blog.metaKeywords;
+
+    blog.primaryKeyword =
+  body.primaryKeyword ??
+  blog.primaryKeyword;
+
+blog.secondaryKeywords =
+  body.secondaryKeywords ??
+  blog.secondaryKeywords;
+
+blog.tableOfContents =
+  body.tableOfContents ??
+  blog.tableOfContents;
+
+blog.industries =
+  body.industries ??
+  blog.industries;
+
+blog.applications =
+  body.applications ??
+  blog.applications;
+
+blog.advantages =
+  body.advantages ??
+  blog.advantages;
+
+blog.specifications =
+  body.specifications ??
+  blog.specifications;
+
+blog.locations =
+  body.locations ??
+  blog.locations;
+
+blog.trustSignals =
+  body.trustSignals ??
+  blog.trustSignals;
+
+blog.ctaTitle =
+  body.ctaTitle ??
+  blog.ctaTitle;
+
+blog.ctaDescription =
+  body.ctaDescription ??
+  blog.ctaDescription;
+
+blog.ctaButtonText =
+  body.ctaButtonText ??
+  blog.ctaButtonText;
+
+blog.youtubeUrl =
+  body.youtubeUrl ??
+  blog.youtubeUrl;
+
+blog.datasheetUrl =
+  body.datasheetUrl ??
+  blog.datasheetUrl;
+
+blog.schemaType =
+  body.schemaType ??
+  blog.schemaType;
+  
     blog.canonicalUrl = body.canonicalUrl ?? blog.canonicalUrl;
 
     blog.isFeatured =

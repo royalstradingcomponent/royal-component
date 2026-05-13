@@ -112,6 +112,81 @@ const blogSchema = new mongoose.Schema(
       default: [],
     },
 
+    primaryKeyword: {
+  type: String,
+  default: "",
+},
+
+secondaryKeywords: {
+  type: [String],
+  default: [],
+},
+
+tableOfContents: {
+  type: [String],
+  default: [],
+},
+
+industries: {
+  type: [String],
+  default: [],
+},
+
+applications: {
+  type: [String],
+  default: [],
+},
+
+advantages: {
+  type: [String],
+  default: [],
+},
+
+specifications: {
+  type: [String],
+  default: [],
+},
+
+locations: {
+  type: [String],
+  default: [],
+},
+
+trustSignals: {
+  type: [String],
+  default: [],
+},
+
+ctaTitle: {
+  type: String,
+  default: "",
+},
+
+ctaDescription: {
+  type: String,
+  default: "",
+},
+
+ctaButtonText: {
+  type: String,
+  default: "",
+},
+
+youtubeUrl: {
+  type: String,
+  default: "",
+},
+
+datasheetUrl: {
+  type: String,
+  default: "",
+},
+
+schemaType: {
+  type: String,
+  default: "Article",
+},
+
     canonicalUrl: {
       type: String,
       default: "",
