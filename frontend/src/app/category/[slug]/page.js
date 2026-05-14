@@ -153,6 +153,7 @@ export default async function CategoryPage({ params, searchParams }) {
   const cardsToShow = activeData?.children || mainData.children || [];
 
   const filteredCards = keyword
+
     ? cardsToShow.filter((item) =>
       `${item.name} ${item.slug} ${item.countText}`
         .toLowerCase()
@@ -160,7 +161,39 @@ export default async function CategoryPage({ params, searchParams }) {
     )
     : cardsToShow;
 
+    const categoryJsonLd = {
+  "@context": "https://schema.org",
+
+  "@type": "CollectionPage",
+
+  name: pageCategory.name,
+
+  description:
+    pageCategory.description ||
+    `Buy ${pageCategory.name} online in India`,
+
+  url: `https://www.royalsmd.com/category/${slug}`,
+
+  image: getImageUrl(pageCategory.image),
+
+  publisher: {
+    "@type": "Organization",
+
+    name: "Royal Trading Component",
+
+    url: "https://www.royalsmd.com",
+  },
+};
+
   return (
+  <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify(categoryJsonLd),
+      }}
+    />
+
     <div className="min-h-screen bg-[var(--color-bg)]">
       <Navbar />
 
@@ -538,5 +571,6 @@ export default async function CategoryPage({ params, searchParams }) {
 
       <Footer />
     </div>
-  );
+  </>
+);
 }

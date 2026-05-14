@@ -7,6 +7,7 @@ import { AddressProvider } from "@/context/AddressContext";
 import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ChatProvider } from "@/context/ChatContext";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 export const metadata = {
   metadataBase: new URL("https://www.royalsmd.com"),
@@ -142,6 +143,7 @@ export default function RootLayout({ children }) {
             </WishlistProvider>
           </AuthProvider>
         </GoogleOAuthProvider>
+        <GoogleAnalytics gaId="G-8JQQ1462E2" />
       </body>
     </html>
   );

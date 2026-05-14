@@ -4,6 +4,7 @@ export default function robots() {
       userAgent: "*",
       allow: "/",
     },
+
     sitemap: "https://www.royalsmd.com/sitemap.xml",
   };
 }

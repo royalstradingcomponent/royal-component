@@ -21,6 +21,9 @@ const blogPageSettingRoutes = require("./routes/blogPageSettingRoutes");
 dotenv.config();
 
 const app = express();
+
+app.set("trust proxy", 1);
+
 connectDB();
 
 const allowedOrigins = [
@@ -59,7 +62,11 @@ app.use(cors(corsOptions));
 
 app.use(
   helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+
+    crossOriginEmbedderPolicy: false,
   })
 );
 
@@ -67,7 +74,7 @@ app.use(compression());
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === "production" ? 1000 : 10000,
+  max: process.env.NODE_ENV === "production" ? 500 : 10000,
   standardHeaders: true,
   legacyHeaders: false,
 
@@ -88,13 +95,24 @@ const apiLimiter = rateLimit({
 
 app.use("/api", apiLimiter);
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "25mb" }));
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-  next();
-});
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "25mb",
+  })
+);
+
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
+    );
+
+    next();
+  });
+}
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -150,7 +168,7 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error("SERVER ERROR:", err.message);
+  console.error("SERVER ERROR:", err);
 
   res.status(err.status || 500).json({
     success: false,

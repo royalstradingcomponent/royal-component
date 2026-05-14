@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 
 const imageSchema = new mongoose.Schema(
   {
@@ -157,14 +158,14 @@ const productSchema = new mongoose.Schema(
     },
 
     imageHashes: {
-  type: [
-    {
-      url: String,
-      hash: String,
+      type: [
+        {
+          url: String,
+          hash: String,
+        },
+      ],
+      default: [],
     },
-  ],
-  default: [],
-},
 
     specifications: {
       type: [specificationSchema],
@@ -310,10 +311,63 @@ productSchema.index({ isActive: 1, status: 1, category: 1, price: 1 });
 
 productSchema.pre("validate", function () {
   if (!this.slug && this.name) {
-    this.slug = this.name
-      .toLowerCase()
-      .replace(/[^a-z0-9 ]/g, "")
-      .replace(/\s+/g, "-");
+    this.slug = slugify(this.name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+  }
+
+  if (!this.seo.metaTitle && this.name) {
+    this.seo.metaTitle =
+      `${this.name} Price in India | RoyalSMD`;
+  }
+  if (
+    !this.seo.metaDescription &&
+    this.shortDescription
+  ) {
+    this.seo.metaDescription =
+      this.shortDescription.slice(0, 160);
+  }
+
+  if (
+    (!this.seo.metaKeywords ||
+      this.seo.metaKeywords.length === 0) &&
+    this.name
+  ) {
+    this.seo.metaKeywords = [
+      this.name,
+      `${this.name} price`,
+      `${this.name} buy online`,
+      `${this.name} datasheet`,
+      `${this.name} distributor`,
+      "electronics components",
+      "SMD components",
+      "IC chips",
+      "electronic components India",
+    ];
+  }
+
+  if (this.images && this.images.length > 0) {
+    this.images = this.images.map((img, index) => ({
+      ...img.toObject?.() || img,
+
+      altText:
+        img.altText ||
+        `${this.name} Image ${index + 1}`,
+    }));
+  }
+  if ((!this.tags || this.tags.length === 0) && this.name) {
+    this.tags = [
+      this.name,
+      this.brand,
+      this.category,
+      this.subCategory,
+      this.childCategory,
+      "electronics",
+      "SMD",
+      "IC",
+    ].filter(Boolean);
   }
 
   if (this.mrp > this.price && this.mrp > 0) {
@@ -341,5 +395,25 @@ productSchema.pre("validate", function () {
       this.stockStatus = "in_stock";
     }
   }
+});
+
+productSchema.index({ slug: 1 });
+productSchema.index({ sku: 1 });
+productSchema.index({ category: 1 });
+productSchema.index({ subCategory: 1 });
+productSchema.index({ childCategory: 1 });
+productSchema.index({ brand: 1 });
+productSchema.index({ createdAt: -1 });
+productSchema.index({ isFeatured: 1 });
+productSchema.index({ isBestSeller: 1 });
+productSchema.index({ stock: 1 });
+
+productSchema.index({
+  name: "text",
+  brand: "text",
+  sku: "text",
+  mpn: "text",
+  shortDescription: "text",
+  description: "text",
 });
 module.exports = mongoose.model("Product", productSchema);

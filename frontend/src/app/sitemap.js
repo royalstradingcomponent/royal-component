@@ -101,16 +101,18 @@ export default async function sitemap() {
   const products = await fetchAPI("/api/products?limit=5000");
 
   const productUrls = (
-    products?.products ||
-    products ||
-    []
-  ).map((product) => ({
-    url: `${BASE_URL}/product/${product._id}`,
+  products?.products ||
+  products ||
+  []
+)
+.filter((product) => product.slug)
+.map((product) => ({
+    url: `${BASE_URL}/product/${product.slug}`,
     lastModified: new Date(
       product.updatedAt || product.createdAt || currentDate
     ),
-    changeFrequency: "daily",
-    priority: 1,
+    changeFrequency: "weekly",
+    priority: 0.9,
   }));
 
   // =========================

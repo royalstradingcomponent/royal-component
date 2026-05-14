@@ -1,12 +1,22 @@
 const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
+
 const Product = require("../models/Product");
 const Category = require("../models/Category");
+const Order = require("../models/Order");
+
+
+const { generateImageHash } = require("../utils/imageHash");
 
 const parseCsv = (value) =>
   String(value || "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+
+    const escapeRegex = (text = "") =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const slugify = (value = "") =>
   String(value)
@@ -211,18 +221,10 @@ const buildProductFilter = (query = {}) => {
   const searchValue = query.keyword || query.search;
 
   if (searchValue) {
-    const regex = new RegExp(searchValue, "i");
-    filter.$or = [
-      { name: regex },
-      { brand: regex },
-      { sku: regex },
-      { mpn: regex },
-      { shortDescription: regex },
-      { description: regex },
-      { subCategory: regex },
-      { childCategory: regex },
-    ];
-  }
+  filter.$text = {
+    $search: searchValue,
+  };
+}
 
   if (query.minPrice || query.maxPrice) {
     filter.price = {};
@@ -244,13 +246,16 @@ const buildProductFilter = (query = {}) => {
     filter.stock = { $gt: 0 };
   }
 
-  if (query.featured === "true") {
-    filter.isFeatured = true;
-  }
+  const isTrue = (value) =>
+  ["true", "1", 1, true].includes(value);
 
-  if (query.bestSeller === "true") {
-    filter.isBestSeller = true;
-  }
+if (isTrue(query.featured)) {
+  filter.isFeatured = true;
+}
+
+if (isTrue(query.bestSeller)) {
+  filter.isBestSeller = true;
+}
 
   return filter;
 };
@@ -258,17 +263,28 @@ const buildProductFilter = (query = {}) => {
 const makeImagePath = (fileName = "") => {
   const name = String(fileName).trim();
 
-  // Agar already full path diya hai (DB se)
+  if (!name) return "";
+
+  // Already full path
   if (name.startsWith("/uploads/")) {
     return name;
   }
 
-  // Auto detect folder
-  const newProductsPath = `/uploads/new-products/${name}`;
-  const oldProductsPath = `/uploads/products/${name}`;
+  const newPath = `/uploads/new-products/${name}`;
+  const oldPath = `/uploads/products/${name}`;
 
-  // Default: new-products use karo
-  return newProductsPath;
+  const newFile = path.join(process.cwd(), "public", newPath);
+  const oldFile = path.join(process.cwd(), "public", oldPath);
+
+  if (fs.existsSync(newFile)) {
+    return newPath;
+  }
+
+  if (fs.existsSync(oldFile)) {
+    return oldPath;
+  }
+
+  return newPath;
 };
 
 const buildSeedProduct = (item) => {
@@ -366,13 +382,27 @@ const dedupeAndInsert = async (products) => {
   const skippedProducts = [];
 
   for (const item of cleanedProducts) {
-    const slug = String(item.slug || "").toLowerCase();
-    const sku = item.sku ? String(item.sku).toUpperCase() : "";
 
-    const slugExistsInDb = existingSlugSet.has(slug);
-    const skuExistsInDb = sku ? existingSkuSet.has(sku) : false;
-    const slugDuplicateInRequest = requestSlugSet.has(slug);
-    const skuDuplicateInRequest = sku ? requestSkuSet.has(sku) : false;
+  if (!item.name || !item.category) {
+    skippedProducts.push({
+      name: item.name || "Unknown",
+      slug: item.slug || "",
+      sku: item.sku || "",
+      reason: "missing required fields",
+    });
+
+    continue;
+  }
+
+  const slug = String(item.slug || "").toLowerCase();
+  const sku = item.sku ? String(item.sku).toUpperCase() : "";
+
+  const slugExistsInDb = existingSlugSet.has(slug);
+  const skuExistsInDb = sku ? existingSkuSet.has(sku) : false;
+  const slugDuplicateInRequest = requestSlugSet.has(slug);
+const skuDuplicateInRequest = sku
+  ? requestSkuSet.has(sku)
+  : false;
 
     if (slugExistsInDb || skuExistsInDb || slugDuplicateInRequest || skuDuplicateInRequest) {
       skippedProducts.push({
@@ -394,6 +424,8 @@ const dedupeAndInsert = async (products) => {
     if (sku) requestSkuSet.add(sku);
     uniqueProducts.push(item);
   }
+
+  
 
   let insertedProducts = [];
 
@@ -490,12 +522,14 @@ exports.getProducts = async (req, res) => {
 
     const products = await Product.find(filter)
       .select(
-        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription description isFeatured isBestSeller createdAt"
+        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription isFeatured isBestSeller createdAt"
       )
       .sort(sortOption)
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
+
+      res.set("Cache-Control", "public, max-age=300");
 
     res.status(200).json({
       success: true,
@@ -591,7 +625,23 @@ exports.getProductFilterMeta = async (req, res) => {
 
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).lean();
+    const value = String(req.params.id || "").trim();
+
+    let product = null;
+
+    // Mongo ID search
+    if (mongoose.Types.ObjectId.isValid(value)) {
+      product = await Product.findById(value).lean();
+    }
+
+    // Slug search fallback
+    if (!product) {
+      product = await Product.findOne({
+        slug: slugify(value),
+        isActive: true,
+        status: "published",
+      }).lean();
+    }
 
     if (!product || !product.isActive || product.status !== "published") {
       return res.status(404).json({
@@ -607,7 +657,7 @@ exports.getProductById = async (req, res) => {
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: "Invalid product ID",
+      message: "Invalid product",
     });
   }
 };
@@ -815,8 +865,22 @@ exports.updateProduct = async (req, res) => {
     });
 
     if (req.body.name || req.body.slug) {
-      product.slug = slugify(req.body.slug || req.body.name);
-    }
+  const newSlug = slugify(req.body.slug || req.body.name);
+
+  const existingSlug = await Product.findOne({
+    slug: newSlug,
+    _id: { $ne: product._id },
+  });
+
+  if (existingSlug) {
+    return res.status(400).json({
+      success: false,
+      message: "Slug already exists",
+    });
+  }
+
+  product.slug = newSlug;
+}
 
     const updatedProduct = await product.save();
 
@@ -899,9 +963,7 @@ exports.getSimilarProducts = async (req, res) => {
     });
   }
 };
-const fs = require("fs");
-const path = require("path");
-const { generateImageHash } = require("../utils/imageHash");
+
 
 exports.searchProductsByImage = async (req, res) => {
   try {
