@@ -34,12 +34,32 @@ exports.createComponentRequest = async (req, res) => {
             }))
             .filter((item) => item.componentName && item.quantity > 0);
 
-        if (!parsedItems.length || !customerName || !customerEmail) {
-            return res.status(400).json({
-                success: false,
-                message: "At least one component, customer name and email are required",
-            });
-        }
+        if (
+    !parsedItems.length ||
+    !customerName?.trim() ||
+    !customerEmail?.trim() ||
+    !customerPhone?.trim() ||
+    !description?.trim()
+) {
+    return res.status(400).json({
+        success: false,
+        message: "Please fill all required fields",
+    });
+}
+
+for (const item of parsedItems) {
+    if (
+        !item.componentName?.trim() ||
+        !item.partNumber?.trim() ||
+        !item.brand?.trim() ||
+        !item.quantity
+    ) {
+        return res.status(400).json({
+            success: false,
+            message: "Please fill all component fields",
+        });
+    }
+}
 
         const imageUrls =
             req.files?.images?.map((file) => `/uploads/requests/${file.filename}`) ||

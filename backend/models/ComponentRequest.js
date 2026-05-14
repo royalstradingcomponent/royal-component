@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const requestItemSchema = new mongoose.Schema(
   {
     componentName: { type: String, required: true, trim: true },
-    partNumber: { type: String, trim: true, default: "" },
-    brand: { type: String, trim: true, default: "" },
+    partNumber: { type: String, required: true, trim: true },
+brand: { type: String, required: true, trim: true },
     quantity: { type: Number, required: true, min: 1, default: 1 },
   },
   { _id: false }
@@ -23,7 +23,7 @@ const componentRequestSchema = new mongoose.Schema(
       },
     },
 
-    description: { type: String, trim: true, default: "" },
+    description: { type: String, required: true, trim: true },
 
     datasheetUrls: [{ type: String, default: "" }],
     imageUrls: [{ type: String, default: "" }],
@@ -35,7 +35,7 @@ const componentRequestSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
     },
-    customerPhone: { type: String, trim: true, default: "" },
+    customerPhone: { type: String, required: true, trim: true },
 
     user: {
       type: mongoose.Schema.Types.ObjectId,

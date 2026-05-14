@@ -67,8 +67,14 @@ export default function RequestComponentPage() {
       }))
       .filter((item) => item.componentName && item.quantity > 0);
 
-    if (!validItems.length || !form.customerName || !form.customerEmail) {
-      toast.error("Please add at least one component, name and email");
+    if (
+      !validItems.length ||
+      !form.customerName.trim() ||
+      !form.customerEmail.trim() ||
+      !form.customerPhone.trim() ||
+      !form.description.trim()
+    ) {
+      toast.error("Please fill all required fields");
       return;
     }
 
@@ -198,6 +204,7 @@ export default function RequestComponentPage() {
                       Component Name *
                     </label>
                     <input
+                      required
                       value={item.componentName}
                       onChange={(e) =>
                         handleItemChange(index, "componentName", e.target.value)
@@ -209,9 +216,10 @@ export default function RequestComponentPage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Part Number / MPN
+                      Part Number / MPN *
                     </label>
                     <input
+                      required
                       value={item.partNumber}
                       onChange={(e) =>
                         handleItemChange(index, "partNumber", e.target.value)
@@ -223,9 +231,10 @@ export default function RequestComponentPage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Brand
+                      Brand *
                     </label>
                     <input
+                      required
                       value={item.brand}
                       onChange={(e) =>
                         handleItemChange(index, "brand", e.target.value)
@@ -240,6 +249,7 @@ export default function RequestComponentPage() {
                       Quantity *
                     </label>
                     <input
+                      required
                       type="number"
                       min="1"
                       value={item.quantity}
@@ -260,6 +270,7 @@ export default function RequestComponentPage() {
                 Your Name *
               </label>
               <input
+                required
                 name="customerName"
                 value={form.customerName}
                 onChange={handleChange}
@@ -272,6 +283,7 @@ export default function RequestComponentPage() {
                 Email *
               </label>
               <input
+                required
                 type="email"
                 name="customerEmail"
                 value={form.customerEmail}
@@ -282,12 +294,14 @@ export default function RequestComponentPage() {
 
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-700">
-                Phone / WhatsApp
+                Phone / WhatsApp *
               </label>
               <input
+                required
                 name="customerPhone"
                 value={form.customerPhone}
                 onChange={handleChange}
+                placeholder="Enter phone number"
                 className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
               />
             </div>
@@ -332,9 +346,10 @@ export default function RequestComponentPage() {
 
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-bold text-slate-700">
-                Requirement Details
+                Requirement Details *
               </label>
               <textarea
+                required
                 name="description"
                 value={form.description}
                 onChange={handleChange}
