@@ -60,8 +60,8 @@ export default function MyComponentRequestsPage() {
 
             const res = await fetch(
                 `${API_BASE}/api/component-requests/lookup?search=${encodeURIComponent(
-  search.trim()
-)}`,
+                    search.trim()
+                )}`,
                 { cache: "no-store" }
             );
 
@@ -142,9 +142,11 @@ export default function MyComponentRequestsPage() {
 
                             <Link
                                 href="/request-component"
-                                className="mt-5 inline-flex rounded-xl bg-[#0f4c81] px-6 py-3 font-black text-white"
+                                className="mt-5 inline-flex items-center justify-center rounded-xl bg-[#0f4c81] px-6 py-3 font-black text-white shadow-lg transition-all duration-200 hover:bg-[#0b3b66] hover:text-white"
                             >
-                                Submit New Request
+                                <span className="text-white">
+                                    Submit New Request
+                                </span>
                             </Link>
                         </div>
                     ) : (
