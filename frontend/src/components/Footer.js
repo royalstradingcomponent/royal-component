@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -371,21 +371,19 @@ export default function Footer() {
         <div className="container-royal relative py-9">
           <div className="grid gap-8 lg:grid-cols-12">
             <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-5 lg:col-span-3">
-              <Link href="/" className="inline-flex items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1792e8] to-[#0f6cbd] text-lg font-black shadow-lg shadow-sky-900/30">
-                  RC
-                </div>
 
-                <div>
-                  <h3 className="text-xl font-black leading-tight">
-                    {data.companyName}
-                  </h3>
-                  <p className="mt-0.5 text-xs font-semibold text-sky-200">
-                    {data.tagline}
-                  </p>
+              <Link href="/" className="inline-flex items-center">
+                <div className="relative flex h-[80px] w-[300px] items-center">
+                  <Image
+                    src="/logofooter.png"
+                    alt="Royal Trading"
+                    width={260}
+                    height={70}
+                    priority
+                    className="h-auto object-contain object-left"
+                  />
                 </div>
               </Link>
-
               <p className="mt-4 text-sm leading-6 text-slate-300">
                 {data.description}
               </p>

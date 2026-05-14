@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   Menu,
   ShoppingCart,
@@ -182,18 +183,16 @@ export default function Navbar() {
                 <Menu size={24} />
               </button>
 
-              <Link href="/" className="flex min-w-0 items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1792e8] to-[#0f6cbd] text-xl font-extrabold text-white shadow-sm">
-                  RC
-                </div>
-
-                <div className="min-w-0">
-                  <p className="truncate text-lg font-extrabold leading-none text-[#0f172a] sm:text-[1.75rem]">
-                    Royal Component
-                  </p>
-                  <p className="mt-1 hidden text-[11px] font-medium tracking-[0.02em] text-[#5f7d95] sm:block sm:text-xs">
-                    Industrial Solutions Store
-                  </p>
+              <Link href="/" className="flex min-w-0 items-center">
+                <div className="relative flex h-[70px] w-[300px] items-center pt-5">
+                  <Image
+                    src="/royallogo.png"
+                    alt="Royal Trading"
+                    width={260}
+                    height={60}
+                    priority
+                    className="h-auto object-contain object-left"
+                  />
                 </div>
               </Link>
             </div>

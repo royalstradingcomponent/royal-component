@@ -472,24 +472,24 @@ export default async function CategoryPage({ params, searchParams }) {
 
           <div>
             <h3 className="text-[22px] font-bold text-[#111827]">
-              What is {product?.name} used for?
-            </h3>
+  What is {pageCategory?.name} used for?
+</h3>
 
             <p className="mt-3 text-[17px] leading-8 text-[#374151]">
-              {product?.name} is commonly used in electronic circuits,
-              embedded systems, PCB projects, industrial automation,
-              repair applications, IoT projects and semiconductor-based
-              electronic designs.
-            </p>
+  {pageCategory?.name} is commonly used in electronic circuits,
+  embedded systems, PCB projects, industrial automation,
+  repair applications, IoT projects and semiconductor-based
+  electronic designs.
+</p>
           </div>
 
           <div>
             <h3 className="text-[22px] font-bold text-[#111827]">
-              Where to buy {product?.name} online in India?
+              Where to buy {pageCategory?.name} online in India?
             </h3>
 
             <p className="mt-3 text-[17px] leading-8 text-[#374151]">
-              You can buy {product?.name} online from Royal Trading
+              You can buy {pageCategory?.name} online from Royal Trading
               Component, a trusted electronic components supplier in
               Delhi India offering wholesale pricing, bulk procurement
               support and nationwide delivery.
@@ -498,7 +498,7 @@ export default async function CategoryPage({ params, searchParams }) {
 
           <div>
             <h3 className="text-[22px] font-bold text-[#111827]">
-              Is {product?.name} available for bulk orders?
+              Is {pageCategory?.name} available for bulk orders?
             </h3>
 
             <p className="mt-3 text-[17px] leading-8 text-[#374151]">
@@ -522,11 +522,11 @@ export default async function CategoryPage({ params, searchParams }) {
 
           <div>
             <h3 className="text-[22px] font-bold text-[#111827]">
-              Which industries use {product?.name}?
+             Which industries use {pageCategory?.name}?
             </h3>
 
             <p className="mt-3 text-[17px] leading-8 text-[#374151]">
-              {product?.name} is used in industrial automation,
+              {pageCategory?.name} is used in industrial automation,
               embedded electronics, robotics, PCB manufacturing,
               consumer electronics, IoT systems, repair industries
               and OEM manufacturing applications.
