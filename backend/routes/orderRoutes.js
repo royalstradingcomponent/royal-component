@@ -19,6 +19,7 @@ const {
   submitPaymentProof,
   downloadOrderPdf,
   getOrdersCalendar,
+  getRevenueAnalytics,
 } = require("../controllers/orderController");
 
 const { protect, admin } = require("../middleware/authMiddleware");
@@ -29,6 +30,7 @@ router.get("/track/:id", protect, trackOrder);
 
 router.get("/admin/all", protect, admin, getAllOrders);
 router.get("/admin/orders-calendar", protect, admin, getOrdersCalendar);
+router.get("/admin/revenue-analytics", protect, admin, getRevenueAnalytics);
 router.put("/admin/update-status", protect, admin, updateOrderStatus);
 router.put("/admin/refund/:id", protect, admin, adminUpdateRefund);
 

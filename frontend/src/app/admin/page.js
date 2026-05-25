@@ -21,6 +21,7 @@ import {
   PackageSearch,
   ArrowUpRight,
   ChevronRight,
+  Truck,
 } from "lucide-react";
 
 import CountUp from "react-countup";
@@ -102,9 +103,19 @@ export default function AdminDashboardPage() {
     recentOrders: [],
     recentProducts: [],
     lowStock: [],
+
+    orderPlacedCount: 0,
+    processingCount: 0,
+    packedCount: 0,
+    shippedCount: 0,
+    outForDeliveryCount: 0,
+    deliveredCount: 0,
+    cancelledCount: 0,
   });
 
   const [loading, setLoading] = useState(true);
+  const [supplierHistory, setSupplierHistory] =
+    useState([]);
   const [showAllRequests, setShowAllRequests] =
     useState(false);
 
@@ -161,6 +172,10 @@ export default function AdminDashboardPage() {
           "/api/component-requests/admin/dashboard-stats"
         );
 
+      const supplierData = await adminRequest(
+        "/api/supplier-sources"
+      );
+
       setQuotationStats({
         ...quotationData.stats,
 
@@ -176,6 +191,10 @@ export default function AdminDashboardPage() {
         latestQuotations:
           quotationData.latestQuotations || [],
       });
+
+      setSupplierHistory(
+        supplierData.sources || []
+      );
       setStats(data);
 
     } catch (error) {
@@ -349,6 +368,76 @@ export default function AdminDashboardPage() {
           note="Supplier purchase history"
           onClick={() =>
             router.push("/admin/supplier-history")
+          }
+        />
+
+        <StatCard
+          title="Order Placed"
+          value={stats.orderPlacedCount || 0}
+          icon={ShoppingCart}
+          note="New placed orders"
+          onClick={() =>
+            router.push("/admin/order-status/placed")
+          }
+        />
+
+        <StatCard
+          title="Processing"
+          value={stats.processingCount || 0}
+          icon={Activity}
+          note="Orders in processing"
+          onClick={() =>
+            router.push("/admin/order-status/processing")
+          }
+        />
+
+        <StatCard
+          title="Packed"
+          value={stats.packedCount || 0}
+          icon={Package}
+          note="Packed orders"
+          onClick={() =>
+            router.push("/admin/order-status/packed")
+          }
+        />
+
+        <StatCard
+          title="Shipped"
+          value={stats.shippedCount || 0}
+          icon={Truck}
+          note="Shipped orders"
+          onClick={() =>
+            router.push("/admin/order-status/shipped")
+          }
+        />
+
+        <StatCard
+          title="Out for Delivery"
+          value={stats.outForDeliveryCount || 0}
+          icon={PackageSearch}
+          note="Out for delivery"
+          onClick={() =>
+           router.push("/admin/order-status/out-for-delivery")
+          }
+        />
+
+        <StatCard
+          title="Delivered"
+          value={stats.deliveredCount || 0}
+          icon={CheckCircle}
+          note="Delivered orders"
+          onClick={() =>
+            router.push("/admin/order-status/delivered")
+          }
+        />
+
+        <StatCard
+          title="Cancelled"
+          value={stats.cancelledCount || 0}
+          icon={Clock3}
+          note="Cancelled orders"
+          onClick={() =>
+            router.push("/admin/order-status/cancelled")
           }
         />
       </div>
@@ -538,15 +627,15 @@ export default function AdminDashboardPage() {
 
           <div className="space-y-4">
 
-            {stats.supplierHistory?.length ? (
+            {supplierHistory?.length ? (
 
-              stats.supplierHistory
+              supplierHistory
                 .slice(0, 5)
                 .map((item) => (
 
                   <Link
                     key={item._id}
-                    href={`/admin/supplier-history/${item._id}`}
+                    href={`/admin/supplier-sources/${item._id}`}
                     className="block rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
                   >
 

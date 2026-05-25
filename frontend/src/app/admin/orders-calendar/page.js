@@ -4,6 +4,31 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { adminRequest } from "@/lib/api";
 
+const statusColors = {
+
+  "Order Placed":
+    "bg-blue-100 text-blue-700",
+
+  Processing:
+    "bg-yellow-100 text-yellow-700",
+
+  Packed:
+    "bg-orange-100 text-orange-700",
+
+  Shipped:
+    "bg-purple-100 text-purple-700",
+
+  "Out for Delivery":
+    "bg-pink-100 text-pink-700",
+
+  Delivered:
+    "bg-green-100 text-green-700",
+
+  Cancelled:
+    "bg-red-100 text-red-700",
+
+};
+
 export default function OrdersCalendarPage() {
 
   const [orders, setOrders] = useState([]);
@@ -117,6 +142,31 @@ export default function OrdersCalendarPage() {
       (o) => o.status === "Delivered"
     ).length;
 
+  const processingCount =
+    filteredOrders.filter(
+      (o) => o.status === "Processing"
+    ).length;
+
+  const packedCount =
+    filteredOrders.filter(
+      (o) => o.status === "Packed"
+    ).length;
+
+  const shippedCount =
+    filteredOrders.filter(
+      (o) => o.status === "Shipped"
+    ).length;
+
+  const outForDeliveryCount =
+    filteredOrders.filter(
+      (o) => o.status === "Out for Delivery"
+    ).length;
+
+  const cancelledCount =
+    filteredOrders.filter(
+      (o) => o.status === "Cancelled"
+    ).length;
+
   if (loading) {
 
     return (
@@ -193,9 +243,12 @@ export default function OrdersCalendarPage() {
       </div>
 
       {/* STATS */}
-      <div className="mb-8 grid gap-5 md:grid-cols-3">
+      <div className="mb-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
 
-        <div className="rounded-[30px] bg-white p-6 shadow-sm">
+        <Link
+          href="/admin/orders"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
 
           <p className="text-sm font-semibold text-slate-500">
             Total Orders
@@ -205,9 +258,12 @@ export default function OrdersCalendarPage() {
             {filteredOrders.length}
           </h2>
 
-        </div>
+        </Link>
 
-        <div className="rounded-[30px] bg-white p-6 shadow-sm">
+        <Link
+          href="/admin/order-status/delivered"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
 
           <p className="text-sm font-semibold text-slate-500">
             Delivered Orders
@@ -217,9 +273,12 @@ export default function OrdersCalendarPage() {
             {deliveredCount}
           </h2>
 
-        </div>
+        </Link>
 
-        <div className="rounded-[30px] bg-white p-6 shadow-sm">
+        <Link
+          href="/admin/revenue"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
 
           <p className="text-sm font-semibold text-slate-500">
             Revenue
@@ -230,7 +289,82 @@ export default function OrdersCalendarPage() {
             {totalRevenue.toLocaleString("en-IN")}
           </h2>
 
-        </div>
+        </Link>
+
+        <Link
+          href="/admin/order-status/processing"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
+
+          <p className="text-sm font-semibold text-slate-500">
+            Processing
+          </p>
+
+          <h2 className="mt-3 text-5xl font-black text-yellow-500">
+            {processingCount}
+          </h2>
+
+        </Link>
+
+        <Link
+          href="/admin/order-status/packed"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
+
+          <p className="text-sm font-semibold text-slate-500">
+            Packed
+          </p>
+
+          <h2 className="mt-3 text-5xl font-black text-orange-500">
+            {packedCount}
+          </h2>
+
+        </Link>
+
+        <Link
+          href="/admin/order-status/shipped"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
+
+          <p className="text-sm font-semibold text-slate-500">
+            Shipped
+          </p>
+
+          <h2 className="mt-3 text-5xl font-black text-purple-600">
+            {shippedCount}
+          </h2>
+
+        </Link>
+
+        <Link
+          href="/admin/order-status/out-for-delivery"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
+
+          <p className="text-sm font-semibold text-slate-500">
+            Out For Delivery
+          </p>
+
+          <h2 className="mt-3 text-5xl font-black text-pink-600">
+            {outForDeliveryCount}
+          </h2>
+
+        </Link>
+
+        <Link
+          href="/admin/order-status/cancelled"
+          className="rounded-[30px] bg-white p-6 shadow-sm transition hover:scale-[1.02] hover:shadow-xl"
+        >
+
+          <p className="text-sm font-semibold text-slate-500">
+            Cancelled
+          </p>
+
+          <h2 className="mt-3 text-5xl font-black text-red-600">
+            {cancelledCount}
+          </h2>
+
+        </Link>
 
       </div>
 
@@ -293,11 +427,10 @@ export default function OrdersCalendarPage() {
                 onClick={() =>
                   setSelectedDate(day)
                 }
-                className={`min-h-[150px] overflow-hidden rounded-[28px] border border-slate-300 bg-white p-5 text-left transition-all hover:shadow-xl ${
-                  selectedDate === day
-                    ? "border-blue-500 bg-blue-50"
-                    : "bg-slate-50"
-                }`}
+                className={`min-h-[150px] overflow-hidden rounded-[28px] border border-slate-300 bg-white p-5 text-left transition-all hover:shadow-xl ${selectedDate === day
+                  ? "border-blue-500 bg-blue-50"
+                  : "bg-slate-50"
+                  }`}
               >
 
                 <div className="text-[42px] leading-none font-black text-[#102033]">
@@ -309,6 +442,40 @@ export default function OrdersCalendarPage() {
                   {dayOrders.length}
                   {" "}
                   Orders
+
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+
+                  {[
+                    "Order Placed",
+                    "Processing",
+                    "Packed",
+                    "Shipped",
+                    "Out for Delivery",
+                    "Delivered",
+                    "Cancelled",
+                  ].map((status) => {
+
+                    const count = dayOrders.filter(
+                      (o) => o.status === status
+                    ).length;
+
+                    if (count === 0) return null;
+
+                    return (
+
+                      <div
+                        key={status}
+                        className={`rounded-full px-2 py-1 text-[10px] font-bold ${statusColors[status]
+                          }`}
+                      >
+                        {count}
+                      </div>
+
+                    );
+
+                  })}
 
                 </div>
 
@@ -375,7 +542,12 @@ export default function OrdersCalendarPage() {
                     ).toLocaleString("en-IN")}
                   </div>
 
-                  <div className="mt-2 text-sm font-bold text-green-600">
+                  <div
+                    className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusColors[
+                      order.status
+                    ] || "bg-slate-100 text-slate-700"
+                      }`}
+                  >
                     {order.status}
                   </div>
 

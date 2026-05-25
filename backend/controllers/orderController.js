@@ -133,6 +133,9 @@ exports.createOrder = async (req, res) => {
           item.imageSnapshot ||
           "",
         slug: product.slug || item.slugSnapshot || "",
+        category:
+          product.category ||
+          "Other",
 
         quantity,
         price,
@@ -347,7 +350,23 @@ exports.getOrderById = async (req, res) => {
 ===================================================== */
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+
+    const {
+      page = 1,
+      limit = 15,
+      search = "",
+      status = "",
+    } = req.query;
+
+    const query = {};
+
+    if (status && status !== "All Status") {
+      query.orderStatus = status;
+    }
+
+    const orders = await Order.find(query).sort({
+      createdAt: -1,
+    });
 
     return res.status(200).json({
       success: true,
@@ -732,6 +751,13 @@ exports.updatePayment = async (req, res) => {
 
     if (paymentMethod) order.payment.method = mapPaymentMethod(paymentMethod);
     if (paymentStatus) order.payment.status = paymentStatus;
+
+    if (paymentStatus === "Paid") {
+
+      order.payment.amountPaid =
+        order.pricing?.totalAmount || 0;
+
+    }
     if (paymentId) order.payment.paymentId = paymentId;
 
     order.payment.paymentChanged = true;
@@ -1262,10 +1288,8 @@ exports.downloadOrderPdf = async (req, res) => {
       .font("Helvetica")
       .fontSize(12)
       .text(
-        `${order.userInfo?.addressLine1 || ""}, ${
-          order.userInfo?.city || ""
-        }, ${order.userInfo?.state || ""} - ${
-          order.userInfo?.pincode || ""
+        `${order.userInfo?.addressLine1 || ""}, ${order.userInfo?.city || ""
+        }, ${order.userInfo?.state || ""} - ${order.userInfo?.pincode || ""
         }`,
         60,
         y + 140,
@@ -1334,126 +1358,126 @@ exports.downloadOrderPdf = async (req, res) => {
       y += 88;
     });
 
-  // ======================================================
-// PAYMENT SUMMARY
-// ======================================================
+    // ======================================================
+    // PAYMENT SUMMARY
+    // ======================================================
 
-// PAGE BREAK FIX
-if (y > 560) {
-  doc.addPage({
-    size: "A4",
-    margin: 0,
-  });
+    // PAGE BREAK FIX
+    if (y > 560) {
+      doc.addPage({
+        size: "A4",
+        margin: 0,
+      });
 
-  doc.rect(0, 0, pageWidth, doc.page.height).fill("#f4f8fc");
+      doc.rect(0, 0, pageWidth, doc.page.height).fill("#f4f8fc");
 
-  y = 60;
-}
-
-sectionTitle("Payment Summary");
-
-// SUMMARY CARD
-doc
-  .roundedRect(40, y, 520, 165, 18)
-  .fillAndStroke("white", border);
-
-// ROW 1
-doc
-  .fillColor(gray)
-  .font("Helvetica")
-  .fontSize(13)
-  .text("Subtotal", 65, y + 28);
-
-doc
-  .fillColor(dark)
-  .font("Helvetica-Bold")
-  .fontSize(16)
-  .text(`Rs.  ${order.pricing?.subtotal || 0}`, 460, y + 28);
-
-// LINE
-doc
-  .moveTo(60, y + 58)
-  .lineTo(540, y + 58)
-  .strokeColor("#e2e8f0")
-  .lineWidth(1)
-  .stroke();
-
-// ROW 2
-doc
-  .fillColor(gray)
-  .font("Helvetica")
-  .fontSize(13)
-  .text("GST / Tax", 65, y + 75);
-
-doc
-  .fillColor(dark)
-  .font("Helvetica-Bold")
-  .fontSize(16)
-  .text(`Rs.  ${order.pricing?.tax || 0}`, 460, y + 75);
-
-// LINE
-doc
-  .moveTo(60, y + 105)
-  .lineTo(540, y + 105)
-  .strokeColor("#e2e8f0")
-  .lineWidth(1)
-  .stroke();
-
-// ROW 3
-doc
-  .fillColor(gray)
-  .font("Helvetica")
-  .fontSize(13)
-  .text("Shipping", 65, y + 122);
-
-doc
-  .fillColor(dark)
-  .font("Helvetica-Bold")
-  .fontSize(16)
-  .text(
-    `Rs.  ${order.pricing?.shippingCharge || 0}`,
-    460,
-    y + 122
-  );
-
-// GRAND TOTAL BOX
-doc
-  .roundedRect(55, y + 185, 490, 48, 12)
-  .fill(green);
-
-doc
-  .fillColor("white")
-  .font("Helvetica-Bold")
-  .fontSize(18)
-  .text("Grand Total", 80, y + 201);
-
-doc
-  .text(
-    `Rs.  ${order.pricing?.totalAmount || 0}`,
-    430,
-    y + 201
-  );
-
-y += 260;
-
-// ======================================================
-// FOOTER
-// ======================================================
-
-doc
-  .fillColor("#94a3b8")
-  .font("Helvetica")
-  .fontSize(10)
-  .text(
-    "Thank you for choosing Royal Trading Component",
-    0,
-    800,
-    {
-      align: "center",
+      y = 60;
     }
-  );
 
-doc.end();
+    sectionTitle("Payment Summary");
+
+    // SUMMARY CARD
+    doc
+      .roundedRect(40, y, 520, 165, 18)
+      .fillAndStroke("white", border);
+
+    // ROW 1
+    doc
+      .fillColor(gray)
+      .font("Helvetica")
+      .fontSize(13)
+      .text("Subtotal", 65, y + 28);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica-Bold")
+      .fontSize(16)
+      .text(`Rs.  ${order.pricing?.subtotal || 0}`, 460, y + 28);
+
+    // LINE
+    doc
+      .moveTo(60, y + 58)
+      .lineTo(540, y + 58)
+      .strokeColor("#e2e8f0")
+      .lineWidth(1)
+      .stroke();
+
+    // ROW 2
+    doc
+      .fillColor(gray)
+      .font("Helvetica")
+      .fontSize(13)
+      .text("GST / Tax", 65, y + 75);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica-Bold")
+      .fontSize(16)
+      .text(`Rs.  ${order.pricing?.tax || 0}`, 460, y + 75);
+
+    // LINE
+    doc
+      .moveTo(60, y + 105)
+      .lineTo(540, y + 105)
+      .strokeColor("#e2e8f0")
+      .lineWidth(1)
+      .stroke();
+
+    // ROW 3
+    doc
+      .fillColor(gray)
+      .font("Helvetica")
+      .fontSize(13)
+      .text("Shipping", 65, y + 122);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica-Bold")
+      .fontSize(16)
+      .text(
+        `Rs.  ${order.pricing?.shippingCharge || 0}`,
+        460,
+        y + 122
+      );
+
+    // GRAND TOTAL BOX
+    doc
+      .roundedRect(55, y + 185, 490, 48, 12)
+      .fill(green);
+
+    doc
+      .fillColor("white")
+      .font("Helvetica-Bold")
+      .fontSize(18)
+      .text("Grand Total", 80, y + 201);
+
+    doc
+      .text(
+        `Rs.  ${order.pricing?.totalAmount || 0}`,
+        430,
+        y + 201
+      );
+
+    y += 260;
+
+    // ======================================================
+    // FOOTER
+    // ======================================================
+
+    doc
+      .fillColor("#94a3b8")
+      .font("Helvetica")
+      .fontSize(10)
+      .text(
+        "Thank you for choosing Royal Trading Component",
+        0,
+        800,
+        {
+          align: "center",
+        }
+      );
+
+    doc.end();
 
   } catch (error) {
 
@@ -1468,73 +1492,385 @@ doc.end();
 
 exports.getOrdersCalendar = async (req, res) => {
 
-    try {
+  try {
 
-        const totalOrders =
-            await Order.countDocuments();
+    const totalOrders =
+      await Order.countDocuments();
 
-        const deliveredOrders =
-            await Order.countDocuments({
-                orderStatus: "Delivered",
-            });
+    const deliveredOrders =
+      await Order.countDocuments({
+        orderStatus: "Delivered",
+      });
 
-        const today = new Date();
+    const today = new Date();
 
-        today.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
-        const todayOrders =
-            await Order.countDocuments({
-                createdAt: {
-                    $gte: today,
-                },
-            });
+    const todayOrders =
+      await Order.countDocuments({
+        createdAt: {
+          $gte: today,
+        },
+      });
 
-        const revenueResult =
-            await Order.aggregate([
-                {
-                    $group: {
-                        _id: null,
-                        totalRevenue: {
-                            $sum: "$finalAmount",
-                        },
-                    },
-                },
-            ]);
-
-        const totalRevenue =
-            revenueResult[0]?.totalRevenue || 0;
-
-        res.json({
-
-            success: true,
-
-            stats: {
-
-                totalOrders,
-
-                deliveredOrders,
-
-                todayOrders,
-
-                totalRevenue,
-
+    const revenueResult =
+      await Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: "$pricing.totalAmount",
             },
+          },
+        },
+      ]);
 
-        });
+    const totalRevenue =
+      revenueResult[0]?.totalRevenue || 0;
 
-    } catch (error) {
+    res.json({
 
-        console.log(error);
+      success: true,
 
-        res.status(500).json({
+      stats: {
 
-            success: false,
+        totalOrders,
 
-            message:
-                "Orders calendar failed",
+        deliveredOrders,
 
-        });
+        todayOrders,
 
-    }
+        totalRevenue,
+
+      },
+
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+
+      success: false,
+
+      message:
+        "Orders calendar failed",
+
+    });
+
+  }
+
+};
+
+exports.getRevenueAnalytics = async (req, res) => {
+
+  try {
+
+    // TOTAL REVENUE
+    const totalRevenueResult =
+      await Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum:
+                "$pricing.totalAmount",
+            },
+          },
+        },
+      ]);
+
+    // MONTHLY REVENUE
+    const monthlyRevenue =
+      await Order.aggregate([
+        {
+          $group: {
+            _id: {
+              month: {
+                $month: "$createdAt",
+              },
+            },
+            revenue: {
+              $sum:
+                "$pricing.totalAmount",
+            },
+          },
+        },
+        {
+          $sort: {
+            "_id.month": 1,
+          },
+        },
+      ]);
+
+    // ORDER STATUS ANALYTICS
+    const orderAnalytics =
+      await Order.aggregate([
+        {
+          $group: {
+            _id: "$orderStatus",
+            total: {
+              $sum: 1,
+            },
+          },
+        },
+      ]);
+
+    // PAYMENT ANALYTICS
+    const paymentAnalytics =
+      await Order.aggregate([
+        {
+          $group: {
+            _id: "$payment.status",
+            total: {
+              $sum: 1,
+            },
+          },
+        },
+      ]);
+
+    // CATEGORY REVENUE
+    const categoryRevenue =
+      await Order.aggregate([
+        {
+          $unwind: "$products",
+        },
+        {
+          $group: {
+            _id:
+              "$products.category",
+            revenue: {
+              $sum: {
+                $multiply: [
+                  "$products.price",
+                  "$products.quantity",
+                ],
+              },
+            },
+          },
+        },
+      ]);
+
+    // TOP PRODUCTS
+    const topProducts =
+      await Order.aggregate([
+        {
+          $unwind: "$products",
+        },
+        {
+          $group: {
+            _id: "$products.name",
+            qty: {
+              $sum:
+                "$products.quantity",
+            },
+          },
+        },
+        {
+          $sort: {
+            qty: -1,
+          },
+        },
+        {
+          $limit: 5,
+        },
+      ]);
+
+    // GST SUMMARY
+    const gstSummary =
+      await Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            gst: {
+              $sum:
+                "$pricing.tax",
+            },
+          },
+        },
+      ]);
+
+    // REFUND ANALYTICS
+    const refundAnalytics =
+      await Order.aggregate([
+        {
+          $match: {
+            orderStatus:
+              "Cancelled",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            refund: {
+              $sum:
+                "$pricing.totalAmount",
+            },
+          },
+        },
+      ]);
+
+    // YEARLY REVENUE
+    const currentYear =
+      new Date().getFullYear();
+
+    const yearlyRevenue =
+      await Order.aggregate([
+        {
+          $match: {
+            createdAt: {
+              $gte: new Date(
+                `${currentYear}-01-01`
+              ),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: {
+              $sum:
+                "$pricing.totalAmount",
+            },
+          },
+        },
+      ]);
+
+    return res.json({
+
+      success: true,
+
+      analytics: {
+
+        deliveredRevenue:
+  await Order.aggregate([
+    {
+      $match: {
+        orderStatus: "Delivered",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum:
+            "$pricing.totalAmount",
+        },
+      },
+    },
+  ]).then(
+    (r) => r[0]?.total || 0
+  ),
+
+processingRevenue:
+  await Order.aggregate([
+    {
+      $match: {
+        orderStatus: "Processing",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum:
+            "$pricing.totalAmount",
+        },
+      },
+    },
+  ]).then(
+    (r) => r[0]?.total || 0
+  ),
+
+cancelledRevenue:
+  await Order.aggregate([
+    {
+      $match: {
+        orderStatus: "Cancelled",
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum:
+            "$pricing.totalAmount",
+        },
+      },
+    },
+  ]).then(
+    (r) => r[0]?.total || 0
+  ),
+
+currentMonthRevenue:
+  await Order.aggregate([
+    {
+      $match: {
+        createdAt: {
+          $gte: new Date(
+            new Date().getFullYear(),
+            new Date().getMonth(),
+            1
+          ),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum:
+            "$pricing.totalAmount",
+        },
+      },
+    },
+  ]).then(
+    (r) => r[0]?.total || 0
+  ),
+
+        totalRevenue:
+          totalRevenueResult[0]
+            ?.total || 0,
+
+        monthlyRevenue,
+
+        orderAnalytics,
+
+        paymentAnalytics,
+
+        categoryRevenue,
+
+        topProducts,
+
+        gstSummary:
+          gstSummary[0]?.gst || 0,
+
+        refundAnalytics:
+          refundAnalytics[0]
+            ?.refund || 0,
+
+        yearlyRevenue:
+          yearlyRevenue[0]
+            ?.total || 0,
+
+      },
+
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Revenue analytics failed",
+
+    });
+
+  }
 
 };
