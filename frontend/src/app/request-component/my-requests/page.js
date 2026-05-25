@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -46,8 +46,51 @@ function formatDate(date) {
 
 export default function MyComponentRequestsPage() {
     const [search, setSearch] = useState("");
+
+    useEffect(() => {
+        fetchAllRequests();
+    }, []);
+
+
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    const fetchAllRequests = async () => {
+        try {
+
+            setLoading(true);
+
+            const storedUser = JSON.parse(localStorage.getItem("user"));
+
+            const token = storedUser?.token;
+
+            const res = await fetch(
+                `${API_BASE}/api/component-requests/my`,
+                {
+                    cache: "no-store",
+
+                    headers: {
+                        Authorization: token ? `Bearer ${token}` : "",
+                    },
+                }
+            );
+
+            const data = await res.json();
+
+            if (data.success) {
+
+                setRequests(data.requests || []);
+            }
+
+        } catch (error) {
+
+            console.log(error);
+
+        } finally {
+
+            setLoading(false);
+        }
+    };
 
     const fetchRequests = async () => {
         if (!search.trim()) {
@@ -212,7 +255,9 @@ function RequestCard({ req }) {
                     <div className="rounded-2xl bg-emerald-600 px-5 py-4 text-white">
                         <div className="flex items-center gap-2 text-sm font-black">
                             <CheckCircle2 size={18} />
-                            Product Available
+                            {req.status === "quoted"
+                                ? "Quotation Ready"
+                                : "Product Available"}
                         </div>
                     </div>
                 ) : null}
@@ -271,14 +316,142 @@ function RequestCard({ req }) {
 
                     {req.adminPrice ? (
                         <div className="mt-4 rounded-2xl bg-blue-50 p-4">
+
                             <p className="text-xs font-black uppercase text-blue-700">
-                                Admin Price
+                                Final Quotation
                             </p>
-                            <p className="mt-1 text-xl font-black text-blue-900">
-                                ₹ {Number(req.adminPrice).toLocaleString("en-IN")}
-                            </p>
+
+                            <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+
+                                <div className="grid gap-3 md:grid-cols-2">
+
+                                    <div>
+
+                                        <p className="text-xs font-black uppercase text-slate-400">
+                                            Quotation Number
+                                        </p>
+
+                                        <p className="mt-1 text-sm font-black text-slate-800">
+                                            {req.quotationNumber || "N/A"}
+                                        </p>
+
+                                    </div>
+
+                                    <div>
+
+                                        <p className="text-xs font-black uppercase text-slate-400">
+                                            Validity
+                                        </p>
+
+                                        <p className="mt-1 text-sm font-black text-slate-800">
+                                            {req.quotationValidity || "7 Days"}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div className="mt-4 space-y-3">
+
+                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                                    <span>
+                                        Unit Price
+                                    </span>
+
+                                    <span>
+                                        ₹{
+                                            Math.round(
+                                                Number(req.subTotal || 0) /
+                                                (items[0]?.quantity || 1)
+                                            ).toLocaleString("en-IN")
+                                        }
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                                    <span>
+                                        Quantity
+                                    </span>
+
+                                    <span>
+                                        {items[0]?.quantity || 1}
+                                    </span>
+                                </div>
+
+                                <div className="border-t pt-3 flex items-center justify-between text-sm font-bold text-slate-700">
+                                    <span>
+                                        Sub Total
+                                    </span>
+
+                                    <span>
+                                        ₹{
+                                            Number(
+                                                req.subTotal || 0
+                                            ).toLocaleString("en-IN")
+                                        }
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                                    <span>
+                                        SGST (9%)
+                                    </span>
+
+                                    <span>
+                                        ₹{
+                                            Number(
+                                                req.sgstAmount || 0
+                                            ).toLocaleString("en-IN")
+                                        }
+                                    </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
+                                    <span>
+                                        CGST (9%)
+                                    </span>
+
+                                    <span>
+                                        ₹{
+                                            Number(
+                                                req.cgstAmount || 0
+                                            ).toLocaleString("en-IN")
+                                        }
+                                    </span>
+                                </div>
+
+                                <div className="border-t pt-4 flex items-center justify-between">
+                                    <span className="text-lg font-black text-slate-900">
+                                        Grand Total
+                                    </span>
+
+                                    <span className="text-2xl font-black text-blue-900">
+                                        ₹{
+                                            Number(
+                                                req.adminPrice || 0
+                                            ).toLocaleString("en-IN")
+                                        }
+                                    </span>
+                                </div>
+
+                            </div>
                         </div>
                     ) : null}
+
+                    {(req.status === "available" ||
+                        req.status === "quoted") && (
+
+                            <a
+                                href={`${API_BASE}/api/component-requests/download-pdf/${req._id}`}
+                                target="_blank"
+                                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-[#102033] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0b1625]"
+                            >
+                                Download Quotation PDF
+                            </a>
+
+                        )}
 
                     {req.adminLeadTime ? (
                         <div className="mt-4 rounded-2xl bg-yellow-50 p-4">
@@ -304,9 +477,40 @@ function RequestCard({ req }) {
                             </a>
 
                             <a
-                                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-                                    "Hello Royal Component, I want to discuss my component request."
-                                )}`}
+                                href={`https://wa.me/919871444105?text=${encodeURIComponent(`
+
+                             Hello Royal Trading Co,
+
+                     I want to confirm this quotation.
+
+                    Component:
+              ${items[0]?.componentName}
+
+                    Part Number:
+                 ${items[0]?.partNumber}
+
+                    Brand:
+               ${items[0]?.brand}
+
+                     Quantity:
+                      ${items[0]?.quantity}
+
+                       Unit Price:
+                       ₹${Math.round(
+                                    Number(req.adminPrice || 0) /
+                                    (items[0]?.quantity || 1)
+                                )}
+
+                        Total Amount:
+                  ₹${Number(req.adminPrice || 0).toLocaleString("en-IN")}
+
+                         Lead Time:
+                           ${req.adminLeadTime || "2-5 business days"}
+
+                          Please share payment details and dispatch process.
+
+                           Thank you.
+                             `)}`}
                                 target="_blank"
                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-black text-white shadow transition hover:bg-emerald-700"
                             >

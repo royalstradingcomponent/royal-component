@@ -40,7 +40,7 @@ const navItems = [
   { title: "Child Categories", href: "/admin/categories/child", icon: GitBranch },
   { title: "Navbar Categories", href: "/admin/navbar-categories", icon: Navigation },
   {
-    title: "DOM Requests",
+    title: "BOM Requests",
     href: "/admin/component-requests",
     icon: PackageSearch,
   },

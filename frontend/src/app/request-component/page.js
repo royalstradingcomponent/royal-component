@@ -24,6 +24,13 @@ export default function RequestComponentPage() {
     customerName: "",
     customerEmail: "",
     customerPhone: "",
+
+    companyName: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    pinCode: "",
   });
 
   const [datasheets, setDatasheets] = useState([]);
@@ -67,12 +74,29 @@ export default function RequestComponentPage() {
       }))
       .filter((item) => item.componentName && item.quantity > 0);
 
+    console.log("VALID ITEMS =>", validItems);
+
+    console.log({
+      customerName: form.customerName,
+      customerEmail: form.customerEmail,
+      customerPhone: form.customerPhone,
+      description: form.description,
+      addressLine1: form.addressLine1,
+      city: form.city,
+      state: form.state,
+      pinCode: form.pinCode,
+    });
+
     if (
       !validItems.length ||
       !form.customerName.trim() ||
       !form.customerEmail.trim() ||
       !form.customerPhone.trim() ||
       !form.description.trim()
+      || !form.addressLine1.trim()
+      || !form.city.trim()
+      || !form.state.trim()
+      || !form.pinCode.trim()
     ) {
       toast.error("Please fill all required fields");
       return;
@@ -81,12 +105,26 @@ export default function RequestComponentPage() {
     try {
       setLoading(true);
 
-      const token =
-        localStorage.getItem("token") || localStorage.getItem("userToken");
+      const storedUser = JSON.parse(localStorage.getItem("user"));
+
+      const token = storedUser?.token;
+
+      console.log("TOKEN FOUND =>", token);
 
       const headers = {};
       if (token) headers.Authorization = `Bearer ${token}`;
+      console.log("TOKEN =>", token);
 
+      localStorage.setItem(
+        "rfqEmail",
+        form.customerEmail
+      );
+
+
+      localStorage.setItem(
+        "rfqEmail",
+        form.customerEmail
+      );
       const formData = new FormData();
 
       formData.append("items", JSON.stringify(validItems));
@@ -94,6 +132,17 @@ export default function RequestComponentPage() {
       formData.append("customerName", form.customerName);
       formData.append("customerEmail", form.customerEmail);
       formData.append("customerPhone", form.customerPhone);
+      formData.append("companyName", form.companyName);
+
+      formData.append("addressLine1", form.addressLine1);
+
+      formData.append("addressLine2", form.addressLine2);
+
+      formData.append("city", form.city);
+
+      formData.append("state", form.state);
+
+      formData.append("pinCode", form.pinCode);
 
       images.forEach((file) => formData.append("images", file));
       datasheets.forEach((file) => formData.append("datasheets", file));
@@ -210,7 +259,7 @@ export default function RequestComponentPage() {
                         handleItemChange(index, "componentName", e.target.value)
                       }
                       placeholder="Example: LM358 Op-Amp IC"
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                      className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
                     />
                   </div>
 
@@ -225,7 +274,7 @@ export default function RequestComponentPage() {
                         handleItemChange(index, "partNumber", e.target.value)
                       }
                       placeholder="STM32F103C8T6"
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                      className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
                     />
                   </div>
 
@@ -240,7 +289,7 @@ export default function RequestComponentPage() {
                         handleItemChange(index, "brand", e.target.value)
                       }
                       placeholder="ST, TI, Siemens"
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                      className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
                     />
                   </div>
 
@@ -256,7 +305,7 @@ export default function RequestComponentPage() {
                       onChange={(e) =>
                         handleItemChange(index, "quantity", e.target.value)
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                      className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
                     />
                   </div>
                 </div>
@@ -274,7 +323,7 @@ export default function RequestComponentPage() {
                 name="customerName"
                 value={form.customerName}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
               />
             </div>
 
@@ -288,7 +337,7 @@ export default function RequestComponentPage() {
                 name="customerEmail"
                 value={form.customerEmail}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
               />
             </div>
 
@@ -296,14 +345,126 @@ export default function RequestComponentPage() {
               <label className="mb-2 block text-sm font-bold text-slate-700">
                 Phone / WhatsApp *
               </label>
+
               <input
                 required
                 name="customerPhone"
                 value={form.customerPhone}
                 onChange={handleChange}
                 placeholder="Enter phone number"
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                className="w-full rounded-2xl border border-sky-200 bg-sky-50/40 px-4 py-3 text-slate-700 outline-none transition focus:border-sky-500 focus:bg-white"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-700">
+                Company Name
+              </label>
+
+              <input
+                name="companyName"
+                value={form.companyName}
+                onChange={handleChange}
+                placeholder="Company / Business Name"
+                className="w-full rounded-2xl border border-sky-200 bg-sky-50/40 px-4 py-3 text-slate-700 outline-none transition focus:border-sky-500 focus:bg-white"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 to-blue-50 p-6">
+
+                <div className="mb-5 flex items-center gap-3">
+                  <div className="h-10 w-1 rounded-full bg-sky-500"></div>
+
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800">
+                      Delivery Address
+                    </h3>
+
+                    <p className="text-sm text-slate-500">
+                      Fill complete address for quotation and delivery.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 md:grid-cols-2">
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Address Line 1 *
+                    </label>
+
+                    <input
+                      required
+                      name="addressLine1"
+                      value={form.addressLine1}
+                      onChange={handleChange}
+                      placeholder="Building, Street, Area"
+                      className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Address Line 2
+                    </label>
+
+                    <input
+                      name="addressLine2"
+                      value={form.addressLine2}
+                      onChange={handleChange}
+                      placeholder="Landmark, Floor etc."
+                      className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      City *
+                    </label>
+
+                    <input
+                      required
+                      name="city"
+                      value={form.city}
+                      onChange={handleChange}
+                      placeholder="Delhi"
+                      className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      State *
+                    </label>
+
+                    <input
+                      required
+                      name="state"
+                      value={form.state}
+                      onChange={handleChange}
+                      placeholder="Delhi"
+                      className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      PIN Code *
+                    </label>
+
+                    <input
+                      required
+                      name="pinCode"
+                      value={form.pinCode}
+                      onChange={handleChange}
+                      placeholder="110001"
+                      className="w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 outline-none transition focus:border-sky-500"
+                    />
+                  </div>
+
+                </div>
+              </div>
             </div>
 
             <div>
@@ -355,7 +516,7 @@ export default function RequestComponentPage() {
                 onChange={handleChange}
                 rows={5}
                 placeholder="Write package type, voltage, application, alternate acceptable brand, delivery urgency etc."
-                className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+                className="w-full rounded-xl border border-sky-300 px-4 py-3 outline-none focus:border-sky-600"
               />
             </div>
 

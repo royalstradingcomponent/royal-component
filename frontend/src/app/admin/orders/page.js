@@ -152,14 +152,14 @@ export default function AdminOrdersPage() {
 
         <button
           onClick={loadOrders}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border bg-white px-4 py-3 text-sm font-bold hover:bg-slate-50"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border bg-[#ffffff] px-4 py-3 text-sm font-bold hover:bg-slate-50"
         >
           <RefreshCcw size={18} />
           Refresh
         </button>
       </div>
 
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border bg-[#ffffff] p-4 shadow-sm">
         <div className="grid gap-3 md:grid-cols-[1fr_240px]">
           <div className="relative">
             <Search
@@ -196,162 +196,187 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border bg-[#ffffff] shadow-sm">
         {loading ? (
           <div className="p-6 text-sm text-slate-500">Loading orders...</div>
         ) : orders.length === 0 ? (
           <div className="p-6 text-sm text-slate-500">No orders found.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[1350px] w-full text-left text-sm">
-              <thead className="bg-[#f3f7fb] text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-4">Order</th>
-                  <th className="px-4 py-4">Customer</th>
-                  <th className="px-4 py-4">Amount</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4">Payment</th>
-                  <th className="px-4 py-4">Courier</th>
-                  <th className="px-4 py-4">Tracking ID</th>
-                  <th className="px-4 py-4">Tracking URL</th>
-                  <th className="px-4 py-4 text-right">Action</th>
-                </tr>
-              </thead>
+          
 
-              <tbody className="divide-y">
-                {orders.map((order) => {
-                  const orderId = getOrderId(order);
-                  const hasChanges = Boolean(changes[orderId]);
+<div className="space-y-5 p-5 bg-[#eef4fb]">
+  {orders.map((order) => {
+    const orderId = getOrderId(order);
+    const hasChanges = Boolean(changes[orderId]);
 
-                  return (
-                    <tr
-                      key={orderId}
-                      className={hasChanges ? "bg-blue-50/40" : "hover:bg-slate-50"}
-                    >
-                      <td className="px-4 py-4">
-                        <p className="font-bold text-[#102033]">
-                          {order.orderNumber || orderId}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {order.createdAt
-                            ? new Date(order.createdAt).toLocaleString("en-IN")
-                            : ""}
-                        </p>
-                      </td>
+    return (
+      <div
+  key={orderId}
+  className={`rounded-[28px] border border-[#dbe5f0] bg-[#ffffff] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.05)] transition-all hover:shadow-[0_10px_40px_rgba(15,23,42,0.08)] ${
+          hasChanges
+            ? "border-blue-300 ring-2 ring-blue-100"
+            : "border-slate-200"
+        }`}
+      >
+        {/* TOP */}
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          
+          {/* LEFT */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-[#091524]">
+                {order.orderNumber || orderId}
+              </h2>
 
-                      <td className="px-4 py-4">
-                        <p className="font-bold">
-                          {order.userInfo?.name || order.customer || "Customer"}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {order.userInfo?.phone || order.phone || "N/A"}
-                        </p>
-                      </td>
+              <p className="mt-1 text-xs text-slate-500">
+                {order.createdAt
+                  ? new Date(order.createdAt).toLocaleString("en-IN")
+                  : ""}
+              </p>
+            </div>
 
-                      <td className="px-4 py-4">
-                        <p className="font-bold">
-                          ₹{" "}
-                          {Number(order.finalAmount || order.total || 0).toLocaleString(
-                            "en-IN"
-                          )}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Items:{" "}
-                          {order.pricing?.itemCount || order.products?.length || 0}
-                        </p>
-                      </td>
+            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+              
+              {/* CUSTOMER */}
+              <div className="rounded-[22px] border border-[#cfd9e5] bg-[#ffffff] p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Customer
+                </p>
 
-                      <td className="px-4 py-4">
-                        <select
-                          value={getValue(order, "status")}
-                          onChange={(e) =>
-                            updateChange(orderId, "status", e.target.value)
-                          }
-                          className="input w-[160px]"
-                        >
-                          {statuses.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                <p className="mt-2 text-sm font-bold text-[#102033]">
+                  {order.userInfo?.name || "Customer"}
+                </p>
 
-                      <td className="px-4 py-4">
-                        <select
-                          value={getValue(order, "paymentStatus", "Pending")}
-                          onChange={(e) =>
-                            updateChange(orderId, "paymentStatus", e.target.value)
-                          }
-                          className="input w-[120px]"
-                        >
-                          {paymentStatuses.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                <p className="mt-1 text-xs text-[#42526b]">
+                  {order.userInfo?.phone || "N/A"}
+                </p>
+              </div>
 
-                      <td className="px-4 py-4">
-                        <input
-                          value={getValue(order, "courier")}
-                          onChange={(e) =>
-                            updateChange(orderId, "courier", e.target.value)
-                          }
-                          className="input w-[140px]"
-                          placeholder="Delhivery"
-                        />
-                      </td>
+              {/* AMOUNT */}
+              <div className="rounded-[22px] border border-[#cfd9e5] bg-[#ffffff] p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#42526b]">
+                  Total Amount
+                </p>
 
-                      <td className="px-4 py-4">
-                        <input
-                          value={getValue(order, "trackingId")}
-                          onChange={(e) =>
-                            updateChange(orderId, "trackingId", e.target.value)
-                          }
-                          className="input w-[150px]"
-                          placeholder="AWB / Tracking"
-                        />
-                      </td>
+                <p className="mt-2 text-lg font-bold text-[#2454b5]">
+                  ₹{" "}
+                  {Number(
+                    order.finalAmount || order.total || 0
+                  ).toLocaleString("en-IN")}
+                </p>
 
-                      <td className="px-4 py-4">
-                        <input
-                          value={getValue(order, "trackingUrl")}
-                          onChange={(e) =>
-                            updateChange(orderId, "trackingUrl", e.target.value)
-                          }
-                          className="input w-[220px]"
-                          placeholder="https://..."
-                        />
-                      </td>
+                <p className="mt-1 text-xs text-[#42526b]">
+                  Items:{" "}
+                  {order.pricing?.itemCount ||
+                    order.products?.length ||
+                    0}
+                </p>
+              </div>
 
-                      <td className="px-4 py-4">
-                        <div className="flex justify-end gap-2">
-                          <Link
-                            href={`/admin/orders/${orderId}`}
-                            className="rounded-lg border p-2 text-slate-600 hover:bg-slate-100"
-                          >
-                            <Eye size={17} />
-                          </Link>
+              {/* PAYMENT */}
+              <div className="rounded-[22px] border border-[#cfd9e5] bg-[#ffffff] p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#42526b]">
+                  Payment
+                </p>
 
-                          <button
-                            type="button"
-                            onClick={() => saveOrder(order)}
-                            disabled={!hasChanges || savingId === orderId}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#2454b5] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-                          >
-                            <Save size={14} />
-                            {savingId === orderId ? "Saving..." : "Save"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                <select
+                  value={getValue(order, "paymentStatus", "Pending")}
+                  onChange={(e) =>
+                    updateChange(
+                      orderId,
+                      "paymentStatus",
+                      e.target.value
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-[#c9d5e2] bg-[#ffffff] px-3 py-2 text-sm font-medium outline-none focus:border-[#2454b5]"
+                >
+                  {paymentStatuses.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
+
+          {/* STATUS BOX */}
+          <div className="w-full xl:w-[320px] shrink-0">
+           <div className="rounded-[26px] border border-[#dbe5f0] bg-[#f7faff] p-5">
+              
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#42526b]">
+                Order Status
+              </p>
+
+              <select
+                value={getValue(order, "status")}
+                onChange={(e) =>
+                  updateChange(orderId, "status", e.target.value)
+                }
+                className="mt-3 w-full rounded-2xl border border-[#c9d5e2] bg-[#ffffff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#2454b5]"
+              >
+                {statuses.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+
+              <div className="mt-4 grid gap-3">
+                <input
+                  value={getValue(order, "courier")}
+                  onChange={(e) =>
+                    updateChange(orderId, "courier", e.target.value)
+                  }
+                  placeholder="Courier company"
+                  className="rounded-2xl border border-[#c9d5e2] px-4 py-3 text-sm outline-none focus:border-[#2454b5]"
+                />
+
+                <input
+                  value={getValue(order, "trackingId")}
+                  onChange={(e) =>
+                    updateChange(orderId, "trackingId", e.target.value)
+                  }
+                  placeholder="Tracking ID"
+                  className="rounded-2xl border border-[#c9d5e2] px-4 py-3 text-sm outline-none focus:border-[#2454b5]"
+                />
+
+                <input
+                  value={getValue(order, "trackingUrl")}
+                  onChange={(e) =>
+                    updateChange(orderId, "trackingUrl", e.target.value)
+                  }
+                  placeholder="Tracking URL"
+                  className="rounded-2xl border border-[#c9d5e2] px-4 py-3 text-sm outline-none focus:border-[#2454b5]"
+                />
+              </div>
+
+              {/* ACTIONS */}
+              <div className="mt-5 flex gap-3">
+                <Link
+                  href={`/admin/orders/${orderId}`}
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#c9d5e2] bg-[#ffffff] text-[#42526b] hover:bg-slate-100"
+                >
+                  <Eye size={18} />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => saveOrder(order)}
+                  disabled={!hasChanges || savingId === orderId}
+                  className="flex-1 rounded-2xl bg-[#2454b5] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {savingId === orderId ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
+
         )}
 
         <div className="flex items-center justify-between border-t px-4 py-4">
@@ -363,7 +388,7 @@ export default function AdminOrdersPage() {
             Previous
           </button>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#42526b]">
             Page <b>{page}</b> of <b>{pages}</b>
           </p>
 

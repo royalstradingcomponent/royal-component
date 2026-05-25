@@ -53,11 +53,56 @@ const supplierSourceSchema = new mongoose.Schema(
       lowercase: true,
       default: "",
     },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
+    },
 
     purchasePrice: {
       type: Number,
       default: 0,
       min: 0,
+    },
+
+    gstPercent: {
+      type: Number,
+      default: 18,
+    },
+
+    profitPercent: {
+      type: Number,
+      default: 20,
+    },
+
+    extraCharge: {
+      type: Number,
+      default: 0,
+    },
+
+    sellingPrice: {
+      type: Number,
+      default: 0,
+    },
+
+    subtotal: {
+      type: Number,
+      default: 0,
+    },
+
+    sgstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    cgstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    grandTotal: {
+      type: Number,
+      default: 0,
     },
 
     currency: {
@@ -101,6 +146,16 @@ const supplierSourceSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+
+    supplierPdf: {
+      type: String,
+      default: "",
+    },
+
+    supplierImages: {
+      type: [String],
+      default: [],
     },
 
     isPreferred: {

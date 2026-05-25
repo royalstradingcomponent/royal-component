@@ -4,7 +4,7 @@ const requestItemSchema = new mongoose.Schema(
   {
     componentName: { type: String, required: true, trim: true },
     partNumber: { type: String, required: true, trim: true },
-brand: { type: String, required: true, trim: true },
+    brand: { type: String, required: true, trim: true },
     quantity: { type: Number, required: true, min: 1, default: 1 },
   },
   { _id: false }
@@ -37,6 +37,47 @@ const componentRequestSchema = new mongoose.Schema(
     },
     customerPhone: { type: String, required: true, trim: true },
 
+    companyName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    addressLine1: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    addressLine2: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    state: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    pinCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    quotationNumber: {
+      type: String,
+      default: "",
+    },
+
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -44,57 +85,191 @@ const componentRequestSchema = new mongoose.Schema(
     },
 
     status: {
-  type: String,
-  enum: [
-    "new",
-    "checking",
-    "available",
-    "quoted",
-    "unavailable",
-    "closed",
-  ],
-  default: "new",
-},
+      type: String,
+      enum: [
+        "new",
+        "checking",
+        "available",
+        "quoted",
+        "unavailable",
+        "closed",
+      ],
+      default: "new",
+    },
 
     adminPrice: { type: Number, default: 0 },
+    subTotal: {
+      type: Number,
+      default: 0,
+    },
+
+    sgstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    cgstAmount: {
+      type: Number,
+      default: 0,
+    },
     adminLeadTime: { type: String, default: "" },
     adminNote: { type: String, default: "" },
 
     customerMessage: {
+      type: String,
+      default: "",
+    },
+    quotationValidity: {
   type: String,
-  default: "",
+  default: "7 Days",
 },
 
-adminContactNumber: {
-  type: String,
-  default: "",
+quotationSentAt: {
+  type: Date,
+  default: null,
 },
 
-availableItemsNote: {
-  type: String,
-  default: "",
-},
+    adminContactNumber: {
+      type: String,
+      default: "",
+    },
 
-matchedSupplierSources: [
+    availableItemsNote: {
+      type: String,
+      default: "",
+    },
+
+    activityLogs: [
+      {
+        message: {
+          type: String,
+          default: "",
+        },
+
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+
+    matchedSupplierSources: [
   {
     supplierSource: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SupplierSource",
       default: null,
     },
-    supplierCompany: { type: String, default: "" },
-    componentName: { type: String, default: "" },
-    partNumber: { type: String, default: "" },
-    brand: { type: String, default: "" },
-    purchasePrice: { type: Number, default: 0 },
-    moq: { type: Number, default: 1 },
-    leadTime: { type: String, default: "" },
-    lastPurchaseDate: { type: Date, default: null },
-    phone: { type: String, default: "" },
-    whatsapp: { type: String, default: "" },
-    email: { type: String, default: "" },
-    availabilityStatus: { type: String, default: "" },
-    isPreferred: { type: Boolean, default: false },
+
+    supplierCompany: {
+      type: String,
+      default: "",
+    },
+
+    componentName: {
+      type: String,
+      default: "",
+    },
+
+    partNumber: {
+      type: String,
+      default: "",
+    },
+
+    brand: {
+      type: String,
+      default: "",
+    },
+
+    purchasePrice: {
+      type: Number,
+      default: 0,
+    },
+
+    finalSellingPrice: {
+      type: Number,
+      default: 0,
+    },
+
+    gstPercent: {
+      type: Number,
+      default: 0,
+    },
+
+    gstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    profitPercent: {
+      type: Number,
+      default: 0,
+    },
+
+    profitAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    extraCharge: {
+      type: Number,
+      default: 0,
+    },
+
+    moq: {
+      type: Number,
+      default: 1,
+    },
+
+    leadTime: {
+      type: String,
+      default: "",
+    },
+
+    lastPurchaseDate: {
+      type: Date,
+      default: null,
+    },
+
+    contactPerson: {
+      type: String,
+      default: "",
+    },
+
+    address: {
+      type: String,
+      default: "",
+    },
+
+    qualityNote: {
+      type: String,
+      default: "",
+    },
+
+    phone: {
+      type: String,
+      default: "",
+    },
+
+    whatsapp: {
+      type: String,
+      default: "",
+    },
+
+    email: {
+      type: String,
+      default: "",
+    },
+
+    availabilityStatus: {
+      type: String,
+      default: "",
+    },
+
+    isPreferred: {
+      type: Boolean,
+      default: false,
+    },
   },
 ],
 

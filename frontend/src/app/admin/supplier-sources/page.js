@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { API_BASE } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -26,7 +27,12 @@ const emptyForm = {
   phone: "",
   whatsapp: "",
   email: "",
+  address: "",
   purchasePrice: "",
+
+  gstPercent: 18,
+  profitPercent: 20,
+  extraCharge: 0,
   currency: "INR",
   moq: 1,
   leadTime: "",
@@ -36,6 +42,8 @@ const emptyForm = {
   adminNote: "",
   isPreferred: false,
   isActive: true,
+  supplierPdf: null,
+  supplierImages: [],
 };
 
 const statusOptions = ["available", "limited", "on_request", "unavailable"];
@@ -69,6 +77,8 @@ export default function SupplierSourcesPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [configText, setConfigText] = useState("");
+
 
   const stats = useMemo(() => {
     return {
@@ -84,7 +94,6 @@ export default function SupplierSourcesPage() {
     typeof window !== "undefined" ? localStorage.getItem("adminToken") : "";
 
   const headers = {
-    "Content-Type": "application/json",
     Authorization: `Bearer ${adminToken}`,
   };
 
@@ -130,6 +139,25 @@ export default function SupplierSourcesPage() {
     fetchSources();
   }, [status]);
 
+  useEffect(() => {
+    const editId =
+      localStorage.getItem("editSupplierId");
+
+    if (!editId || !sources.length) return;
+
+    const found = sources.find(
+      (item) => item._id === editId
+    );
+
+    if (found) {
+      editSource(found);
+
+      localStorage.removeItem(
+        "editSupplierId"
+      );
+    }
+  }, [sources]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -143,6 +171,30 @@ export default function SupplierSourcesPage() {
     setForm(emptyForm);
     setEditingId("");
   };
+
+  const purchasePrice = Number(form.purchasePrice || 0);
+
+  const profitAmount =
+    (purchasePrice * Number(form.profitPercent || 0)) / 100;
+
+  const sellingPrice =
+    purchasePrice + profitAmount + Number(form.extraCharge || 0);
+
+  const gstAmount =
+    (sellingPrice * Number(form.gstPercent || 0)) / 100;
+
+  const subtotal = sellingPrice;
+
+  const sgstAmount = gstAmount / 2;
+
+  const cgstAmount = gstAmount / 2;
+
+  const grandTotal = sellingPrice + gstAmount;
+
+  const totalQty = Number(form.moq || 1);
+
+  const finalItemTotal =
+    sellingPrice * totalQty;
 
   const submitSource = async (e) => {
     e.preventDefault();
@@ -159,11 +211,59 @@ export default function SupplierSourcesPage() {
 
       const method = editingId ? "PUT" : "POST";
 
+      const formData = new FormData();
+
+      Object.keys(form).forEach((key) => {
+        if (
+          key !== "supplierPdf" &&
+          key !== "supplierImages"
+        ) {
+          formData.append(key, form[key]);
+        }
+      });
+
+      if (form.supplierPdf) {
+        formData.append("supplierPdf", form.supplierPdf);
+      }
+
+      formData.append(
+        "sellingPrice",
+        sellingPrice
+      );
+
+      formData.append(
+        "subtotal",
+        subtotal
+      );
+
+      formData.append(
+        "sgstAmount",
+        sgstAmount
+      );
+
+      formData.append(
+        "cgstAmount",
+        cgstAmount
+      );
+
+      formData.append(
+        "grandTotal",
+        grandTotal
+      );
+
+      if (form.supplierImages?.length) {
+        form.supplierImages.forEach((file) => {
+          formData.append("supplierImages", file);
+        });
+      }
+
       const res = await fetch(url, {
         method,
         headers,
-        body: JSON.stringify(form),
+        body: formData,
       });
+
+
 
       const data = await res.json();
 
@@ -192,7 +292,12 @@ export default function SupplierSourcesPage() {
       phone: source.phone || "",
       whatsapp: source.whatsapp || "",
       email: source.email || "",
+      address: source.address || "",
       purchasePrice: source.purchasePrice || "",
+
+      gstPercent: source.gstPercent || 18,
+      profitPercent: source.profitPercent || 20,
+      extraCharge: source.extraCharge || 0,
       currency: source.currency || "INR",
       moq: source.moq || 1,
       leadTime: source.leadTime || "",
@@ -204,9 +309,128 @@ export default function SupplierSourcesPage() {
       adminNote: source.adminNote || "",
       isPreferred: Boolean(source.isPreferred),
       isActive: source.isActive !== false,
+
+      supplierPdf: null,
+      supplierImages: [],
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const importOffer = async () => {
+    if (!configText.trim()) {
+      toast.error("Paste supplier config");
+      return;
+    }
+
+    try {
+      const lines = configText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const parsedData = {};
+
+      const itemLines = [];
+
+      lines.forEach((line) => {
+        if (line.includes("=")) {
+          const [key, ...rest] = line.split("=");
+
+          parsedData[key.trim()] =
+            rest.join("=").trim();
+        } else if (line.includes("|")) {
+          itemLines.push(line);
+        }
+      });
+
+      if (!itemLines.length) {
+        toast.error("No items found");
+        return;
+      }
+
+      const firstItem = itemLines[0].split("|");
+
+      const partNumber = firstItem[0] || "";
+      const brand = firstItem[1] || "";
+      const packageName = firstItem[2] || "";
+      const price = firstItem[3] || 0;
+
+      setForm({
+        componentName: partNumber,
+
+        partNumber,
+
+        brand,
+
+        supplierCompany:
+          parsedData.SUPPLIER || "",
+
+        contactPerson:
+          parsedData.CONTACT_PERSON || "",
+
+        phone:
+          parsedData.PHONE || "",
+
+        whatsapp:
+          parsedData.WHATSAPP || "",
+
+        email:
+          parsedData.EMAIL || "",
+
+        address:
+          parsedData.ADDRESS || "",
+
+        purchasePrice:
+          Number(price),
+
+        gstPercent:
+          Number(parsedData.GST || 18),
+
+        profitPercent:
+          Number(parsedData.PROFIT || 20),
+
+        extraCharge:
+          Number(parsedData.EXTRA || 0),
+
+        currency: "INR",
+
+        moq:
+          Number(parsedData.MOQ || 1),
+
+        leadTime:
+          parsedData.LEAD_TIME || "",
+
+        lastPurchaseDate: "",
+
+        availabilityStatus:
+          parsedData.STATUS || "available",
+
+        qualityNote:
+          parsedData.QUALITY_NOTE || "",
+
+        adminNote:
+          parsedData.ADMIN_NOTE ||
+          packageName,
+
+        isPreferred:
+          parsedData.PREFERRED === "true",
+
+        isActive: true,
+
+        supplierPdf: null,
+
+        supplierImages: [],
+      });
+
+      toast.success("Import applied to form");
+
+
+    } catch (error) {
+      console.log(error);
+
+      toast.error("Import failed");
+    }
   };
 
   const deleteSource = async (id) => {
@@ -272,6 +496,42 @@ export default function SupplierSourcesPage() {
         <StatCard title="Active" value={stats.active} />
         <StatCard title="Available" value={stats.available} />
       </div>
+
+      <section className="mb-6 rounded-[28px] border border-blue-100 bg-white p-5 shadow-lg">
+
+        <h2 className="mb-3 text-2xl font-black text-slate-900">
+          Import Supplier Offer
+        </h2>
+
+        <p className="mb-4 text-sm text-slate-500">
+          Paste supplier stock offer like .env variables.
+        </p>
+
+        <textarea
+          value={configText}
+          onChange={(e) => setConfigText(e.target.value)}
+          rows={12}
+          placeholder={`SUPPLIER=FORMIX INTERNATIONAL INDIA PRIVATE LIMITED
+GST=18
+PROFIT=20
+EXTRA=10
+
+LM324DT|ST|SOIC14|25
+LM358DT|ST|SOIC8|30
+LM339DT|ST|SOIC14|35`}
+          className="w-full rounded-2xl border border-slate-200 p-4 font-mono text-sm outline-none focus:border-blue-500"
+        />
+
+        <button
+          type="button"
+          onClick={importOffer}
+          className="mt-4 rounded-2xl bg-[#0f4c81] px-6 py-3 font-black text-white shadow hover:bg-[#0b3b66]"
+        >
+          Apply Import
+        </button>
+      </section>
+
+
 
       <section className="mb-6 rounded-[28px] border border-blue-100 bg-white p-5 shadow-lg">
         <div className="mb-5 flex items-center gap-3">
@@ -355,6 +615,14 @@ export default function SupplierSourcesPage() {
             placeholder="sales@example.com"
           />
 
+          <Textarea
+            label="Address"
+            name="address"
+            value={form.address}
+            onChange={handleChange}
+            rows={3}
+          />
+
           <Input
             label="Purchase Price"
             name="purchasePrice"
@@ -362,6 +630,30 @@ export default function SupplierSourcesPage() {
             value={form.purchasePrice}
             onChange={handleChange}
             placeholder="52"
+          />
+
+          <Input
+            label="GST %"
+            name="gstPercent"
+            type="number"
+            value={form.gstPercent}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Profit %"
+            name="profitPercent"
+            type="number"
+            value={form.profitPercent}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Extra Charge"
+            name="extraCharge"
+            type="number"
+            value={form.extraCharge}
+            onChange={handleChange}
           />
 
           <Input
@@ -438,6 +730,43 @@ export default function SupplierSourcesPage() {
           </div>
 
           <div className="md:col-span-3">
+
+            <div className="md:col-span-3">
+              <label className="mb-2 block text-sm font-black text-slate-600">
+                Supplier PDF
+              </label>
+
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    supplierPdf: e.target.files[0],
+                  }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-3 py-3"
+              />
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="mb-2 block text-sm font-black text-slate-600">
+                Supplier Images
+              </label>
+
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    supplierImages: Array.from(e.target.files),
+                  }))
+                }
+                className="w-full rounded-xl border border-slate-200 px-3 py-3"
+              />
+            </div>
             <Textarea
               label="Admin Note"
               name="adminNote"
@@ -445,6 +774,142 @@ export default function SupplierSourcesPage() {
               onChange={handleChange}
               placeholder="Internal note, supplier response, purchase remarks..."
             />
+          </div>
+
+          <div className="md:col-span-3 mt-4">
+
+            <div className="rounded-[28px] border border-blue-100 bg-[#f8fbff] p-6">
+
+              <h2 className="mb-6 text-3xl font-black text-[#0f172a]">
+                quotation summary
+              </h2>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+
+                <table className="w-full">
+
+                  <thead className="bg-[#2563eb] text-white">
+
+                    <tr>
+
+                      <th className="px-5 py-4 text-left">
+                        component
+                      </th>
+
+                      <th className="px-5 py-4 text-center">
+                        qty
+                      </th>
+
+                      <th className="px-5 py-4 text-center">
+                        unit price
+                      </th>
+
+                      <th className="px-5 py-4 text-center">
+                        total
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    <tr className="bg-white">
+
+                      <td className="px-5 py-5 font-black">
+                        {form.partNumber || form.componentName}
+                      </td>
+
+                      <td className="px-5 py-5 text-center font-black">
+                        {form.moq || 1}
+                      </td>
+
+                      <td className="px-5 py-5 text-center font-black">
+                        ₹{sellingPrice.toFixed(2)}
+                      </td>
+
+                      <td className="px-5 py-5 text-center font-black">
+                        ₹{finalItemTotal.toFixed(2)}
+                      </td>
+
+                    </tr>
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="md:col-span-3 mt-4">
+
+            <div className="rounded-[28px] border border-blue-100 bg-[#f8fbff] p-6">
+
+              <h2 className="mb-6 text-3xl font-black text-[#0f172a]">
+                pricing summary
+              </h2>
+
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+
+                <table className="w-full">
+
+                  <thead className="bg-[#0f4c81] text-white">
+
+                    <tr>
+
+                      <th className="px-5 py-4">
+                        subtotal
+                      </th>
+
+                      <th className="px-5 py-4">
+                        sgst
+                      </th>
+
+                      <th className="px-5 py-4">
+                        cgst
+                      </th>
+
+                      <th className="px-5 py-4">
+                        grand total
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    <tr className="bg-white">
+
+                      <td className="px-5 py-5 text-center text-2xl font-black">
+                        ₹{subtotal.toFixed(2)}
+                      </td>
+
+                      <td className="px-5 py-5 text-center text-2xl font-black">
+                        ₹{sgstAmount.toFixed(2)}
+                      </td>
+
+                      <td className="px-5 py-5 text-center text-2xl font-black">
+                        ₹{cgstAmount.toFixed(2)}
+                      </td>
+
+                      <td className="px-5 py-5 text-center text-3xl font-black text-green-700">
+                        ₹{grandTotal.toFixed(2)}
+                      </td>
+
+                    </tr>
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
           </div>
 
           <div className="flex gap-3 md:col-span-3">
@@ -546,10 +1011,9 @@ function SupplierCard({ source, onEdit, onDelete }) {
         <div>
           <div className="mb-2 flex flex-wrap gap-2">
             <span
-              className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${
-                statusStyles[source.availabilityStatus] ||
+              className={`rounded-full border px-3 py-1 text-xs font-black uppercase ${statusStyles[source.availabilityStatus] ||
                 statusStyles.available
-              }`}
+                }`}
             >
               {source.availabilityStatus || "available"}
             </span>
@@ -613,6 +1077,40 @@ function SupplierCard({ source, onEdit, onDelete }) {
           />
           <InfoBox label="Quality Note" value={source.qualityNote || "N/A"} />
           <InfoBox label="Admin Note" value={source.adminNote || "N/A"} />
+
+          {source.supplierPdf ? (
+            <a
+              href={`${API_BASE}/${source.supplierPdf}`}
+              target="_blank"
+              className="mb-3 inline-flex w-full items-center justify-center rounded-xl bg-red-50 px-4 py-3 font-black text-red-700 hover:bg-red-100"
+            >
+              View Supplier PDF
+            </a>
+          ) : null}
+
+          {source.supplierImages?.length > 0 ? (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-black text-slate-700">
+                Supplier Images
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {source.supplierImages.map((img, index) => (
+                  <a
+                    key={index}
+                    href={`${API_BASE}/${img}`}
+                    target="_blank"
+                  >
+                    <img
+                      src={`${API_BASE}/${img}`}
+                      alt="supplier"
+                      className="h-28 w-full rounded-xl object-cover border border-slate-200"
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white p-4">
@@ -625,7 +1123,7 @@ function SupplierCard({ source, onEdit, onDelete }) {
               <a
                 href={`tel:${source.phone}`}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0f4c81] px-5 py-3 font-black text-white shadow-md hover:bg-[#0d5ea6] transition"
-                >
+              >
                 <Phone size={17} />
                 Call Supplier
               </a>
@@ -638,7 +1136,7 @@ function SupplierCard({ source, onEdit, onDelete }) {
                 )}`}
                 target="_blank"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#00a86b] px-5 py-3 font-black text-white shadow-md hover:bg-[#009960] transition"
-                >
+              >
                 <MessageCircle size={17} />
                 WhatsApp
               </a>
@@ -648,7 +1146,7 @@ function SupplierCard({ source, onEdit, onDelete }) {
               <a
                 href={`mailto:${source.email}`}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3 font-black text-white shadow-md hover:bg-sky-600 transition"
-                >
+              >
                 <Mail size={17} />
                 Email
               </a>
@@ -660,6 +1158,13 @@ function SupplierCard({ source, onEdit, onDelete }) {
             >
               Edit Source
             </button>
+
+            <Link
+              href={`/admin/supplier-sources/${source._id}`}
+              className="flex items-center justify-center rounded-xl border border-green-100 bg-green-50 px-5 py-3 font-black text-green-700 hover:bg-green-100"
+            >
+              View Details
+            </Link>
 
             <button
               onClick={() => onDelete(source._id)}

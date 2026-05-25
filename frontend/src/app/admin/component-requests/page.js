@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { API_BASE } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -51,8 +52,11 @@ function formatDate(date) {
 }
 
 export default function AdminComponentRequestsPage() {
+    const searchParams = useSearchParams();
     const [requests, setRequests] = useState([]);
-    const [status, setStatus] = useState("all");
+    const [status, setStatus] = useState(
+        searchParams.get("status") || "all"
+    );
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -135,6 +139,15 @@ export default function AdminComponentRequestsPage() {
             toast.error("Something went wrong");
         }
     };
+
+    useEffect(() => {
+
+        const currentStatus =
+            searchParams.get("status") || "all";
+
+        setStatus(currentStatus);
+
+    }, [searchParams]);
 
     useEffect(() => {
         fetchRequests();
@@ -246,6 +259,7 @@ function StatCard({ title, value }) {
 }
 
 function RequestCard({ req, updateRequest }) {
+    const router = useRouter();
     const [local, setLocal] = useState({
         status: req.status || "new",
         adminPrice: req.adminPrice || "",
@@ -255,6 +269,18 @@ function RequestCard({ req, updateRequest }) {
         adminContactNumber: req.adminContactNumber || "",
         availableItemsNote: req.availableItemsNote || "",
     });
+
+    useEffect(() => {
+        setLocal({
+            status: req.status || "new",
+            adminPrice: req.adminPrice || "",
+            adminLeadTime: req.adminLeadTime || "",
+            adminNote: req.adminNote || "",
+            customerMessage: req.customerMessage || "",
+            adminContactNumber: req.adminContactNumber || "",
+            availableItemsNote: req.availableItemsNote || "",
+        });
+    }, [req]);
 
     const items = req.items?.length
         ? req.items
@@ -274,6 +300,12 @@ function RequestCard({ req, updateRequest }) {
         req.matchedSupplierSources || []
     );
     const [matchingLoading, setMatchingLoading] = useState(false);
+
+    const [historyModal, setHistoryModal] =
+        useState(false);
+
+    const [historyData, setHistoryData] =
+        useState([]);
 
     const findSupplierMatches = async () => {
         try {
@@ -309,8 +341,62 @@ function RequestCard({ req, updateRequest }) {
         }
     };
 
+    const handleFindSource = async (
+        partNumber
+    ) => {
+        try {
+            const adminToken =
+                localStorage.getItem("adminToken");
+
+            const res = await fetch(
+                `${API_BASE}/api/purchase-history/find-source?partNumber=${partNumber}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${adminToken}`,
+                    },
+                }
+            );
+
+            const data = await res.json();
+
+            if (!data.success) {
+                toast.error(
+                    data.message || "No history found"
+                );
+                return;
+            }
+
+
+            setHistoryData(data.history || []);
+            setHistoryModal(true);
+        } catch (error) {
+            console.log(error);
+            toast.error("History fetch failed");
+        }
+    };
+
     return (
-        <section className="overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-lg">
+        <section
+            onClick={() =>
+                router.push(
+                    `/admin/component-requests/${req._id}`
+                )
+            }
+            className="
+        overflow-hidden
+        rounded-[28px]
+        border
+        border-blue-100
+        bg-white
+        shadow-lg
+        cursor-pointer
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:shadow-2xl
+        hover:border-blue-300
+    "
+        >
             <div className="flex flex-col justify-between gap-4 border-b border-slate-100 bg-[#f8fbff] p-5 xl:flex-row xl:items-center">
                 <div>
                     <div className="mb-2 flex flex-wrap items-center gap-3">
@@ -441,8 +527,19 @@ function RequestCard({ req, updateRequest }) {
                                 {supplierMatches.map((source) => (
                                     <div
                                         key={source._id}
+
+
                                         className="rounded-2xl border border-slate-100 bg-white p-4"
                                     >
+
+                                        <button
+                                            onClick={() =>
+                                                handleFindSource(source.partNumber)
+                                            }
+                                            className="mt-3 rounded-xl bg-[#102033] px-4 py-2 text-sm font-black text-white"
+                                        >
+                                            Find Source History
+                                        </button>
                                         <div className="mb-2 flex flex-wrap gap-2">
                                             {source.isPreferred ? (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700">
@@ -502,7 +599,7 @@ function RequestCard({ req, updateRequest }) {
                                                 <a
                                                     href={`mailto:${source.email}`}
                                                     className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-black text-white hover:bg-sky-600"
-                                                    >
+                                                >
                                                     <Mail size={16} />
                                                     Email
                                                 </a>
@@ -524,6 +621,50 @@ function RequestCard({ req, updateRequest }) {
                     <InfoLine icon={Mail} label="Email" value={req.customerEmail} />
                     <InfoLine icon={Phone} label="Phone" value={req.customerPhone || "N/A"} />
 
+                    <InfoLine
+                        icon={User}
+                        label="Company"
+                        value={req.companyName || "N/A"}
+                    />
+
+                    <div className="mt-4 rounded-2xl border border-blue-100 bg-white p-4">
+                        <h4 className="mb-3 text-sm font-black uppercase tracking-wide text-[#0f4c81]">
+                            Delivery Address
+                        </h4>
+
+                        <div className="space-y-3">
+
+                            <InfoBox
+                                label="Address Line 1"
+                                value={req.addressLine1 || "N/A"}
+                            />
+
+                            <InfoBox
+                                label="Address Line 2"
+                                value={req.addressLine2 || "N/A"}
+                            />
+
+                            <div className="grid gap-3 md:grid-cols-3">
+
+                                <InfoBox
+                                    label="City"
+                                    value={req.city || "N/A"}
+                                />
+
+                                <InfoBox
+                                    label="State"
+                                    value={req.state || "N/A"}
+                                />
+
+                                <InfoBox
+                                    label="PIN Code"
+                                    value={req.pinCode || "N/A"}
+                                />
+
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
 
@@ -532,6 +673,68 @@ function RequestCard({ req, updateRequest }) {
                     <h3 className="mb-4 text-sm font-black uppercase tracking-wide text-slate-700">
                         Admin Action
                     </h3>
+
+                    <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                        <h3 className="text-lg font-black text-emerald-700">
+                            Auto Quotation
+                        </h3>
+
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+
+                            <InfoBox
+                                label="Sub Total"
+                                value={`₹${req.subTotal || 0}`}
+                            />
+
+                            <InfoBox
+                                label="SGST"
+                                value={`₹${req.sgstAmount || 0}`}
+                            />
+
+                            <InfoBox
+                                label="CGST"
+                                value={`₹${req.cgstAmount || 0}`}
+                            />
+
+                            <InfoBox
+                                label="Grand Total"
+                                value={`₹${req.adminPrice || 0}`}
+                            />
+
+                        </div>
+
+                        <div className="mt-3 grid gap-3 md:grid-cols-3">
+                            <div className="rounded-xl bg-white p-3">
+                                <p className="text-xs font-black uppercase text-slate-400">
+                                    Final Price
+                                </p>
+
+                                <p className="mt-1 text-xl font-black text-emerald-700">
+                                    ₹{req.adminPrice || 0}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-white p-3">
+                                <p className="text-xs font-black uppercase text-slate-400">
+                                    Lead Time
+                                </p>
+
+                                <p className="mt-1 text-sm font-black text-slate-700">
+                                    {req.adminLeadTime || "N/A"}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-white p-3">
+                                <p className="text-xs font-black uppercase text-slate-400">
+                                    Status
+                                </p>
+
+                                <p className="mt-1 text-sm font-black text-slate-700">
+                                    {req.status || "new"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div>
@@ -672,6 +875,16 @@ function RequestCard({ req, updateRequest }) {
                         </div>
                     </div>
 
+                    <a
+                        href={`${API_BASE}/api/component-requests/download-pdf/${req._id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 font-black text-white shadow transition hover:bg-red-700"
+                    >
+                        <FileText size={18} />
+                        Download Quotation PDF
+                    </a>
+
                     <button
                         onClick={() => updateRequest(req._id, local)}
                         className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#0f4c81] px-5 py-3 font-black text-white shadow transition hover:bg-[#0b3b66]"
@@ -681,6 +894,89 @@ function RequestCard({ req, updateRequest }) {
                     </button>
                 </div>
             </div>
+
+            {historyModal ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
+                        <div className="mb-5 flex items-center justify-between">
+                            <h2 className="text-2xl font-black text-slate-900">
+                                Purchase History
+                            </h2>
+
+                            <button
+                                onClick={() =>
+                                    setHistoryModal(false)
+                                }
+                                className="rounded-xl bg-red-500 px-4 py-2 text-sm font-black text-white"
+                            >
+                                Close
+                            </button>
+                        </div>
+
+                        {historyData.length > 0 ? (
+                            <div className="space-y-4">
+                                {historyData.map((item) => (
+                                    <div
+                                        key={item._id}
+                                        className="rounded-2xl border border-slate-200 p-4"
+                                    >
+                                        <h3 className="text-lg font-black">
+                                            {item.componentName}
+                                        </h3>
+
+                                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                            <InfoBox
+                                                label="Supplier"
+                                                value={
+                                                    item.supplierCompany
+                                                        ?.companyName
+                                                }
+                                            />
+
+                                            <InfoBox
+                                                label="Part Number"
+                                                value={
+                                                    item.partNumber
+                                                }
+                                            />
+
+                                            <InfoBox
+                                                label="Purchase Qty"
+                                                value={
+                                                    item.purchasedQty
+                                                }
+                                            />
+
+                                            <InfoBox
+                                                label="Purchase Price"
+                                                value={`₹${item.purchasePrice}`}
+                                            />
+
+                                            <InfoBox
+                                                label="Invoice"
+                                                value={
+                                                    item.invoiceNumber
+                                                }
+                                            />
+
+                                            <InfoBox
+                                                label="Purchase Date"
+                                                value={formatDate(
+                                                    item.createdAt
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-center font-bold text-slate-500">
+                                No purchase history found
+                            </p>
+                        )}
+                    </div>
+                </div>
+            ) : null}
         </section>
     );
 }

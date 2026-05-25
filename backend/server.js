@@ -151,6 +151,11 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/policies", require("./routes/policyRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/component-requests", require("./routes/componentRequestRoutes"));
+
+app.use(
+  "/api/purchase-history",
+  require("./routes/purchaseHistoryRoutes")
+);
 app.use("/api/supplier-sources", require("./routes/supplierSourceRoutes"));
 app.use("/api/contact-page", contactPageRoutes);
 app.use("/api/seo-loader", seoLoaderRoutes);

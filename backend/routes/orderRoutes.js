@@ -17,6 +17,8 @@ const {
   requestRefund,
   adminUpdateRefund,
   submitPaymentProof,
+  downloadOrderPdf,
+  getOrdersCalendar,
 } = require("../controllers/orderController");
 
 const { protect, admin } = require("../middleware/authMiddleware");
@@ -26,6 +28,7 @@ router.get("/my-orders", protect, getMyOrders);
 router.get("/track/:id", protect, trackOrder);
 
 router.get("/admin/all", protect, admin, getAllOrders);
+router.get("/admin/orders-calendar", protect, admin, getOrdersCalendar);
 router.put("/admin/update-status", protect, admin, updateOrderStatus);
 router.put("/admin/refund/:id", protect, admin, adminUpdateRefund);
 
@@ -37,8 +40,10 @@ router.post(
   "/payment-proof/:id",
   protect,
   upload.single("image"),
-  submitPaymentProof
+  submitPaymentProof,
 );
+
+router.get("/admin/download-pdf/:id", downloadOrderPdf);
 
 router.put("/update-address/:id", protect, updateOrderAddress);
 router.put("/update-phone/:id", protect, updateOrderPhone);

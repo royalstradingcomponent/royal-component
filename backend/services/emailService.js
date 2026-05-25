@@ -35,7 +35,12 @@ const verifyEmailConfig = async () => {
 // ===============================
 // 📧 SEND EMAIL FUNCTION
 // ===============================
-const sendEmail = async ({ to, subject, html }) => {
+const sendEmail = async ({
+  to,
+  subject,
+  html,
+  attachments = [],
+}) => {
   if (!to) {
     console.log("❌ No email provided");
     return false;
@@ -52,6 +57,7 @@ const sendEmail = async ({ to, subject, html }) => {
       to,
       subject,
       html: html || "",
+      attachments,
     });
 
     console.log("✅ Email sent:", info.messageId);

@@ -20,6 +20,8 @@ import {
   LogOut,
   LayoutDashboard,
   BookOpen,
+  FileText,
+
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import LoginModal from "@/app/authPage/LoginModel";
@@ -52,6 +54,11 @@ const accountMenuItems = [
   { label: "Contact Us", href: "/contact", icon: Phone },
   { label: "About Us", href: "/about", icon: Info },
   { label: "FAQ", href: "/contact#faq", icon: CircleHelp },
+  {
+    label: "My Quotations",
+    href: "/request-component/my-quotations",
+    icon: FileText,
+  },
 ];
 
 function getCategoryHref(item) {

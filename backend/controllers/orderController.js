@@ -3,7 +3,7 @@ const Cart = require("../models/cart");
 const User = require("../models/User");
 const Product = require("../models/Product");
 const { sendOrderPlacedNotification } = require("../services/notificationService");
-
+const PDFDocument = require("pdfkit");
 const SHIPPING_CHARGE = 0;
 const PLATFORM_FEE = 0;
 
@@ -895,6 +895,69 @@ exports.requestRefund = async (req, res) => {
   ADMIN UPDATE REFUND
   PUT /api/orders/admin/refund/:id
 ===================================================== */
+
+exports.submitPaymentProof = async (req, res) => {
+  try {
+    const { utr = "", note = "" } = req.body;
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (["Paid", "Refunded"].includes(order.payment.status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Payment proof cannot be updated after payment is completed",
+      });
+    }
+
+    order.payment.proof = {
+      image: req.file
+        ? `/${req.file.path.replace(/\\/g, "/")}`
+        : order.payment.proof?.image || "",
+
+      utr: String(utr || "").trim(),
+
+      note: String(note || "").trim(),
+
+      uploadedAt: new Date(),
+    };
+
+    order.payment.transactionId = String(utr || "").trim();
+
+    order.payment.status = "Awaiting Verification";
+
+    order.payment.paymentChanged = true;
+
+    order.payment.paymentChangedAt = new Date();
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment proof submitted successfully",
+      order: serializeOrder(order),
+    });
+
+  } catch (error) {
+
+    console.error("SUBMIT PAYMENT PROOF ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Payment proof submit failed",
+    });
+  }
+};
 exports.adminUpdateRefund = async (req, res) => {
   try {
     const {
@@ -985,14 +1048,9 @@ exports.adminUpdateRefund = async (req, res) => {
   CUSTOMER SUBMIT PAYMENT PROOF
   POST /api/orders/payment-proof/:id
 ===================================================== */
-exports.submitPaymentProof = async (req, res) => {
+exports.downloadOrderPdf = async (req, res) => {
   try {
-    const { utr = "", note = "" } = req.body;
-
-    const order = await Order.findOne({
-      _id: req.params.id,
-      userId: req.user._id,
-    });
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({
@@ -1001,37 +1059,482 @@ exports.submitPaymentProof = async (req, res) => {
       });
     }
 
-    if (["Paid", "Refunded"].includes(order.payment.status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment proof cannot be updated after payment is completed",
-      });
-    }
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 0,
+    });
 
-    order.payment.proof = {
-      image: req.file ? `/${req.file.path.replace(/\\/g, "/")}` : order.payment.proof?.image || "",
-      utr: String(utr || "").trim(),
-      note: String(note || "").trim(),
-      uploadedAt: new Date(),
+    const filename = `Order-${order.orderNumber}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`
+    );
+
+    doc.pipe(res);
+
+    // ======================================================
+    // COLORS
+    // ======================================================
+
+    const primary = "#2454b5";
+    const green = "#16a34a";
+    const dark = "#0f172a";
+    const gray = "#64748b";
+    const border = "#dbe7f3";
+
+    const pageWidth = doc.page.width;
+
+    // ======================================================
+    // BACKGROUND
+    // ======================================================
+
+    doc.rect(0, 0, pageWidth, doc.page.height).fill("#f4f8fc");
+
+    // ======================================================
+    // HEADER
+    // ======================================================
+
+    doc
+      .roundedRect(35, 30, 525, 110, 18)
+      .fill(primary);
+
+    doc
+      .fillColor("white")
+      .font("Helvetica-Bold")
+      .fontSize(28)
+      .text("Royal Trading Component", 55, 60);
+
+    doc
+      .fillColor("#dbeafe")
+      .font("Helvetica")
+      .fontSize(12)
+      .text("Professional Order Invoice", 55, 98);
+
+    doc
+      .fillColor("white")
+      .font("Helvetica-Bold")
+      .fontSize(13)
+      .text(`Invoice #${order.orderNumber}`, 390, 70);
+
+    let y = 170;
+
+    // ======================================================
+    // SECTION TITLE
+    // ======================================================
+
+    const sectionTitle = (title) => {
+      doc
+        .fillColor(dark)
+        .font("Helvetica-Bold")
+        .fontSize(20)
+        .text(title, 40, y);
+
+      y += 35;
     };
 
-    order.payment.transactionId = String(utr || "").trim();
-    order.payment.status = "Awaiting Verification";
-    order.payment.paymentChanged = true;
-    order.payment.paymentChangedAt = new Date();
+    // ======================================================
+    // CARD
+    // ======================================================
 
-    await order.save();
+    const card = (x, yy, w, h) => {
+      doc
+        .roundedRect(x, yy, w, h, 14)
+        .fillAndStroke("white", border);
+    };
 
-    return res.status(200).json({
-      success: true,
-      message: "Payment proof submitted successfully",
-      order: serializeOrder(order),
+    // ======================================================
+    // ORDER DETAILS
+    // ======================================================
+
+    sectionTitle("Order Details");
+
+    card(40, y, 520, 120);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("ORDER NUMBER", 60, y + 18);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica-Bold")
+      .fontSize(16)
+      .text(order.orderNumber, 60, y + 35);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("ORDER DATE", 320, y + 18);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica")
+      .fontSize(13)
+      .text(
+        new Date(order.createdAt).toLocaleString("en-IN"),
+        320,
+        y + 35
+      );
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("PAYMENT STATUS", 60, y + 72);
+
+    doc
+      .fillColor(green)
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .text(order.payment?.status || "-", 60, y + 88);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("ORDER STATUS", 320, y + 72);
+
+    doc
+      .fillColor(primary)
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .text(order.orderStatus || "-", 320, y + 88);
+
+    y += 145;
+
+    // ======================================================
+    // CUSTOMER DETAILS
+    // ======================================================
+
+    sectionTitle("Customer Details");
+
+    card(40, y, 520, 160);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("CUSTOMER NAME", 60, y + 18);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica-Bold")
+      .fontSize(18)
+      .text(order.userInfo?.name || "-", 60, y + 35);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("PHONE NUMBER", 60, y + 75);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica")
+      .fontSize(13)
+      .text(order.userInfo?.phone || "-", 60, y + 92);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("EMAIL ADDRESS", 310, y + 75);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica")
+      .fontSize(13)
+      .text(order.userInfo?.email || "-", 310, y + 92);
+
+    doc
+      .fillColor(gray)
+      .font("Helvetica-Bold")
+      .fontSize(10)
+      .text("SHIPPING ADDRESS", 60, y + 125);
+
+    doc
+      .fillColor(dark)
+      .font("Helvetica")
+      .fontSize(12)
+      .text(
+        `${order.userInfo?.addressLine1 || ""}, ${
+          order.userInfo?.city || ""
+        }, ${order.userInfo?.state || ""} - ${
+          order.userInfo?.pincode || ""
+        }`,
+        60,
+        y + 140,
+        {
+          width: 450,
+        }
+      );
+
+    y += 195;
+
+    // ======================================================
+    // PRODUCTS
+    // ======================================================
+
+    sectionTitle("Products");
+
+    // TABLE HEADER
+
+    doc
+      .roundedRect(40, y, 520, 35, 10)
+      .fill(primary);
+
+    doc
+      .fillColor("white")
+      .font("Helvetica-Bold")
+      .fontSize(11);
+
+    doc.text("PRODUCT", 55, y + 11);
+    doc.text("QTY", 305, y + 11);
+    doc.text("PRICE", 360, y + 11);
+    doc.text("GST", 430, y + 11);
+    doc.text("TOTAL", 485, y + 11);
+
+    y += 45;
+
+    order.products.forEach((item) => {
+
+      card(40, y, 520, 75);
+
+      doc
+        .fillColor(dark)
+        .font("Helvetica-Bold")
+        .fontSize(13)
+        .text(item.name || "-", 55, y + 16);
+
+      doc
+        .fillColor(gray)
+        .font("Helvetica")
+        .fontSize(10)
+        .text(`SKU: ${item.sku || "-"}`, 55, y + 38);
+
+      doc
+        .fillColor(dark)
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .text(String(item.quantity), 310, y + 28);
+
+      doc.text(`Rs.  ${item.price}`, 355, y + 28);
+
+      doc.text(`Rs.  ${item.gstAmount}`, 425, y + 28);
+
+      doc
+        .fillColor(primary)
+        .text(`Rs.  ${item.lineTotal}`, 485, y + 28);
+
+      y += 88;
     });
+
+  // ======================================================
+// PAYMENT SUMMARY
+// ======================================================
+
+// PAGE BREAK FIX
+if (y > 560) {
+  doc.addPage({
+    size: "A4",
+    margin: 0,
+  });
+
+  doc.rect(0, 0, pageWidth, doc.page.height).fill("#f4f8fc");
+
+  y = 60;
+}
+
+sectionTitle("Payment Summary");
+
+// SUMMARY CARD
+doc
+  .roundedRect(40, y, 520, 165, 18)
+  .fillAndStroke("white", border);
+
+// ROW 1
+doc
+  .fillColor(gray)
+  .font("Helvetica")
+  .fontSize(13)
+  .text("Subtotal", 65, y + 28);
+
+doc
+  .fillColor(dark)
+  .font("Helvetica-Bold")
+  .fontSize(16)
+  .text(`Rs.  ${order.pricing?.subtotal || 0}`, 460, y + 28);
+
+// LINE
+doc
+  .moveTo(60, y + 58)
+  .lineTo(540, y + 58)
+  .strokeColor("#e2e8f0")
+  .lineWidth(1)
+  .stroke();
+
+// ROW 2
+doc
+  .fillColor(gray)
+  .font("Helvetica")
+  .fontSize(13)
+  .text("GST / Tax", 65, y + 75);
+
+doc
+  .fillColor(dark)
+  .font("Helvetica-Bold")
+  .fontSize(16)
+  .text(`Rs.  ${order.pricing?.tax || 0}`, 460, y + 75);
+
+// LINE
+doc
+  .moveTo(60, y + 105)
+  .lineTo(540, y + 105)
+  .strokeColor("#e2e8f0")
+  .lineWidth(1)
+  .stroke();
+
+// ROW 3
+doc
+  .fillColor(gray)
+  .font("Helvetica")
+  .fontSize(13)
+  .text("Shipping", 65, y + 122);
+
+doc
+  .fillColor(dark)
+  .font("Helvetica-Bold")
+  .fontSize(16)
+  .text(
+    `Rs.  ${order.pricing?.shippingCharge || 0}`,
+    460,
+    y + 122
+  );
+
+// GRAND TOTAL BOX
+doc
+  .roundedRect(55, y + 185, 490, 48, 12)
+  .fill(green);
+
+doc
+  .fillColor("white")
+  .font("Helvetica-Bold")
+  .fontSize(18)
+  .text("Grand Total", 80, y + 201);
+
+doc
+  .text(
+    `Rs.  ${order.pricing?.totalAmount || 0}`,
+    430,
+    y + 201
+  );
+
+y += 260;
+
+// ======================================================
+// FOOTER
+// ======================================================
+
+doc
+  .fillColor("#94a3b8")
+  .font("Helvetica")
+  .fontSize(10)
+  .text(
+    "Thank you for choosing Royal Trading Component",
+    0,
+    800,
+    {
+      align: "center",
+    }
+  );
+
+doc.end();
+
   } catch (error) {
-    console.error("SUBMIT PAYMENT PROOF ERROR:", error);
+
+    console.log(error);
+
     return res.status(500).json({
       success: false,
-      message: error.message || "Payment proof submit failed",
+      message: "PDF generation failed",
     });
   }
+};
+
+exports.getOrdersCalendar = async (req, res) => {
+
+    try {
+
+        const totalOrders =
+            await Order.countDocuments();
+
+        const deliveredOrders =
+            await Order.countDocuments({
+                orderStatus: "Delivered",
+            });
+
+        const today = new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+        const todayOrders =
+            await Order.countDocuments({
+                createdAt: {
+                    $gte: today,
+                },
+            });
+
+        const revenueResult =
+            await Order.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalRevenue: {
+                            $sum: "$finalAmount",
+                        },
+                    },
+                },
+            ]);
+
+        const totalRevenue =
+            revenueResult[0]?.totalRevenue || 0;
+
+        res.json({
+
+            success: true,
+
+            stats: {
+
+                totalOrders,
+
+                deliveredOrders,
+
+                todayOrders,
+
+                totalRevenue,
+
+            },
+
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).json({
+
+            success: false,
+
+            message:
+                "Orders calendar failed",
+
+        });
+
+    }
+
 };

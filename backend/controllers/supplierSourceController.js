@@ -26,6 +26,16 @@ exports.createSupplierSource = async (req, res) => {
   try {
     const payload = req.body || {};
 
+    const supplierPdf =
+      req.files?.supplierPdf?.[0]
+        ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
+        : "";
+
+    const supplierImages =
+      req.files?.supplierImages?.map(
+        (file) => `/uploads/supplier-files/${file.filename}`
+      ) || [];
+
     if (!payload.componentName || !payload.supplierCompany) {
       return res.status(400).json({
         success: false,
@@ -42,7 +52,22 @@ exports.createSupplierSource = async (req, res) => {
       phone: payload.phone || "",
       whatsapp: payload.whatsapp || "",
       email: payload.email || "",
+      address: payload.address || "",
       purchasePrice: Number(payload.purchasePrice || 0),
+
+      sellingPrice: Number(payload.sellingPrice || 0),
+
+      subtotal: Number(payload.subtotal || 0),
+
+      sgstAmount: Number(payload.sgstAmount || 0),
+
+      cgstAmount: Number(payload.cgstAmount || 0),
+
+      grandTotal: Number(payload.grandTotal || 0),
+
+      gstPercent: Number(payload.gstPercent || 18),
+      profitPercent: Number(payload.profitPercent || 20),
+      extraCharge: Number(payload.extraCharge || 0),
       currency: payload.currency || "INR",
       moq: Number(payload.moq || 1),
       leadTime: payload.leadTime || "",
@@ -50,9 +75,14 @@ exports.createSupplierSource = async (req, res) => {
       availabilityStatus: payload.availabilityStatus || "available",
       qualityNote: payload.qualityNote || "",
       adminNote: payload.adminNote || "",
+      supplierPdf,
+      supplierImages,
       isPreferred: Boolean(payload.isPreferred),
       isActive: payload.isActive !== false,
     });
+
+
+
 
     res.status(201).json({
       success: true,
@@ -114,6 +144,33 @@ exports.getSupplierSources = async (req, res) => {
   }
 };
 
+exports.getSupplierSourceById = async (req, res) => {
+  try {
+    const source = await SupplierSource.findById(
+      req.params.id
+    );
+
+    if (!source) {
+      return res.status(404).json({
+        success: false,
+        message: "Supplier source not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      source,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
 exports.updateSupplierSource = async (req, res) => {
   try {
     const source = await SupplierSource.findById(req.params.id);
@@ -126,6 +183,19 @@ exports.updateSupplierSource = async (req, res) => {
     }
 
     const payload = req.body || {};
+
+    const supplierPdf =
+      req.files?.supplierPdf?.[0]
+        ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
+        : source.supplierPdf;
+
+    const supplierImages =
+      req.files?.supplierImages?.length
+        ? req.files.supplierImages.map(
+          (file) =>
+            `/uploads/supplier-files/${file.filename}`
+        )
+        : source.supplierImages;
 
     const fields = [
       "componentName",
@@ -149,10 +219,32 @@ exports.updateSupplierSource = async (req, res) => {
       }
     });
 
-    if (payload.purchasePrice !== undefined) {
-      const price = Number(payload.purchasePrice);
-      source.purchasePrice = Number.isFinite(price) ? price : 0;
-    }
+    source.purchasePrice =
+      Number(payload.purchasePrice || 0);
+
+    source.gstPercent =
+      Number(payload.gstPercent || 18);
+
+    source.profitPercent =
+      Number(payload.profitPercent || 20);
+
+    source.extraCharge =
+      Number(payload.extraCharge || 0);
+
+    source.sellingPrice =
+      Number(payload.sellingPrice || 0);
+
+    source.subtotal =
+      Number(payload.subtotal || 0);
+
+    source.sgstAmount =
+      Number(payload.sgstAmount || 0);
+
+    source.cgstAmount =
+      Number(payload.cgstAmount || 0);
+
+    source.grandTotal =
+      Number(payload.grandTotal || 0);
 
     if (payload.moq !== undefined) {
       const moq = Number(payload.moq);
@@ -168,8 +260,14 @@ exports.updateSupplierSource = async (req, res) => {
     }
 
     if (payload.isActive !== undefined) {
-      source.isActive = Boolean(payload.isActive);
-    }
+  source.isActive = Boolean(payload.isActive);
+}
+
+source.address = payload.address || "";
+
+source.supplierPdf = supplierPdf;
+
+source.supplierImages = supplierImages;
 
     await source.save();
 
@@ -275,6 +373,143 @@ exports.matchSupplierSources = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while matching supplier sources",
+    });
+  }
+};
+
+exports.importOfferText = async (req, res) => {
+  try {
+    const { configText } = req.body;
+
+    if (!configText) {
+      return res.status(400).json({
+        success: false,
+        message: "Config text required",
+      });
+    }
+
+    const lines = configText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    let supplierCompany = "";
+    let contactPerson = "";
+    let phone = "";
+    let whatsapp = "";
+    let email = "";
+    let address = "";
+    let gstPercent = 18;
+    let profitPercent = 20;
+    let extraCharge = 0;
+
+    const created = [];
+
+    for (const line of lines) {
+      if (line.startsWith("SUPPLIER=")) {
+        supplierCompany = line.replace("SUPPLIER=", "").trim();
+        continue;
+      }
+
+      if (line.startsWith("GST=")) {
+        gstPercent = Number(line.replace("GST=", "").trim());
+        continue;
+      }
+
+      if (line.startsWith("CONTACT=")) {
+        contactPerson = line.replace("CONTACT=", "").trim();
+        continue;
+      }
+
+      if (line.startsWith("PHONE=")) {
+        phone = line.replace("PHONE=", "").trim();
+        continue;
+      }
+
+      if (line.startsWith("WHATSAPP=")) {
+        whatsapp = line.replace("WHATSAPP=", "").trim();
+        continue;
+      }
+
+      if (line.startsWith("EMAIL=")) {
+        email = line.replace("EMAIL=", "").trim();
+        continue;
+      }
+
+      if (line.startsWith("ADDRESS=")) {
+        address = line.replace("ADDRESS=", "").trim();
+        continue;
+      }
+
+      if (line.startsWith("PROFIT=")) {
+        profitPercent = Number(line.replace("PROFIT=", "").trim());
+        continue;
+      }
+
+      if (line.startsWith("EXTRA=")) {
+        extraCharge = Number(line.replace("EXTRA=", "").trim());
+        continue;
+      }
+
+      if (line.includes("|")) {
+        const [
+          partNumber,
+          brand,
+          packageName,
+          purchasePrice,
+        ] = line.split("|");
+
+        const supplierPdf =
+          req.files?.supplierPdf?.[0]
+            ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
+            : "";
+
+        const supplierImages =
+          req.files?.supplierImages?.map(
+            (file) => `/uploads/supplier-files/${file.filename}`
+          ) || [];
+
+
+        const source = await SupplierSource.create({
+          componentName: partNumber,
+          partNumber,
+          brand,
+
+          supplierCompany,
+          contactPerson,
+          phone,
+          whatsapp,
+          email,
+          address,
+
+          purchasePrice: Number(purchasePrice || 0),
+
+          gstPercent,
+          profitPercent,
+          extraCharge,
+
+          adminNote: packageName || "",
+
+          availabilityStatus: "available",
+          isPreferred: true,
+          isActive: true,
+        });
+
+        created.push(source);
+      }
+    }
+
+    res.json({
+      success: true,
+      total: created.length,
+      created,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Import failed",
     });
   }
 };
