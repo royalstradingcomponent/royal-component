@@ -594,13 +594,13 @@ export default function Navbar() {
       />
 
       <RegisterModal
-        isOpen={isRegisterOpen}
-        onClose={() => setIsRegisterOpen(false)}
-        openLogin={() => {
-          setIsLoginOpen(false);
-          setIsRegisterOpen(true);
-        }}
-      />
+  isOpen={isRegisterOpen}
+  onClose={() => setIsRegisterOpen(false)}
+  openLogin={() => {
+    setIsRegisterOpen(false);
+    setIsLoginOpen(true);
+  }}
+/>
     </>
   );
 }
