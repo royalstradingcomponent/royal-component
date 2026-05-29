@@ -20,6 +20,7 @@ const emptyProduct = {
   price: "",
   mrp: "",
   stock: "",
+  lowStockAlert: "5",
   moq: "1",
   stockStatus: "in_stock",
   isOutOfStock: false,
@@ -41,14 +42,24 @@ export function ProductForm({ mode = "add", productId = "" }) {
   const router = useRouter();
 
   const [form, setForm] = useState(emptyProduct);
-  const [images, setImages] = useState([{ url: "", altText: "", isPrimary: true }]);
-  const [specifications, setSpecifications] = useState([{ key: "", value: "" }]);
+  const [images, setImages] = useState([
+    { url: "", altText: "", isPrimary: true },
+  ]);
+  const [specifications, setSpecifications] = useState([
+    { key: "", value: "" },
+  ]);
   const [documents, setDocuments] = useState([
     { label: "Datasheet", url: "", type: "datasheet" },
   ]);
 
   const [highlights, setHighlights] = useState([
-    { title: "", description: "", icon: "ShieldCheck", order: 0, isActive: true },
+    {
+      title: "",
+      description: "",
+      icon: "ShieldCheck",
+      order: 0,
+      isActive: true,
+    },
   ]);
 
   const [applications, setApplications] = useState([
@@ -296,8 +307,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
     setForm((prev) => ({
       ...prev,
       metaTitle:
-        prev.metaTitle ||
-        `${prev.name} | ${prev.brand || "Royal Component"}`,
+        prev.metaTitle || `${prev.name} | ${prev.brand || "Royal Component"}`,
       metaDescription:
         prev.metaDescription ||
         `Buy ${prev.name} from Royal Component. Suitable for industrial electronics, embedded systems, repair, automation and power supply applications.`,
@@ -329,7 +339,9 @@ export function ProductForm({ mode = "add", productId = "" }) {
 
     try {
       setLoading(true);
-      const data = await adminRequest(`/api/admin/products?limit=1&keyword=${productId}`);
+      const data = await adminRequest(
+        `/api/admin/products?limit=1&keyword=${productId}`,
+      );
       let product = data.products?.find((p) => p._id === productId);
 
       if (!product) {
@@ -356,6 +368,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
         price: product.price ?? "",
         mrp: product.mrp ?? "",
         stock: product.stock ?? "",
+        lowStockAlert: product.lowStockAlert ?? "5",
         moq: product.moq ?? "1",
         stockStatus: product.stockStatus || "in_stock",
         isOutOfStock: Boolean(product.isOutOfStock),
@@ -376,31 +389,39 @@ export function ProductForm({ mode = "add", productId = "" }) {
       setImages(
         product.images?.length
           ? product.images
-          : [{ url: product.thumbnail || "", altText: "", isPrimary: true }]
+          : [{ url: product.thumbnail || "", altText: "", isPrimary: true }],
       );
 
       setSpecifications(
         product.specifications?.length
           ? product.specifications
-          : [{ key: "", value: "" }]
+          : [{ key: "", value: "" }],
       );
 
       setDocuments(
         product.documents?.length
           ? product.documents
-          : [{ label: "Datasheet", url: "", type: "datasheet" }]
+          : [{ label: "Datasheet", url: "", type: "datasheet" }],
       );
 
       setHighlights(
         product.highlights?.length
           ? product.highlights
-          : [{ title: "", description: "", icon: "ShieldCheck", order: 0, isActive: true }]
+          : [
+            {
+              title: "",
+              description: "",
+              icon: "ShieldCheck",
+              order: 0,
+              isActive: true,
+            },
+          ],
       );
 
       setApplications(
         product.applications?.length
           ? product.applications
-          : [{ text: "", order: 0, isActive: true }]
+          : [{ text: "", order: 0, isActive: true }],
       );
 
       setCustomSections(
@@ -417,9 +438,8 @@ export function ProductForm({ mode = "add", productId = "" }) {
               order: 0,
               isActive: true,
             },
-          ]
+          ],
       );
-
     } catch (error) {
       toast.error(error.message || "Product load failed");
     } finally {
@@ -442,7 +462,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
           return { ...item, isPrimary: i === index };
         }
         return i === index ? { ...item, [key]: value } : item;
-      })
+      }),
     );
   };
 
@@ -456,7 +476,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
 
   const updateSpec = (index, key, value) => {
     setSpecifications((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
   };
 
@@ -470,7 +490,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
 
   const updateDocument = (index, key, value) => {
     setDocuments((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
   };
 
@@ -481,13 +501,19 @@ export function ProductForm({ mode = "add", productId = "" }) {
   const addHighlight = () => {
     setHighlights((prev) => [
       ...prev,
-      { title: "", description: "", icon: "ShieldCheck", order: prev.length, isActive: true },
+      {
+        title: "",
+        description: "",
+        icon: "ShieldCheck",
+        order: prev.length,
+        isActive: true,
+      },
     ]);
   };
 
   const updateHighlight = (index, key, value) => {
     setHighlights((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
   };
 
@@ -504,7 +530,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
 
   const updateApplication = (index, key, value) => {
     setApplications((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
   };
 
@@ -530,7 +556,7 @@ export function ProductForm({ mode = "add", productId = "" }) {
 
   const updateCustomSection = (index, key, value) => {
     setCustomSections((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item))
+      prev.map((item, i) => (i === index ? { ...item, [key]: value } : item)),
     );
   };
 
@@ -560,6 +586,13 @@ export function ProductForm({ mode = "add", productId = "" }) {
 
       const payload = {
         ...form,
+
+        stock: Number(form.stock || 0),
+
+        lowStockAlert: Number(
+          form.lowStockAlert || 5
+        ),
+
         images: cleanImages,
         thumbnail:
           form.thumbnail ||
@@ -650,38 +683,63 @@ Full Description=LM7812CV is used for regulated DC power supply circuits.`}
           {mode === "edit" ? "Edit Product" : "Add New Product"}
         </h1>
         <p className="text-sm text-slate-500">
-          Manage industrial components, pricing, stock, specifications and datasheets.
+          Manage industrial components, pricing, stock, specifications and
+          datasheets.
         </p>
       </div>
-
-
 
       <div className="rounded-2xl border bg-white p-5 shadow-sm">
         <h2 className="mb-4 text-lg font-bold">Basic Information</h2>
 
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Product Name">
-            <input className="input" value={form.name} onChange={(e) => updateForm("name", e.target.value)} />
+            <input
+              className="input"
+              value={form.name}
+              onChange={(e) => updateForm("name", e.target.value)}
+            />
           </Field>
 
           <Field label="Brand">
-            <input className="input" value={form.brand} onChange={(e) => updateForm("brand", e.target.value)} />
+            <input
+              className="input"
+              value={form.brand}
+              onChange={(e) => updateForm("brand", e.target.value)}
+            />
           </Field>
 
           <Field label="SKU">
-            <input className="input" value={form.sku} onChange={(e) => updateForm("sku", e.target.value)} />
+            <input
+              className="input"
+              value={form.sku}
+              onChange={(e) => updateForm("sku", e.target.value)}
+            />
           </Field>
 
           <Field label="MPN">
-            <input className="input" value={form.mpn} onChange={(e) => updateForm("mpn", e.target.value)} />
+            <input
+              className="input"
+              value={form.mpn}
+              onChange={(e) => updateForm("mpn", e.target.value)}
+            />
           </Field>
 
           <Field label="Category">
-            <input className="input" value={form.category} onChange={(e) => updateForm("category", e.target.value)} placeholder="semiconductors" />
+            <input
+              className="input"
+              value={form.category}
+              onChange={(e) => updateForm("category", e.target.value)}
+              placeholder="semiconductors"
+            />
           </Field>
 
           <Field label="Sub Category">
-            <input className="input" value={form.subCategory} onChange={(e) => updateForm("subCategory", e.target.value)} placeholder="amplifierscomparators" />
+            <input
+              className="input"
+              value={form.subCategory}
+              onChange={(e) => updateForm("subCategory", e.target.value)}
+              placeholder="amplifierscomparators"
+            />
           </Field>
           <Field label="Child Category">
             <input
@@ -699,39 +757,121 @@ Full Description=LM7812CV is used for regulated DC power supply circuits.`}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Field label="Price">
-            <input type="number" className="input" value={form.price} onChange={(e) => updateForm("price", e.target.value)} />
+            <input
+              type="number"
+              className="input"
+              value={form.price}
+              onChange={(e) => updateForm("price", e.target.value)}
+            />
           </Field>
 
           <Field label="MRP">
-            <input type="number" className="input" value={form.mrp} onChange={(e) => updateForm("mrp", e.target.value)} />
+            <input
+              type="number"
+              className="input"
+              value={form.mrp}
+              onChange={(e) => updateForm("mrp", e.target.value)}
+            />
           </Field>
 
           <Field label="Stock">
-            <input type="number" className="input" value={form.stock} onChange={(e) => updateForm("stock", e.target.value)} />
+            <input
+              type="number"
+              className="input"
+              value={form.stock}
+              onChange={(e) => updateForm("stock", e.target.value)}
+            />
           </Field>
 
-          <Field label="Stock Status">
-            <select
+          <Field label="Low Stock Alert">
+            <input
+              type="number"
               className="input"
-              value={form.stockStatus}
-              onChange={(e) => updateForm("stockStatus", e.target.value)}
-            >
-              <option value="in_stock">In Stock</option>
-              <option value="low_stock">Low Stock</option>
-              <option value="out_of_stock">Out Of Stock</option>
-            </select>
+              value={form.lowStockAlert}
+              onChange={(e) => updateForm("lowStockAlert", e.target.value)}
+            />
+          </Field>
+
+          <Field label="Stock">
+            <input
+              type="number"
+              className="input"
+              value={form.stock}
+              onChange={(e) => {
+
+                const value =
+                  e.target.value;
+
+                updateForm(
+                  "stock",
+                  value
+                );
+
+                const stock =
+                  Number(value || 0);
+
+                const lowAlert =
+                  Number(
+                    form.lowStockAlert || 5
+                  );
+
+                if (stock <= 0) {
+
+                  updateForm(
+                    "stockStatus",
+                    "out_of_stock"
+                  );
+
+                }
+
+                else if (
+                  stock <= lowAlert
+                ) {
+
+                  updateForm(
+                    "stockStatus",
+                    "low_stock"
+                  );
+
+                }
+
+                else {
+
+                  updateForm(
+                    "stockStatus",
+                    "in_stock"
+                  );
+
+                }
+
+              }}
+            />
           </Field>
 
           <Field label="MOQ">
-            <input type="number" className="input" value={form.moq} onChange={(e) => updateForm("moq", e.target.value)} />
+            <input
+              type="number"
+              className="input"
+              value={form.moq}
+              onChange={(e) => updateForm("moq", e.target.value)}
+            />
           </Field>
 
           <Field label="Unit">
-            <input className="input" value={form.unit} onChange={(e) => updateForm("unit", e.target.value)} />
+            <input
+              className="input"
+              value={form.unit}
+              onChange={(e) => updateForm("unit", e.target.value)}
+            />
           </Field>
 
           <Field label="Lead Time Days">
-            <input type="number" className="input" value={form.leadTimeDays} onChange={(e) => updateForm("leadTimeDays", e.target.value)} />
+            <input
+              type="number"
+              className="input"
+              value={form.leadTimeDays}
+              onChange={(e) => updateForm("leadTimeDays", e.target.value)}
+            />
           </Field>
           <div className="flex items-end">
             <CheckBox
@@ -748,11 +888,19 @@ Full Description=LM7812CV is used for regulated DC power supply circuits.`}
 
         <div className="grid gap-4">
           <Field label="Short Description">
-            <textarea className="input min-h-[90px]" value={form.shortDescription} onChange={(e) => updateForm("shortDescription", e.target.value)} />
+            <textarea
+              className="input min-h-[90px]"
+              value={form.shortDescription}
+              onChange={(e) => updateForm("shortDescription", e.target.value)}
+            />
           </Field>
 
           <Field label="Full Description">
-            <textarea className="input min-h-[150px]" value={form.description} onChange={(e) => updateForm("description", e.target.value)} />
+            <textarea
+              className="input min-h-[150px]"
+              value={form.description}
+              onChange={(e) => updateForm("description", e.target.value)}
+            />
           </Field>
         </div>
       </div>
@@ -766,12 +914,19 @@ Full Description=LM7812CV is used for regulated DC power supply circuits.`}
         </div>
 
         <Field label="Thumbnail URL">
-          <input className="input" value={form.thumbnail} onChange={(e) => updateForm("thumbnail", e.target.value)} />
+          <input
+            className="input"
+            value={form.thumbnail}
+            onChange={(e) => updateForm("thumbnail", e.target.value)}
+          />
         </Field>
 
         <div className="mt-4 space-y-3">
           {images.map((img, index) => (
-            <div key={index} className="grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_auto_auto]">
+            <div
+              key={index}
+              className="grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_auto_auto]"
+            >
               <div className="space-y-2">
                 <input
                   className="input"
@@ -788,17 +943,31 @@ Full Description=LM7812CV is used for regulated DC power supply circuits.`}
                     accept="image/*"
                     hidden
                     disabled={uploadingImage}
-                    onChange={(e) => uploadProductImage(index, e.target.files?.[0])}
+                    onChange={(e) =>
+                      uploadProductImage(index, e.target.files?.[0])
+                    }
                   />
                 </label>
-              </div>              <input className="input" placeholder="Alt text" value={img.altText || ""} onChange={(e) => updateImage(index, "altText", e.target.value)} />
-
+              </div>{" "}
+              <input
+                className="input"
+                placeholder="Alt text"
+                value={img.altText || ""}
+                onChange={(e) => updateImage(index, "altText", e.target.value)}
+              />
               <label className="flex items-center gap-2 text-sm font-semibold">
-                <input type="radio" checked={Boolean(img.isPrimary)} onChange={() => updateImage(index, "isPrimary", true)} />
+                <input
+                  type="radio"
+                  checked={Boolean(img.isPrimary)}
+                  onChange={() => updateImage(index, "isPrimary", true)}
+                />
                 Primary
               </label>
-
-              <button type="button" onClick={() => removeImage(index)} className="rounded-lg border p-2 text-red-600">
+              <button
+                type="button"
+                onClick={() => removeImage(index)}
+                className="rounded-lg border p-2 text-red-600"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -827,9 +996,23 @@ Mounting Type=Through Hole`}
         <div className="space-y-3">
           {specifications.map((spec, index) => (
             <div key={index} className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <input className="input" placeholder="Key e.g. Voltage" value={spec.key} onChange={(e) => updateSpec(index, "key", e.target.value)} />
-              <input className="input" placeholder="Value e.g. 5V" value={spec.value} onChange={(e) => updateSpec(index, "value", e.target.value)} />
-              <button type="button" onClick={() => removeSpec(index)} className="rounded-lg border p-2 text-red-600">
+              <input
+                className="input"
+                placeholder="Key e.g. Voltage"
+                value={spec.key}
+                onChange={(e) => updateSpec(index, "key", e.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Value e.g. 5V"
+                value={spec.value}
+                onChange={(e) => updateSpec(index, "value", e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => removeSpec(index)}
+                className="rounded-lg border p-2 text-red-600"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -847,17 +1030,38 @@ Mounting Type=Through Hole`}
 
         <div className="space-y-3">
           {documents.map((doc, index) => (
-            <div key={index} className="grid gap-3 md:grid-cols-[1fr_1fr_160px_auto]">
-              <input className="input" placeholder="Label" value={doc.label} onChange={(e) => updateDocument(index, "label", e.target.value)} />
-              <input className="input" placeholder="Document URL" value={doc.url} onChange={(e) => updateDocument(index, "url", e.target.value)} />
-              <select className="input" value={doc.type} onChange={(e) => updateDocument(index, "type", e.target.value)}>
+            <div
+              key={index}
+              className="grid gap-3 md:grid-cols-[1fr_1fr_160px_auto]"
+            >
+              <input
+                className="input"
+                placeholder="Label"
+                value={doc.label}
+                onChange={(e) => updateDocument(index, "label", e.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Document URL"
+                value={doc.url}
+                onChange={(e) => updateDocument(index, "url", e.target.value)}
+              />
+              <select
+                className="input"
+                value={doc.type}
+                onChange={(e) => updateDocument(index, "type", e.target.value)}
+              >
                 <option value="datasheet">Datasheet</option>
                 <option value="manual">Manual</option>
                 <option value="catalog">Catalog</option>
                 <option value="certificate">Certificate</option>
                 <option value="other">Other</option>
               </select>
-              <button type="button" onClick={() => removeDocument(index)} className="rounded-lg border p-2 text-red-600">
+              <button
+                type="button"
+                onClick={() => removeDocument(index)}
+                className="rounded-lg border p-2 text-red-600"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -883,12 +1087,45 @@ Industrial Grade | Suitable for industrial and embedded applications | ShieldChe
 
         <div className="space-y-3">
           {highlights.map((item, index) => (
-            <div key={index} className="grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_120px_100px_auto]">
-              <input className="input" placeholder="Title" value={item.title} onChange={(e) => updateHighlight(index, "title", e.target.value)} />
-              <input className="input" placeholder="Description" value={item.description} onChange={(e) => updateHighlight(index, "description", e.target.value)} />
-              <input className="input" placeholder="Icon" value={item.icon} onChange={(e) => updateHighlight(index, "icon", e.target.value)} />
-              <input type="number" className="input" value={item.order} onChange={(e) => updateHighlight(index, "order", Number(e.target.value))} />
-              <button type="button" onClick={() => removeHighlight(index)} className="rounded-lg border p-2 text-red-600">
+            <div
+              key={index}
+              className="grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_120px_100px_auto]"
+            >
+              <input
+                className="input"
+                placeholder="Title"
+                value={item.title}
+                onChange={(e) =>
+                  updateHighlight(index, "title", e.target.value)
+                }
+              />
+              <input
+                className="input"
+                placeholder="Description"
+                value={item.description}
+                onChange={(e) =>
+                  updateHighlight(index, "description", e.target.value)
+                }
+              />
+              <input
+                className="input"
+                placeholder="Icon"
+                value={item.icon}
+                onChange={(e) => updateHighlight(index, "icon", e.target.value)}
+              />
+              <input
+                type="number"
+                className="input"
+                value={item.order}
+                onChange={(e) =>
+                  updateHighlight(index, "order", Number(e.target.value))
+                }
+              />
+              <button
+                type="button"
+                onClick={() => removeHighlight(index)}
+                className="rounded-lg border p-2 text-red-600"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -917,10 +1154,31 @@ Motor Driver Circuits`}
 
         <div className="space-y-3">
           {applications.map((item, index) => (
-            <div key={index} className="grid gap-3 md:grid-cols-[1fr_120px_auto]">
-              <input className="input" placeholder="Application text" value={item.text} onChange={(e) => updateApplication(index, "text", e.target.value)} />
-              <input type="number" className="input" value={item.order} onChange={(e) => updateApplication(index, "order", Number(e.target.value))} />
-              <button type="button" onClick={() => removeApplication(index)} className="rounded-lg border p-2 text-red-600">
+            <div
+              key={index}
+              className="grid gap-3 md:grid-cols-[1fr_120px_auto]"
+            >
+              <input
+                className="input"
+                placeholder="Application text"
+                value={item.text}
+                onChange={(e) =>
+                  updateApplication(index, "text", e.target.value)
+                }
+              />
+              <input
+                type="number"
+                className="input"
+                value={item.order}
+                onChange={(e) =>
+                  updateApplication(index, "order", Number(e.target.value))
+                }
+              />
+              <button
+                type="button"
+                onClick={() => removeApplication(index)}
+                className="rounded-lg border p-2 text-red-600"
+              >
                 <Trash2 size={16} />
               </button>
             </div>
@@ -931,7 +1189,11 @@ Motor Driver Circuits`}
       <div className="rounded-2xl border bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">Custom Product Page Sections</h2>
-          <button type="button" onClick={addCustomSection} className="btn-muted">
+          <button
+            type="button"
+            onClick={addCustomSection}
+            className="btn-muted"
+          >
             <Plus size={16} /> Add Section
           </button>
         </div>
@@ -940,8 +1202,21 @@ Motor Driver Circuits`}
           {customSections.map((section, index) => (
             <div key={index} className="rounded-xl border p-4">
               <div className="grid gap-3 md:grid-cols-2">
-                <input className="input" placeholder="Section Title" value={section.title} onChange={(e) => updateCustomSection(index, "title", e.target.value)} />
-                <select className="input" value={section.type} onChange={(e) => updateCustomSection(index, "type", e.target.value)}>
+                <input
+                  className="input"
+                  placeholder="Section Title"
+                  value={section.title}
+                  onChange={(e) =>
+                    updateCustomSection(index, "title", e.target.value)
+                  }
+                />
+                <select
+                  className="input"
+                  value={section.type}
+                  onChange={(e) =>
+                    updateCustomSection(index, "type", e.target.value)
+                  }
+                >
                   <option value="text">Text</option>
                   <option value="image">Image</option>
                   <option value="card">Card</option>
@@ -952,7 +1227,9 @@ Motor Driver Circuits`}
                     className="input"
                     placeholder="Image URL"
                     value={section.image}
-                    onChange={(e) => updateCustomSection(index, "image", e.target.value)}
+                    onChange={(e) =>
+                      updateCustomSection(index, "image", e.target.value)
+                    }
                   />
 
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border bg-white px-3 py-2 text-xs font-bold hover:bg-slate-50">
@@ -963,7 +1240,9 @@ Motor Driver Circuits`}
                       accept="image/*"
                       hidden
                       disabled={uploadingImage}
-                      onChange={(e) => uploadCustomSectionImage(index, e.target.files?.[0])}
+                      onChange={(e) =>
+                        uploadCustomSectionImage(index, e.target.files?.[0])
+                      }
                     />
                   </label>
 
@@ -975,17 +1254,54 @@ Motor Driver Circuits`}
                     />
                   ) : null}
                 </div>
-                
-                <input type="number" className="input" placeholder="Order" value={section.order} onChange={(e) => updateCustomSection(index, "order", Number(e.target.value))} />
-                <input className="input" placeholder="Button Text" value={section.buttonText} onChange={(e) => updateCustomSection(index, "buttonText", e.target.value)} />
-                <input className="input" placeholder="Button Link" value={section.buttonLink} onChange={(e) => updateCustomSection(index, "buttonLink", e.target.value)} />
+
+                <input
+                  type="number"
+                  className="input"
+                  placeholder="Order"
+                  value={section.order}
+                  onChange={(e) =>
+                    updateCustomSection(index, "order", Number(e.target.value))
+                  }
+                />
+                <input
+                  className="input"
+                  placeholder="Button Text"
+                  value={section.buttonText}
+                  onChange={(e) =>
+                    updateCustomSection(index, "buttonText", e.target.value)
+                  }
+                />
+                <input
+                  className="input"
+                  placeholder="Button Link"
+                  value={section.buttonLink}
+                  onChange={(e) =>
+                    updateCustomSection(index, "buttonLink", e.target.value)
+                  }
+                />
               </div>
 
-              <textarea className="input mt-3 min-h-[100px]" placeholder="Section Content" value={section.content} onChange={(e) => updateCustomSection(index, "content", e.target.value)} />
+              <textarea
+                className="input mt-3 min-h-[100px]"
+                placeholder="Section Content"
+                value={section.content}
+                onChange={(e) =>
+                  updateCustomSection(index, "content", e.target.value)
+                }
+              />
 
               <div className="mt-3 flex justify-between">
-                <CheckBox label="Active Section" checked={section.isActive !== false} onChange={(v) => updateCustomSection(index, "isActive", v)} />
-                <button type="button" onClick={() => removeCustomSection(index)} className="rounded-lg border px-4 py-2 text-red-600">
+                <CheckBox
+                  label="Active Section"
+                  checked={section.isActive !== false}
+                  onChange={(v) => updateCustomSection(index, "isActive", v)}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeCustomSection(index)}
+                  className="rounded-lg border px-4 py-2 text-red-600"
+                >
                   Remove Section
                 </button>
               </div>
@@ -1008,19 +1324,36 @@ Motor Driver Circuits`}
 
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Meta Title">
-            <input className="input" value={form.metaTitle} onChange={(e) => updateForm("metaTitle", e.target.value)} />
+            <input
+              className="input"
+              value={form.metaTitle}
+              onChange={(e) => updateForm("metaTitle", e.target.value)}
+            />
           </Field>
 
           <Field label="Meta Keywords">
-            <input className="input" value={form.metaKeywords} onChange={(e) => updateForm("metaKeywords", e.target.value)} placeholder="ic, transistor, sensor" />
+            <input
+              className="input"
+              value={form.metaKeywords}
+              onChange={(e) => updateForm("metaKeywords", e.target.value)}
+              placeholder="ic, transistor, sensor"
+            />
           </Field>
 
           <Field label="Meta Description">
-            <textarea className="input min-h-[90px]" value={form.metaDescription} onChange={(e) => updateForm("metaDescription", e.target.value)} />
+            <textarea
+              className="input min-h-[90px]"
+              value={form.metaDescription}
+              onChange={(e) => updateForm("metaDescription", e.target.value)}
+            />
           </Field>
 
           <Field label="Status">
-            <select className="input" value={form.status} onChange={(e) => updateForm("status", e.target.value)}>
+            <select
+              className="input"
+              value={form.status}
+              onChange={(e) => updateForm("status", e.target.value)}
+            >
               <option value="published">Published</option>
               <option value="draft">Draft</option>
               <option value="archived">Archived</option>
@@ -1029,14 +1362,30 @@ Motor Driver Circuits`}
         </div>
 
         <div className="mt-5 flex flex-wrap gap-4">
-          <CheckBox label="Active" checked={form.isActive} onChange={(v) => updateForm("isActive", v)} />
-          <CheckBox label="Featured" checked={form.isFeatured} onChange={(v) => updateForm("isFeatured", v)} />
-          <CheckBox label="Best Seller" checked={form.isBestSeller} onChange={(v) => updateForm("isBestSeller", v)} />
+          <CheckBox
+            label="Active"
+            checked={form.isActive}
+            onChange={(v) => updateForm("isActive", v)}
+          />
+          <CheckBox
+            label="Featured"
+            checked={form.isFeatured}
+            onChange={(v) => updateForm("isFeatured", v)}
+          />
+          <CheckBox
+            label="Best Seller"
+            checked={form.isBestSeller}
+            onChange={(v) => updateForm("isBestSeller", v)}
+          />
         </div>
       </div>
 
       <div className="sticky bottom-0 flex justify-end gap-3 border-t bg-[#f3f7fb] py-4">
-        <button type="button" onClick={() => router.push("/admin/products")} className="rounded-xl border bg-white px-5 py-3 text-sm font-bold">
+        <button
+          type="button"
+          onClick={() => router.push("/admin/products")}
+          className="rounded-xl border bg-white px-5 py-3 text-sm font-bold"
+        >
           Cancel
         </button>
 
@@ -1046,36 +1395,40 @@ Motor Driver Circuits`}
           className="inline-flex items-center gap-2 rounded-xl bg-[#2454b5] px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
         >
           <Save size={18} />
-          {saving ? "Saving..." : mode === "edit" ? "Update Product" : "Create Product"}
+          {saving
+            ? "Saving..."
+            : mode === "edit"
+              ? "Update Product"
+              : "Create Product"}
         </button>
       </div>
 
       <style jsx>{`
-          .input {
-            width: 100%;
-            border-radius: 12px;
-            border: 1px solid #d8e1ec;
-            padding: 12px 14px;
-            font-size: 14px;
-            outline: none;
-            background: white;
-          }
-          .input:focus {
-            border-color: #2454b5;
-            box-shadow: 0 0 0 3px rgba(36, 84, 181, 0.12);
-          }
-          .btn-muted {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            border-radius: 12px;
-            border: 1px solid #d8e1ec;
-            background: white;
-            padding: 10px 14px;
-            font-size: 14px;
-            font-weight: 700;
-          }
-        `}</style>
+        .input {
+          width: 100%;
+          border-radius: 12px;
+          border: 1px solid #d8e1ec;
+          padding: 12px 14px;
+          font-size: 14px;
+          outline: none;
+          background: white;
+        }
+        .input:focus {
+          border-color: #2454b5;
+          box-shadow: 0 0 0 3px rgba(36, 84, 181, 0.12);
+        }
+        .btn-muted {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border-radius: 12px;
+          border: 1px solid #d8e1ec;
+          background: white;
+          padding: 10px 14px;
+          font-size: 14px;
+          font-weight: 700;
+        }
+      `}</style>
     </form>
   );
 }

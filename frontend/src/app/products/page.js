@@ -2,6 +2,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
+import InfiniteProducts from "@/components/InfiniteProducts";
 import ImageSearchResults from "@/components/ImageSearchResults";
 import { apiRequest } from "@/lib/api";
 import {
@@ -13,7 +14,7 @@ import {
 async function getProducts(searchParams) {
   try {
     const query = new URLSearchParams();
-    query.set("limit", "500");
+    query.set("limit", "20");
 
     if (searchParams?.category) {
       query.set("category", searchParams.category);
@@ -82,11 +83,20 @@ async function getProducts(searchParams) {
       query.set("keyword", searchParams.keyword);
     }
 
+    query.set(
+  "page",
+  String(searchParams?.page || 1)
+);
+
     const data = await apiRequest(`/api/products?${query.toString()}`, {
       cache: "no-store",
     });
 
-    return data?.products || [];
+    return {
+  products: data?.products || [],
+  pages: data?.pages || 1,
+  currentPage: data?.page || 1,
+};
   } catch (error) {
     console.error("Products fetch error:", error);
     return [];
@@ -185,8 +195,17 @@ export async function generateMetadata({ searchParams }) {
 }
 
 export default async function ProductsPage({ searchParams }) {
+
   const resolvedSearchParams = await searchParams;
-  const products = await getProducts(resolvedSearchParams);
+
+const currentPage = Number(
+  resolvedSearchParams?.page || 1
+);
+  const data = await getProducts(resolvedSearchParams);
+
+const products = data.products || [];
+
+const totalPages = data.pages || 1;
 
   const keyword = resolvedSearchParams?.keyword || "";
   const isImageSearch =
@@ -283,15 +302,21 @@ export default async function ProductsPage({ searchParams }) {
 
          {isImageSearch ? (
   <ImageSearchResults />
+
 ) : products.length > 0 ? (
-  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-    {products.map((product) => (
-      <ProductCard
-        key={product._id || product.slug}
-        product={product}
-      />
-    ))}
-  </div>
+
+  <InfiniteProducts
+    initialProducts={products}
+    currentPage={currentPage}
+    totalPages={totalPages}
+    category={resolvedSearchParams?.category || ""}
+    subCategory={resolvedSearchParams?.subCategory || ""}
+    keyword={resolvedSearchParams?.keyword || ""}
+  />
+
+
+    
+  
 ) : (
   <div className="card-royal p-10 text-center">
     <h2 className="text-2xl font-extrabold text-[#102033]">

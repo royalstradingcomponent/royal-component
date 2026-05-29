@@ -9,6 +9,8 @@ import ProductCard from "@/components/ProductCard";
 import { getProductImage } from "@/lib/getProductImage";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import { apiRequest, API_BASE } from "@/lib/api";
+import ProductMatchBox from "@/components/ProductMatchBox";
+import ImageMatchBox from "@/components/ImageMatchBox";
 import {
   Star,
   Truck,
@@ -564,8 +566,11 @@ export default async function ProductDetailPage({ params }) {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_560px]">
+
+
           <div className="space-y-6">
             <ProductImageGallery product={product} />
+            <ImageMatchBox />
 
             <section className="rounded-sm bg-white p-6 shadow-sm">
               <div className="flex items-start gap-3">
@@ -777,15 +782,18 @@ export default async function ProductDetailPage({ params }) {
                 <Star size={22} />
                 Add to parts list
               </button>
+              <ProductMatchBox
+                productId={product?._id}
+              />
 
               <div className="mt-6 border-t border-slate-200 pt-5 text-[15px] leading-7 text-[#111827]">
                 <p>
                   <span className="font-semibold">Imported by:</span>{" "}
-                  Royal Component Industrial Supplies Pvt. Ltd
+                  Royal Trading Component Industrial Supplies Pvt. Ltd
                 </p>
                 <p className="mt-1 text-slate-700">
-                  Distribution hub - Sector 67, Noida, Gautam Budh Nagar,
-                  Uttar Pradesh, India
+                  Distribution hub - L63, Office No.IO, 4th Floor, Ansari Road, Darya ganj, delhi Gate,
+                  Delhi, India
                 </p>
               </div>
             </div>

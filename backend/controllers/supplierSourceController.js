@@ -1,4 +1,9 @@
 const SupplierSource = require("../models/SupplierSource");
+const { parseSupplierPdfService } = require("../services/pdf-parser");
+const { parseImageOCR } = require("../services/image-ocr-parser");
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+
+const fs = require("fs");
 
 function escapeRegex(value = "") {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -26,14 +31,13 @@ exports.createSupplierSource = async (req, res) => {
   try {
     const payload = req.body || {};
 
-    const supplierPdf =
-      req.files?.supplierPdf?.[0]
-        ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
-        : "";
+    const supplierPdf = req.files?.supplierPdf?.[0]
+      ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
+      : "";
 
     const supplierImages =
       req.files?.supplierImages?.map(
-        (file) => `/uploads/supplier-files/${file.filename}`
+        (file) => `/uploads/supplier-files/${file.filename}`,
       ) || [];
 
     if (!payload.componentName || !payload.supplierCompany) {
@@ -81,9 +85,6 @@ exports.createSupplierSource = async (req, res) => {
       isActive: payload.isActive !== false,
     });
 
-
-
-
     res.status(201).json({
       success: true,
       message: "Supplier source created successfully",
@@ -128,12 +129,31 @@ exports.getSupplierSources = async (req, res) => {
       SupplierSource.countDocuments(filter),
     ]);
 
+    const preferredCount = await SupplierSource.countDocuments({
+      isPreferred: true,
+    });
+
+    const activeCount = await SupplierSource.countDocuments({
+      isActive: true,
+    });
+
+    const availableCount = await SupplierSource.countDocuments({
+      availabilityStatus: "available",
+    });
+
     res.json({
       success: true,
       sources,
       total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit)),
+
+      stats: {
+        total,
+        preferred: preferredCount,
+        active: activeCount,
+        available: availableCount,
+      },
     });
   } catch (error) {
     console.error("Get supplier sources error:", error);
@@ -146,9 +166,7 @@ exports.getSupplierSources = async (req, res) => {
 
 exports.getSupplierSourceById = async (req, res) => {
   try {
-    const source = await SupplierSource.findById(
-      req.params.id
-    );
+    const source = await SupplierSource.findById(req.params.id);
 
     if (!source) {
       return res.status(404).json({
@@ -184,18 +202,15 @@ exports.updateSupplierSource = async (req, res) => {
 
     const payload = req.body || {};
 
-    const supplierPdf =
-      req.files?.supplierPdf?.[0]
-        ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
-        : source.supplierPdf;
+    const supplierPdf = req.files?.supplierPdf?.[0]
+      ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
+      : source.supplierPdf;
 
-    const supplierImages =
-      req.files?.supplierImages?.length
-        ? req.files.supplierImages.map(
-          (file) =>
-            `/uploads/supplier-files/${file.filename}`
-        )
-        : source.supplierImages;
+    const supplierImages = req.files?.supplierImages?.length
+      ? req.files.supplierImages.map(
+        (file) => `/uploads/supplier-files/${file.filename}`,
+      )
+      : source.supplierImages;
 
     const fields = [
       "componentName",
@@ -219,32 +234,23 @@ exports.updateSupplierSource = async (req, res) => {
       }
     });
 
-    source.purchasePrice =
-      Number(payload.purchasePrice || 0);
+    source.purchasePrice = Number(payload.purchasePrice || 0);
 
-    source.gstPercent =
-      Number(payload.gstPercent || 18);
+    source.gstPercent = Number(payload.gstPercent || 18);
 
-    source.profitPercent =
-      Number(payload.profitPercent || 20);
+    source.profitPercent = Number(payload.profitPercent || 20);
 
-    source.extraCharge =
-      Number(payload.extraCharge || 0);
+    source.extraCharge = Number(payload.extraCharge || 0);
 
-    source.sellingPrice =
-      Number(payload.sellingPrice || 0);
+    source.sellingPrice = Number(payload.sellingPrice || 0);
 
-    source.subtotal =
-      Number(payload.subtotal || 0);
+    source.subtotal = Number(payload.subtotal || 0);
 
-    source.sgstAmount =
-      Number(payload.sgstAmount || 0);
+    source.sgstAmount = Number(payload.sgstAmount || 0);
 
-    source.cgstAmount =
-      Number(payload.cgstAmount || 0);
+    source.cgstAmount = Number(payload.cgstAmount || 0);
 
-    source.grandTotal =
-      Number(payload.grandTotal || 0);
+    source.grandTotal = Number(payload.grandTotal || 0);
 
     if (payload.moq !== undefined) {
       const moq = Number(payload.moq);
@@ -260,14 +266,14 @@ exports.updateSupplierSource = async (req, res) => {
     }
 
     if (payload.isActive !== undefined) {
-  source.isActive = Boolean(payload.isActive);
-}
+      source.isActive = Boolean(payload.isActive);
+    }
 
-source.address = payload.address || "";
+    source.address = payload.address || "";
 
-source.supplierPdf = supplierPdf;
+    source.supplierPdf = supplierPdf;
 
-source.supplierImages = supplierImages;
+    source.supplierImages = supplierImages;
 
     await source.save();
 
@@ -452,23 +458,16 @@ exports.importOfferText = async (req, res) => {
       }
 
       if (line.includes("|")) {
-        const [
-          partNumber,
-          brand,
-          packageName,
-          purchasePrice,
-        ] = line.split("|");
+        const [partNumber, brand, packageName, purchasePrice] = line.split("|");
 
-        const supplierPdf =
-          req.files?.supplierPdf?.[0]
-            ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
-            : "";
+        const supplierPdf = req.files?.supplierPdf?.[0]
+          ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
+          : "";
 
         const supplierImages =
           req.files?.supplierImages?.map(
-            (file) => `/uploads/supplier-files/${file.filename}`
+            (file) => `/uploads/supplier-files/${file.filename}`,
           ) || [];
-
 
         const source = await SupplierSource.create({
           componentName: partNumber,
@@ -513,3 +512,230 @@ exports.importOfferText = async (req, res) => {
     });
   }
 };
+
+exports.bulkImportSupplierSources = async (req, res) => {
+  try {
+    const items = req.body.items || [];
+
+    if (!items.length) {
+      return res.status(400).json({
+        success: false,
+        message: "No items found",
+      });
+    }
+
+    const finalItems = items.map((item) => {
+      const purchasePrice = Number(item.purchasePrice || 0);
+
+      const profitAmount =
+        (purchasePrice * Number(item.profitPercent || 0)) / 100;
+
+      const sellingPrice =
+        purchasePrice + profitAmount + Number(item.extraCharge || 0);
+
+      const gstAmount = (sellingPrice * Number(item.gstPercent || 0)) / 100;
+
+      return {
+        componentName: item.componentName || "",
+
+        partNumber: item.partNumber || "",
+
+        brand: item.brand || "",
+
+        supplierCompany: item.supplierCompany || "",
+
+        contactPerson: item.contactPerson || "",
+
+        phone: item.phone || "",
+
+        whatsapp: item.whatsapp || "",
+
+        email: item.email || "",
+
+        address: item.address || "",
+
+        purchasePrice,
+
+        gstPercent: Number(item.gstPercent || 18),
+
+        profitPercent: Number(item.profitPercent || 20),
+
+        extraCharge: Number(item.extraCharge || 0),
+
+        sellingPrice,
+
+        subtotal: sellingPrice,
+
+        sgstAmount: gstAmount / 2,
+
+        cgstAmount: gstAmount / 2,
+
+        grandTotal: sellingPrice + gstAmount,
+
+        currency: item.currency || "INR",
+
+        moq: Number(item.moq || 1),
+
+        leadTime: item.leadTime || "",
+
+        availabilityStatus: item.availabilityStatus || "available",
+
+        qualityNote: item.qualityNote || "",
+
+        adminNote: item.adminNote || "",
+
+        isPreferred: Boolean(item.isPreferred),
+
+        isActive: item.isActive !== false,
+      };
+    });
+
+    const savedItems = [];
+
+    for (const item of finalItems) {
+      const exists = await SupplierSource.findOne({
+        partNumber: item.partNumber,
+        supplierCompany: item.supplierCompany,
+      });
+
+      if (!exists) {
+        const created = await SupplierSource.create(item);
+
+        savedItems.push(created);
+      }
+    }
+
+    res.json({
+      success: true,
+      count: savedItems.length,
+      message: "Bulk supplier import success",
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Bulk import failed",
+    });
+  }
+};
+
+exports.parseSupplierPdf = async (req, res) => {
+  try {
+    const pdfFile = req.files?.pdf?.[0];
+
+    if (!pdfFile) {
+      return res.status(400).json({
+        success: false,
+        message: "PDF required",
+      });
+    }
+
+    const result = await parseSupplierPdfService(pdfFile.path);
+
+    const { companyDetails, components } = result;
+
+    let envText = `
+SUPPLIER=${companyDetails.supplier}
+CONTACT_PERSON=
+PHONE=${companyDetails.phone}
+WHATSAPP=${companyDetails.whatsapp}
+EMAIL=${companyDetails.email}
+ADDRESS=${companyDetails.address}
+GST=${companyDetails.gst}
+PROFIT=${companyDetails.profit}
+`;
+
+    components.forEach((item) => {
+      envText += `
+${item.componentName}|${item.brand}|${item.package}|${item.price}
+`;
+    });
+
+    res.json({
+      success: true,
+      envText,
+      totalComponents: components.length,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "PDF parse failed",
+    });
+  }
+};
+
+exports.parseSupplierImage =
+  async (req, res) => {
+
+    try {
+
+      const images =
+        req.files?.images || [];
+
+      if (!images.length) {
+
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message:
+              "Images required",
+          });
+      }
+
+      const imagePaths =
+        images.map(
+          (img) => img.path
+        );
+
+      const result =
+        await parseImageOCR(
+          imagePaths
+        );
+
+      const {
+        companyDetails,
+        components,
+      } = result;
+
+      let envText = `
+SUPPLIER=${companyDetails.supplier}
+CONTACT_PERSON=${companyDetails.contactPerson}
+PHONE=${companyDetails.phone}
+WHATSAPP=${companyDetails.whatsapp}
+EMAIL=${companyDetails.email}
+ADDRESS=${companyDetails.address}
+GST=${companyDetails.gst}
+PROFIT=${companyDetails.profit}
+`;
+
+      components.forEach(
+        (item) => {
+
+          envText += `
+${String(item.componentName || "").trim()}|${String(item.brand || "GENERIC").trim()}|${String(item.package || "NA").trim()}|${Number(item.price || 0)}
+`;
+        }
+      );
+
+      res.json({
+        success: true,
+        envText,
+        totalComponents:
+          components.length,
+      });
+
+    } catch (error) {
+
+      console.log(error);
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Image OCR failed",
+      });
+    }
+  };

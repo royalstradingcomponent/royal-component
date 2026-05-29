@@ -257,7 +257,7 @@ export default function CheckoutOrderDetailPage() {
   const companyName = order?.buyer?.companyName || "";
 
   const paymentMethod =
-  order?.payment?.method || order?.paymentMethod || "bank-transfer";
+    order?.payment?.method || order?.paymentMethod || "bank-transfer";
 
   const paymentStatus = order?.payment?.status || "Pending";
   const canUploadPaymentProof = ["Pending", "Failed"].includes(paymentStatus);
@@ -958,10 +958,10 @@ export default function CheckoutOrderDetailPage() {
 
             <Link
               href="/products"
-              className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#2454b5] font-black text-white hover:bg-[#1e4695]"
+              className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#2454b5] font-black hover:bg-[#1e4695]"
             >
-              <ShoppingBag size={18} />
-              Continue Shopping
+              <ShoppingBag size={18} className="text-white" />
+              <span className="text-white">Continue Shopping</span>
             </Link>
           </aside>
         </div>

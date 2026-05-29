@@ -99,9 +99,7 @@ exports.createOrder = async (req, res) => {
       if (!product) continue;
 
       const isOutOfStock =
-        product?.isOutOfStock ||
-        product?.stockStatus === "out_of_stock" ||
-        Number(product?.stock || 0) <= 0;
+  Number(product?.stock || 0) <= 0;
 
       if (isOutOfStock) {
         return res.status(400).json({
@@ -111,6 +109,16 @@ exports.createOrder = async (req, res) => {
       }
 
       const quantity = Math.max(1, Number(item.qty || 1));
+      if (
+        !product.allowBackorder &&
+        Number(product.stock || 0) < quantity
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `${product.name} has only ${product.stock} stock left`,
+        });
+      }
+
       const price = Number(item.priceSnapshot || product.price || 0);
       const mrp = Number(item.mrpSnapshot || product.mrp || price);
       const gstPercent = Number(item.gstPercent || 18);
@@ -171,6 +179,13 @@ exports.createOrder = async (req, res) => {
     const order = await Order.create({
       orderNumber: generateOrderNumber(),
       userId: req.user._id,
+      timeline: [
+  {
+    status: "Order Placed",
+    message: "Order created successfully",
+    time: new Date(),
+  },
+],
 
       userInfo: {
         name: buyer.fullName,
@@ -216,6 +231,46 @@ exports.createOrder = async (req, res) => {
       orderStatus: "Order Placed",
       note,
     });
+
+    for (const item of products) {
+
+  const product =
+    await Product.findById(item.productId);
+
+  if (!product) continue;
+
+  product.stock =
+    Math.max(
+      0,
+      Number(product.stock || 0) -
+      Number(item.quantity || 0)
+    );
+
+    if (product.stock <= 0) {
+
+  product.stockStatus = "out_of_stock";
+  product.isOutOfStock = true;
+
+} else if (product.stock <= 5) {
+
+  product.stockStatus = "low_stock";
+  product.isOutOfStock = false;
+
+} else {
+
+  product.stockStatus = "in_stock";
+  product.isOutOfStock = false;
+}
+
+  product.soldStock =
+    Number(product.soldStock || 0) +
+    Number(item.quantity || 0);
+
+    await product.save({
+  validateBeforeSave: false,
+});
+
+}
 
     cart.items = [];
     await cart.save();
@@ -416,6 +471,16 @@ exports.updateOrderStatus = async (req, res) => {
 
     order.orderStatus = status;
 
+    order.timeline.push({
+
+  status,
+
+  message: `Order moved to ${status}`,
+
+  time: new Date(),
+
+});
+
     order.products.forEach((item) => {
       item.itemStatus = status;
       item.itemStatusHistory.push({
@@ -440,6 +505,8 @@ exports.updateOrderStatus = async (req, res) => {
       order.canEditAddress = false;
       order.canEditPhone = false;
     }
+
+  
 
     await order.save();
 
@@ -485,6 +552,16 @@ exports.cancelOrder = async (req, res) => {
     }
 
     order.orderStatus = "Cancelled";
+    order.timeline.push({
+
+  status: "Cancelled",
+
+  message:
+    reason || "Order cancelled by user",
+
+  time: new Date(),
+
+});
     order.cancellation.cancelReason = reason;
     order.cancellation.cancelComment = comment;
     order.cancellation.cancelledAt = new Date();
@@ -567,6 +644,17 @@ exports.cancelOrderItem = async (req, res) => {
 
     item.itemStatus = "Cancelled";
 
+    order.timeline.push({
+
+  status: "Item Cancelled",
+
+  message:
+    `${item.name} cancelled`,
+
+  time: new Date(),
+
+});
+
     item.itemStatusHistory.push({
       status: "Cancelled",
       message: reason,
@@ -591,6 +679,37 @@ exports.cancelOrderItem = async (req, res) => {
     } else {
       order.orderStatus = "Processing";
     }
+
+    const product =
+  await Product.findById(item.productId);
+
+if (product) {
+
+  product.stock =
+    Number(product.stock || 0) +
+    Number(item.quantity || 0);
+
+    if (product.stock <= 0) {
+
+  product.stockStatus = "out_of_stock";
+  product.isOutOfStock = true;
+
+} else if (product.stock <= 5) {
+
+  product.stockStatus = "low_stock";
+  product.isOutOfStock = false;
+
+} else {
+
+  product.stockStatus = "in_stock";
+  product.isOutOfStock = false;
+}
+
+  await product.save({
+    validateBeforeSave: false,
+  });
+
+}
 
     await order.save();
 
@@ -1744,90 +1863,90 @@ exports.getRevenueAnalytics = async (req, res) => {
       analytics: {
 
         deliveredRevenue:
-  await Order.aggregate([
-    {
-      $match: {
-        orderStatus: "Delivered",
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        total: {
-          $sum:
-            "$pricing.totalAmount",
-        },
-      },
-    },
-  ]).then(
-    (r) => r[0]?.total || 0
-  ),
-
-processingRevenue:
-  await Order.aggregate([
-    {
-      $match: {
-        orderStatus: "Processing",
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        total: {
-          $sum:
-            "$pricing.totalAmount",
-        },
-      },
-    },
-  ]).then(
-    (r) => r[0]?.total || 0
-  ),
-
-cancelledRevenue:
-  await Order.aggregate([
-    {
-      $match: {
-        orderStatus: "Cancelled",
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        total: {
-          $sum:
-            "$pricing.totalAmount",
-        },
-      },
-    },
-  ]).then(
-    (r) => r[0]?.total || 0
-  ),
-
-currentMonthRevenue:
-  await Order.aggregate([
-    {
-      $match: {
-        createdAt: {
-          $gte: new Date(
-            new Date().getFullYear(),
-            new Date().getMonth(),
-            1
+          await Order.aggregate([
+            {
+              $match: {
+                orderStatus: "Delivered",
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum:
+                    "$pricing.totalAmount",
+                },
+              },
+            },
+          ]).then(
+            (r) => r[0]?.total || 0
           ),
-        },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        total: {
-          $sum:
-            "$pricing.totalAmount",
-        },
-      },
-    },
-  ]).then(
-    (r) => r[0]?.total || 0
-  ),
+
+        processingRevenue:
+          await Order.aggregate([
+            {
+              $match: {
+                orderStatus: "Processing",
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum:
+                    "$pricing.totalAmount",
+                },
+              },
+            },
+          ]).then(
+            (r) => r[0]?.total || 0
+          ),
+
+        cancelledRevenue:
+          await Order.aggregate([
+            {
+              $match: {
+                orderStatus: "Cancelled",
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum:
+                    "$pricing.totalAmount",
+                },
+              },
+            },
+          ]).then(
+            (r) => r[0]?.total || 0
+          ),
+
+        currentMonthRevenue:
+          await Order.aggregate([
+            {
+              $match: {
+                createdAt: {
+                  $gte: new Date(
+                    new Date().getFullYear(),
+                    new Date().getMonth(),
+                    1
+                  ),
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                total: {
+                  $sum:
+                    "$pricing.totalAmount",
+                },
+              },
+            },
+          ]).then(
+            (r) => r[0]?.total || 0
+          ),
 
         totalRevenue:
           totalRevenueResult[0]

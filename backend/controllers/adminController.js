@@ -125,7 +125,7 @@ const serializeOrder = (orderDoc) => {
       lineTotal:
         item.lineTotal ||
         Number(item.price || item.priceSnapshot || 0) *
-        Number(item.quantity || item.qty || 1),
+          Number(item.quantity || item.qty || 1),
       itemStatus: item.itemStatus || order.orderStatus || "Order Placed",
       itemStatusHistory: item.itemStatusHistory || [],
     })),
@@ -137,7 +137,10 @@ const serializeOrder = (orderDoc) => {
       totalAmount: pricing.totalAmount || pricing.grandTotal || 0,
       itemCount:
         pricing.itemCount ||
-        products.reduce((sum, item) => sum + Number(item.quantity || item.qty || 1), 0),
+        products.reduce(
+          (sum, item) => sum + Number(item.quantity || item.qty || 1),
+          0,
+        ),
     },
 
     total: pricing.totalAmount || pricing.grandTotal || 0,
@@ -178,74 +181,88 @@ const serializeOrder = (orderDoc) => {
 
 exports.getCounts = async (req, res) => {
   try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const tomorrowStart = new Date();
+    tomorrowStart.setHours(24, 0, 0, 0);
+
     const [
-  salesAgg,
-  totalCustomers,
-  totalProducts,
-  totalOrders,
+      salesAgg,
+      totalCustomers,
+      totalProducts,
+      totalOrders,
+      todayOrders,
 
-  recentOrdersRaw,
-  recentProducts,
-  lowStock,
+      recentOrdersRaw,
+      recentProducts,
+      lowStock,
 
-  orderPlacedCount,
-  processingCount,
-  packedCount,
-  shippedCount,
-  outForDeliveryCount,
-  deliveredCount,
-  cancelledCount,
-] =
-      await Promise.all([
-        Order.aggregate([
-          {
-            $group: {
-              _id: null,
-              totalSales: { $sum: "$pricing.totalAmount" },
-            },
+      orderPlacedCount,
+      processingCount,
+      packedCount,
+      shippedCount,
+      outForDeliveryCount,
+      deliveredCount,
+      cancelledCount,
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalSales: { $sum: "$pricing.totalAmount" },
           },
-        ]),
-        User.countDocuments({ role: "user", isDeleted: false }),
-        Product.countDocuments({ isActive: true }),
-        Order.countDocuments(),
-        Order.find().sort({ createdAt: -1 }).limit(6).lean(),
-        Product.find({ isActive: true, status: "published" })
-          .sort({ createdAt: -1 })
-          .limit(6)
-          .lean(),
-        Product.find({ isActive: true, stock: { $lte: 10 } })
-          .sort({ stock: 1 })
-          .limit(6)
-          .lean(),
+        },
+      ]),
+      User.countDocuments({ role: "user", isDeleted: false }),
+      Product.countDocuments({ isActive: true }),
+      Order.countDocuments(),
 
-        Order.countDocuments({
-          orderStatus: "Order Placed",
-        }),
+      Order.countDocuments({
+        createdAt: {
+          $gte: todayStart,
+          $lt: tomorrowStart,
+        },
+      }),
 
-        Order.countDocuments({
-          orderStatus: "Processing",
-        }),
+      Order.find().sort({ createdAt: -1 }).limit(6).lean(),
+      Product.find({ isActive: true, status: "published" })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .lean(),
+      Product.find({ isActive: true, stock: { $lte: 10 } })
+        .sort({ stock: 1 })
+        .limit(6)
+        .lean(),
 
-        Order.countDocuments({
-          orderStatus: "Packed",
-        }),
+      Order.countDocuments({
+        orderStatus: "Order Placed",
+      }),
 
-        Order.countDocuments({
-          orderStatus: "Shipped",
-        }),
+      Order.countDocuments({
+        orderStatus: "Processing",
+      }),
 
-        Order.countDocuments({
-          orderStatus: "Out for Delivery",
-        }),
+      Order.countDocuments({
+        orderStatus: "Packed",
+      }),
 
-        Order.countDocuments({
-          orderStatus: "Delivered",
-        }),
+      Order.countDocuments({
+        orderStatus: "Shipped",
+      }),
 
-        Order.countDocuments({
-          orderStatus: "Cancelled",
-        }),
-      ]);
+      Order.countDocuments({
+        orderStatus: "Out for Delivery",
+      }),
+
+      Order.countDocuments({
+        orderStatus: "Delivered",
+      }),
+
+      Order.countDocuments({
+        orderStatus: "Cancelled",
+      }),
+    ]);
 
     res.json({
       success: true,
@@ -253,6 +270,7 @@ exports.getCounts = async (req, res) => {
       totalCustomers,
       totalProducts,
       totalOrders,
+      todayOrders,
       orderPlacedCount,
       processingCount,
       packedCount,
@@ -358,12 +376,35 @@ exports.getProducts = async (req, res) => {
     }
 
     if (category) {
-      filter.category = { $in: category.split(",").map((x) => normalizeCategory(x)) };
+      filter.category = {
+        $in: category.split(",").map((x) => normalizeCategory(x)),
+      };
     }
 
     if (status) filter.status = status;
 
     const total = await Product.countDocuments(filter);
+
+    const allProducts = await Product.find({
+      isActive: true,
+    }).select("stock stockStatus price");
+
+    const inStockProducts = allProducts.filter(
+      (p) => p.stockStatus === "in_stock" && Number(p.stock || 0) > 0,
+    ).length;
+
+    const lowStockProducts = allProducts.filter(
+      (p) => p.stockStatus === "low_stock",
+    ).length;
+
+    const outOfStockProducts = allProducts.filter(
+      (p) => p.stockStatus === "out_of_stock" || Number(p.stock || 0) <= 0,
+    ).length;
+
+    const totalInventoryValue = allProducts.reduce(
+      (total, p) => total + Number(p.price || 0) * Number(p.stock || 0),
+      0,
+    );
 
     const products = await Product.find(filter)
       .sort({ createdAt: -1 })
@@ -373,9 +414,23 @@ exports.getProducts = async (req, res) => {
 
     res.json({
       success: true,
+
       products,
+
       total,
+
+      totalProducts: total,
+
+      inStockProducts,
+
+      lowStockProducts,
+
+      outOfStockProducts,
+
+      totalInventoryValue,
+
       page,
+
       pages: Math.ceil(total / limit) || 1,
     });
   } catch (error) {
@@ -444,7 +499,10 @@ exports.createProduct = async (req, res) => {
       seo: {
         metaTitle: data.metaTitle || data.seo?.metaTitle || data.name,
         metaDescription:
-          data.metaDescription || data.seo?.metaDescription || data.shortDescription || "",
+          data.metaDescription ||
+          data.seo?.metaDescription ||
+          data.shortDescription ||
+          "",
         metaKeywords: parseArray(data.metaKeywords || data.seo?.metaKeywords),
       },
     };
@@ -470,27 +528,28 @@ exports.updateProduct = async (req, res) => {
     if (data.slug) data.slug = slugify(data.slug);
     if (data.sku) data.sku = String(data.sku).toUpperCase().trim();
     if (data.category) data.category = normalizeCategory(data.category);
-    if (data.subCategory) data.subCategory = normalizeCategory(data.subCategory);
+    if (data.subCategory)
+      data.subCategory = normalizeCategory(data.subCategory);
 
     if (data.images !== undefined) data.images = parseArray(data.images);
     if (data.specifications !== undefined) {
       data.specifications = parseSpecifications(data.specifications);
     }
-    if (data.documents !== undefined) data.documents = parseDocuments(data.documents);
-    if (data.highlights !== undefined) data.highlights = parseArray(data.highlights);
-    if (data.applications !== undefined) data.applications = parseArray(data.applications);
-    if (data.customSections !== undefined) data.customSections = parseArray(data.customSections);
+    if (data.documents !== undefined)
+      data.documents = parseDocuments(data.documents);
+    if (data.highlights !== undefined)
+      data.highlights = parseArray(data.highlights);
+    if (data.applications !== undefined)
+      data.applications = parseArray(data.applications);
+    if (data.customSections !== undefined)
+      data.customSections = parseArray(data.customSections);
     if (data.tags !== undefined) data.tags = parseArray(data.tags);
     ["price", "mrp", "stock", "moq", "leadTimeDays"].forEach((field) => {
       if (data[field] !== undefined) data[field] = Number(data[field]);
     });
 
     if (data.stockStatus !== undefined) {
-      const allowedStockStatus = [
-        "in_stock",
-        "low_stock",
-        "out_of_stock",
-      ];
+      const allowedStockStatus = ["in_stock", "low_stock", "out_of_stock"];
 
       if (!allowedStockStatus.includes(data.stockStatus)) {
         data.stockStatus = "in_stock";
@@ -499,29 +558,29 @@ exports.updateProduct = async (req, res) => {
 
     if (data.allowBackorder !== undefined) {
       data.allowBackorder =
-        data.allowBackorder === true ||
-        data.allowBackorder === "true";
+        data.allowBackorder === true || data.allowBackorder === "true";
     }
 
     if (data.stock !== undefined || data.stockStatus !== undefined) {
-      const stockQty = Number(data.stock || 0);
 
-      data.isOutOfStock =
-        data.stockStatus === "out_of_stock" ||
-        stockQty <= 0;
+  const stockQty = Number(data.stock || 0);
 
-      if (stockQty <= 0) {
-        data.stockStatus = "out_of_stock";
-        data.isOutOfStock = true;
-      }
+  if (stockQty <= 0) {
 
-      if (
-        stockQty > 0 &&
-        data.stockStatus !== "out_of_stock"
-      ) {
-        data.isOutOfStock = false;
-      }
-    }
+    data.stockStatus = "out_of_stock";
+    data.isOutOfStock = true;
+
+  } else if (stockQty <= 5) {
+
+    data.stockStatus = "low_stock";
+    data.isOutOfStock = false;
+
+  } else {
+
+    data.stockStatus = "in_stock";
+    data.isOutOfStock = false;
+  }
+}
 
     if (data.metaTitle || data.metaDescription || data.metaKeywords) {
       data.seo = {
@@ -540,7 +599,9 @@ exports.updateProduct = async (req, res) => {
     });
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.json({
@@ -559,11 +620,13 @@ exports.deleteProduct = async (req, res) => {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { isActive: false, status: "archived" },
-      { new: true }
+      { new: true },
     );
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.json({ success: true, message: "Product archived successfully" });
@@ -578,7 +641,7 @@ exports.deleteManyProducts = async (req, res) => {
 
     await Product.updateMany(
       { _id: { $in: ids } },
-      { $set: { isActive: false, status: "archived" } }
+      { $set: { isActive: false, status: "archived" } },
     );
 
     res.json({ success: true, message: "Products archived successfully" });
@@ -600,17 +663,26 @@ exports.getInventory = async (req, res) => {
 
     if (keyword) {
       const regex = new RegExp(keyword, "i");
-      filter.$or = [{ name: regex }, { sku: regex }, { mpn: regex }, { brand: regex }];
+      filter.$or = [
+        { name: regex },
+        { sku: regex },
+        { mpn: regex },
+        { brand: regex },
+      ];
     }
 
     if (category) {
-      filter.category = { $in: category.split(",").map((x) => normalizeCategory(x)) };
+      filter.category = {
+        $in: category.split(",").map((x) => normalizeCategory(x)),
+      };
     }
 
     const total = await Product.countDocuments(filter);
 
     const products = await Product.find(filter)
-      .select("name sku mpn brand category subCategory thumbnail images price mrp stock moq unit leadTimeDays status")
+      .select(
+        "name sku mpn brand category subCategory thumbnail images price mrp stock moq unit leadTimeDays status",
+      )
       .sort({ stock: 1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -673,37 +745,25 @@ exports.updateInventory = async (req, res) => {
     if (payload.sku) payload.sku = String(payload.sku).toUpperCase().trim();
     if (payload.allowBackorder !== undefined) {
       payload.allowBackorder =
-        payload.allowBackorder === true ||
-        payload.allowBackorder === "true";
+        payload.allowBackorder === true || payload.allowBackorder === "true";
     }
 
     if (payload.isOutOfStock !== undefined) {
       payload.isOutOfStock =
-        payload.isOutOfStock === true ||
-        payload.isOutOfStock === "true";
+        payload.isOutOfStock === true || payload.isOutOfStock === "true";
     }
 
-    if (
-      payload.stock !== undefined ||
-      payload.stockStatus !== undefined
-    ) {
+    if (payload.stock !== undefined || payload.stockStatus !== undefined) {
       const stockQty = Number(payload.stock || 0);
 
-      if (
-        payload.stockStatus === "out_of_stock" ||
-        stockQty <= 0
-      ) {
+      if (payload.stockStatus === "out_of_stock" || stockQty <= 0) {
         payload.stockStatus = "out_of_stock";
         payload.isOutOfStock = true;
       }
 
-      if (
-        stockQty > 0 &&
-        payload.stockStatus !== "out_of_stock"
-      ) {
+      if (stockQty > 0 && payload.stockStatus !== "out_of_stock") {
         payload.isOutOfStock = false;
-        payload.stockStatus =
-          payload.stockStatus || "in_stock";
+        payload.stockStatus = payload.stockStatus || "in_stock";
       }
     }
 
@@ -713,7 +773,9 @@ exports.updateInventory = async (req, res) => {
     });
 
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.json({ success: true, message: "Inventory updated", product });
@@ -725,13 +787,9 @@ exports.updateInventory = async (req, res) => {
 exports.getOutOfStockProducts = async (req, res) => {
   try {
     const page = Math.max(Number(req.query.page) || 1, 1);
-    const limit = Math.min(
-      Math.max(Number(req.query.limit) || 25, 1),
-      200
-    );
+    const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 200);
 
-    const keyword =
-      req.query.keyword || req.query.search || "";
+    const keyword = req.query.keyword || req.query.search || "";
 
     const filter = {
       isActive: true,
@@ -759,8 +817,7 @@ exports.getOutOfStockProducts = async (req, res) => {
       ];
     }
 
-    const total =
-      await Product.countDocuments(filter);
+    const total = await Product.countDocuments(filter);
 
     const products = await Product.find(filter)
       .select(
@@ -784,7 +841,7 @@ exports.getOutOfStockProducts = async (req, res) => {
           allowBackorder
           status
           updatedAt
-        `
+        `,
       )
       .sort({ updatedAt: -1 })
       .skip((page - 1) * limit)
@@ -793,16 +850,19 @@ exports.getOutOfStockProducts = async (req, res) => {
 
     res.json({
       success: true,
+
       products,
+
       total,
+
+      totalProducts: total,
+
       page,
+
       pages: Math.ceil(total / limit) || 1,
     });
   } catch (error) {
-    console.error(
-      "OUT OF STOCK PRODUCTS ERROR:",
-      error
-    );
+    console.error("OUT OF STOCK PRODUCTS ERROR:", error);
 
     res.status(500).json({
       success: false,
@@ -815,7 +875,9 @@ exports.getOutOfStockProducts = async (req, res) => {
 
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({ order: 1, createdAt: 1 }).lean();
+    const categories = await Category.find()
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
     res.json({ success: true, categories });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -879,10 +941,14 @@ exports.getChildCategories = async (req, res) => {
 exports.createCategory = async (req, res) => {
   try {
     if (!req.body.name) {
-      return res.status(400).json({ success: false, message: "Category name required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Category name required" });
     }
 
-    const slug = req.body.slug ? slugify(req.body.slug) : slugify(req.body.name);
+    const slug = req.body.slug
+      ? slugify(req.body.slug)
+      : slugify(req.body.name);
 
     const category = await Category.create({
       name: req.body.name,
@@ -902,7 +968,9 @@ exports.createCategory = async (req, res) => {
       },
     });
 
-    res.status(201).json({ success: true, message: "Category created", category });
+    res
+      .status(201)
+      .json({ success: true, message: "Category created", category });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -913,8 +981,10 @@ exports.updateCategory = async (req, res) => {
     const data = { ...req.body };
 
     if (data.slug) data.slug = slugify(data.slug);
-    if (data.parentSlug !== undefined) data.parentSlug = data.parentSlug ? slugify(data.parentSlug) : "";
-    if (data.group !== undefined) data.group = data.group ? slugify(data.group) : "";
+    if (data.parentSlug !== undefined)
+      data.parentSlug = data.parentSlug ? slugify(data.parentSlug) : "";
+    if (data.group !== undefined)
+      data.group = data.group ? slugify(data.group) : "";
     if (data.order !== undefined) data.order = Number(data.order);
 
     if (data.metaTitle || data.metaDescription || data.metaKeywords) {
@@ -931,7 +1001,9 @@ exports.updateCategory = async (req, res) => {
     });
 
     if (!category) {
-      return res.status(404).json({ success: false, message: "Category not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Category not found" });
     }
 
     res.json({ success: true, message: "Category updated", category });
@@ -945,7 +1017,9 @@ exports.deleteCategory = async (req, res) => {
     const category = await Category.findByIdAndDelete(req.params.id);
 
     if (!category) {
-      return res.status(404).json({ success: false, message: "Category not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Category not found" });
     }
 
     res.json({ success: true, message: "Category deleted" });
@@ -1026,8 +1100,12 @@ exports.getOrders = async (req, res) => {
 exports.getOrderAnalytics = async (req, res) => {
   try {
     const totalOrders = await Order.countDocuments();
-    const deliveredOrders = await Order.countDocuments({ orderStatus: "Delivered" });
-    const cancelledOrders = await Order.countDocuments({ orderStatus: "Cancelled" });
+    const deliveredOrders = await Order.countDocuments({
+      orderStatus: "Delivered",
+    });
+    const cancelledOrders = await Order.countDocuments({
+      orderStatus: "Cancelled",
+    });
     const pendingOrders = await Order.countDocuments({
       orderStatus: { $nin: ["Delivered", "Cancelled"] },
     });
@@ -1068,7 +1146,8 @@ exports.getOrdersDetails = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { orderId, status, trackingId, courier, trackingUrl, paymentStatus } = req.body;
+    const { orderId, status, trackingId, courier, trackingUrl, paymentStatus } =
+      req.body;
 
     const allowedStatuses = [
       "Order Placed",
@@ -1081,13 +1160,17 @@ exports.updateOrderStatus = async (req, res) => {
     ];
 
     if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid status" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status" });
     }
 
     const order = await Order.findById(orderId);
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
 
     order.orderStatus = status;
@@ -1129,11 +1212,17 @@ exports.updateOrderStatus = async (req, res) => {
     await order.save();
 
     try {
-      if (status === "Delivered" && notificationService.sendOrderDeliveredNotification) {
+      if (
+        status === "Delivered" &&
+        notificationService.sendOrderDeliveredNotification
+      ) {
         await notificationService.sendOrderDeliveredNotification(order);
       }
 
-      if (status === "Cancelled" && notificationService.sendOrderCancelNotification) {
+      if (
+        status === "Cancelled" &&
+        notificationService.sendOrderCancelNotification
+      ) {
         await notificationService.sendOrderCancelNotification(order);
       }
     } catch (notifyError) {
@@ -1194,7 +1283,7 @@ exports.updateOrderAddress = async (req, res) => {
 
     if (
       ["Shipped", "Out for Delivery", "Delivered", "Cancelled"].includes(
-        order.orderStatus
+        order.orderStatus,
       )
     ) {
       return res.status(400).json({
@@ -1306,14 +1395,18 @@ exports.getCustomerById = async (req, res) => {
     const user = await User.findById(req.params.id).select("-password").lean();
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "Customer not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
     }
 
-    const orders = await Order.find({ userId: req.params.id }).sort({ createdAt: -1 }).lean();
+    const orders = await Order.find({ userId: req.params.id })
+      .sort({ createdAt: -1 })
+      .lean();
 
     const totalSpent = orders.reduce(
       (sum, order) => sum + Number(order.pricing?.totalAmount || 0),
-      0
+      0,
     );
 
     res.json({
@@ -1322,7 +1415,8 @@ exports.getCustomerById = async (req, res) => {
       orders: orders.map(serializeOrder),
       totalOrders: orders.length,
       totalSpent,
-      completedOrders: orders.filter((o) => o.orderStatus === "Delivered").length,
+      completedOrders: orders.filter((o) => o.orderStatus === "Delivered")
+        .length,
       spendingOverTime: [],
     });
   } catch (error) {
@@ -1349,7 +1443,9 @@ exports.updateCustomer = async (req, res) => {
     }).select("-password");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "Customer not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Customer not found" });
     }
 
     res.json({ success: true, message: "Customer updated", user });
@@ -1367,11 +1463,13 @@ exports.deleteUser = async (req, res) => {
         status: "deleted",
         deletedAt: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json({ success: true, message: "Customer deleted" });
@@ -1386,17 +1484,21 @@ exports.toggleUserStatus = async (req, res) => {
 
     const allowed = ["active", "inactive", "suspended"];
     if (!allowed.includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid user status" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid user status" });
     }
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true }
+      { new: true },
     ).select("-password");
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json({ success: true, message: "User status updated", user });
@@ -1419,7 +1521,9 @@ exports.getCoupons = async (req, res) => {
 exports.createCoupon = async (req, res) => {
   try {
     const coupon = await Coupon.create({
-      code: String(req.body.code || "").toUpperCase().trim(),
+      code: String(req.body.code || "")
+        .toUpperCase()
+        .trim(),
       title: req.body.title,
       description: req.body.description || "",
       discountType: req.body.discountType || "percentage",
@@ -1451,7 +1555,9 @@ exports.updateCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ success: false, message: "Coupon not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Coupon not found" });
     }
 
     res.json({ success: true, message: "Coupon updated", coupon });
@@ -1465,7 +1571,9 @@ exports.deleteCoupon = async (req, res) => {
     const coupon = await Coupon.findByIdAndDelete(req.params.id);
 
     if (!coupon) {
-      return res.status(404).json({ success: false, message: "Coupon not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Coupon not found" });
     }
 
     res.json({ success: true, message: "Coupon deleted" });
@@ -1497,7 +1605,9 @@ exports.getChatById = async (req, res) => {
       .populate("order");
 
     if (!chat || chat.isDeleted) {
-      return res.status(404).json({ success: false, message: "Chat not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat not found" });
     }
 
     res.json({ success: true, chat });
@@ -1511,13 +1621,17 @@ exports.replyChat = async (req, res) => {
     const { message } = req.body;
 
     if (!message || !message.trim()) {
-      return res.status(400).json({ success: false, message: "Message required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Message required" });
     }
 
     const chat = await Chat.findById(req.params.id);
 
     if (!chat || chat.isDeleted) {
-      return res.status(404).json({ success: false, message: "Chat not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat not found" });
     }
 
     chat.messages.push({
@@ -1544,19 +1658,23 @@ exports.updateChatStatus = async (req, res) => {
     const { status } = req.body;
 
     if (!["open", "waiting", "resolved"].includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid chat status" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid chat status" });
     }
 
     const chat = await Chat.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true }
+      { new: true },
     )
       .populate("user", "name email phone")
       .populate("order");
 
     if (!chat) {
-      return res.status(404).json({ success: false, message: "Chat not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat not found" });
     }
 
     res.json({ success: true, message: "Chat status updated", chat });
@@ -1596,10 +1714,12 @@ exports.updateNavbarCategory = async (req, res) => {
       req.params.id,
       {
         ...(typeof showInNavbar === "boolean" ? { showInNavbar } : {}),
-        ...(navbarOrder !== undefined ? { navbarOrder: Number(navbarOrder) } : {}),
+        ...(navbarOrder !== undefined
+          ? { navbarOrder: Number(navbarOrder) }
+          : {}),
         ...(typeof isActive === "boolean" ? { isActive } : {}),
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!category) {
@@ -1633,7 +1753,9 @@ exports.getHeroSlides = async (req, res) => {
 exports.createHeroSlide = async (req, res) => {
   try {
     const slide = await HeroSlide.create(req.body);
-    res.status(201).json({ success: true, message: "Hero slide created", slide });
+    res
+      .status(201)
+      .json({ success: true, message: "Hero slide created", slide });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -1647,7 +1769,9 @@ exports.updateHeroSlide = async (req, res) => {
     });
 
     if (!slide) {
-      return res.status(404).json({ success: false, message: "Hero slide not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Hero slide not found" });
     }
 
     res.json({ success: true, message: "Hero slide updated", slide });
@@ -1661,7 +1785,9 @@ exports.deleteHeroSlide = async (req, res) => {
     const slide = await HeroSlide.findByIdAndDelete(req.params.id);
 
     if (!slide) {
-      return res.status(404).json({ success: false, message: "Hero slide not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Hero slide not found" });
     }
 
     res.json({ success: true, message: "Hero slide deleted" });
@@ -1693,11 +1819,13 @@ exports.updateHomeSection = async (req, res) => {
     const section = await HomeSection.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!section) {
-      return res.status(404).json({ success: false, message: "Section not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Section not found" });
     }
 
     res.json({ success: true, section });
@@ -1711,7 +1839,9 @@ exports.deleteHomeSection = async (req, res) => {
     const section = await HomeSection.findByIdAndDelete(req.params.id);
 
     if (!section) {
-      return res.status(404).json({ success: false, message: "Section not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Section not found" });
     }
 
     res.json({ success: true, message: "Section deleted" });
@@ -1784,12 +1914,12 @@ const makePolicyPayload = (body = {}) => {
       metaTitle: String(body.seo?.metaTitle || body.metaTitle || title).trim(),
       metaDescription: String(
         body.seo?.metaDescription ||
-        body.metaDescription ||
-        body.shortDescription ||
-        ""
+          body.metaDescription ||
+          body.shortDescription ||
+          "",
       ).trim(),
       metaKeywords: parsePolicyArray(
-        body.seo?.metaKeywords || body.metaKeywords
+        body.seo?.metaKeywords || body.metaKeywords,
       ),
     },
   };
@@ -1930,4 +2060,3 @@ exports.deletePolicyPage = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-

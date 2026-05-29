@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const Product = require("../models/Product");
+const Tesseract = require("tesseract.js");
 const Category = require("../models/Category");
 const Order = require("../models/Order");
 
@@ -15,7 +16,7 @@ const parseCsv = (value) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-    const escapeRegex = (text = "") =>
+const escapeRegex = (text = "") =>
   text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const slugify = (value = "") =>
@@ -221,10 +222,10 @@ const buildProductFilter = (query = {}) => {
   const searchValue = query.keyword || query.search;
 
   if (searchValue) {
-  filter.$text = {
-    $search: searchValue,
-  };
-}
+    filter.$text = {
+      $search: searchValue,
+    };
+  }
 
   if (query.minPrice || query.maxPrice) {
     filter.price = {};
@@ -247,15 +248,15 @@ const buildProductFilter = (query = {}) => {
   }
 
   const isTrue = (value) =>
-  ["true", "1", 1, true].includes(value);
+    ["true", "1", 1, true].includes(value);
 
-if (isTrue(query.featured)) {
-  filter.isFeatured = true;
-}
+  if (isTrue(query.featured)) {
+    filter.isFeatured = true;
+  }
 
-if (isTrue(query.bestSeller)) {
-  filter.isBestSeller = true;
-}
+  if (isTrue(query.bestSeller)) {
+    filter.isBestSeller = true;
+  }
 
   return filter;
 };
@@ -383,26 +384,26 @@ const dedupeAndInsert = async (products) => {
 
   for (const item of cleanedProducts) {
 
-  if (!item.name || !item.category) {
-    skippedProducts.push({
-      name: item.name || "Unknown",
-      slug: item.slug || "",
-      sku: item.sku || "",
-      reason: "missing required fields",
-    });
+    if (!item.name || !item.category) {
+      skippedProducts.push({
+        name: item.name || "Unknown",
+        slug: item.slug || "",
+        sku: item.sku || "",
+        reason: "missing required fields",
+      });
 
-    continue;
-  }
+      continue;
+    }
 
-  const slug = String(item.slug || "").toLowerCase();
-  const sku = item.sku ? String(item.sku).toUpperCase() : "";
+    const slug = String(item.slug || "").toLowerCase();
+    const sku = item.sku ? String(item.sku).toUpperCase() : "";
 
-  const slugExistsInDb = existingSlugSet.has(slug);
-  const skuExistsInDb = sku ? existingSkuSet.has(sku) : false;
-  const slugDuplicateInRequest = requestSlugSet.has(slug);
-const skuDuplicateInRequest = sku
-  ? requestSkuSet.has(sku)
-  : false;
+    const slugExistsInDb = existingSlugSet.has(slug);
+    const skuExistsInDb = sku ? existingSkuSet.has(sku) : false;
+    const slugDuplicateInRequest = requestSlugSet.has(slug);
+    const skuDuplicateInRequest = sku
+      ? requestSkuSet.has(sku)
+      : false;
 
     if (slugExistsInDb || skuExistsInDb || slugDuplicateInRequest || skuDuplicateInRequest) {
       skippedProducts.push({
@@ -425,7 +426,7 @@ const skuDuplicateInRequest = sku
     uniqueProducts.push(item);
   }
 
-  
+
 
   let insertedProducts = [];
 
@@ -529,15 +530,27 @@ exports.getProducts = async (req, res) => {
       .limit(limit)
       .lean();
 
-      res.set("Cache-Control", "public, max-age=300");
+    res.set("Cache-Control", "public, max-age=300");
 
     res.status(200).json({
       success: true,
-      products,
+
+      products: products.map((product) => ({
+
+        ...product,
+
+        lowStock:
+          Number(product.stock || 0) <= 5,
+
+      })),
+
       page,
+
       pages: Math.ceil(total / limit),
+
       total,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -561,8 +574,18 @@ exports.getFeaturedProducts = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      products,
+
+      products: products.map((product) => ({
+
+        ...product,
+
+        lowStock:
+          Number(product.stock || 0) <= 5,
+
+      })),
+
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -743,12 +766,44 @@ exports.createProduct = async (req, res) => {
     }
 
     const product = await Product.create({
+
       ...data,
+
       slug,
-      sku: data.sku ? data.sku.toUpperCase() : undefined,
-      category: normalizeCategorySlug(data.category),
-      subCategory: data.subCategory ? normalizeSubCategoryFilter(data.subCategory) : "",
-      childCategory: data.childCategory ? normalizeSubCategoryFilter(data.childCategory) : "",
+
+      sku: data.sku
+        ? data.sku.toUpperCase()
+        : undefined,
+
+      category:
+        normalizeCategorySlug(
+          data.category
+        ),
+
+      subCategory:
+        data.subCategory
+          ? normalizeSubCategoryFilter(
+            data.subCategory
+          )
+          : "",
+
+      childCategory:
+        data.childCategory
+          ? normalizeSubCategoryFilter(
+            data.childCategory
+          )
+          : "",
+
+      isOutOfStock:
+        Number(data.stock || 0) <= 0,
+
+      stockStatus:
+        Number(data.stock || 0) <= 0
+          ? "out_of_stock"
+          : Number(data.stock || 0) <= 5
+            ? "low_stock"
+            : "in_stock",
+
     });
 
     res.status(201).json({
@@ -865,22 +920,53 @@ exports.updateProduct = async (req, res) => {
     });
 
     if (req.body.name || req.body.slug) {
-  const newSlug = slugify(req.body.slug || req.body.name);
+      const newSlug = slugify(req.body.slug || req.body.name);
 
-  const existingSlug = await Product.findOne({
-    slug: newSlug,
-    _id: { $ne: product._id },
-  });
+      const existingSlug = await Product.findOne({
+        slug: newSlug,
+        _id: { $ne: product._id },
+      });
 
-  if (existingSlug) {
-    return res.status(400).json({
-      success: false,
-      message: "Slug already exists",
-    });
-  }
+      if (existingSlug) {
+        return res.status(400).json({
+          success: false,
+          message: "Slug already exists",
+        });
+      }
 
-  product.slug = newSlug;
-}
+      product.slug = newSlug;
+    }
+
+    if (
+      Number(product.stock || 0) <= 0
+    ) {
+
+      product.stockStatus =
+        "out_of_stock";
+
+      product.isOutOfStock = true;
+
+    }
+
+    else if (
+      Number(product.stock || 0) <= 5
+    ) {
+
+      product.stockStatus =
+        "low_stock";
+
+      product.isOutOfStock = false;
+
+    }
+
+    else {
+
+      product.stockStatus =
+        "in_stock";
+
+      product.isOutOfStock = false;
+
+    }
 
     const updatedProduct = await product.save();
 
@@ -954,8 +1040,18 @@ exports.getSimilarProducts = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      products,
+
+      products: products.map((product) => ({
+
+        ...product,
+
+        lowStock:
+          Number(product.stock || 0) <= 5,
+
+      })),
+
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -1262,6 +1358,210 @@ exports.adminUpdateRefund = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Refund update failed",
+    });
+  }
+};
+
+exports.checkProductMatch = async (req, res) => {
+  try {
+    const {
+      componentName = "",
+      partNumber = "",
+      brand = "",
+    } = req.body;
+
+    let extractedText = "";
+
+    // OCR IMAGE TEXT
+    if (req.file?.path) {
+      try {
+        const result = await Tesseract.recognize(
+          req.file.path,
+          "eng"
+        );
+
+        extractedText =
+          result?.data?.text || "";
+      } catch (err) {
+        console.log("OCR ERROR", err);
+      }
+    }
+
+    // CLEAN OCR TEXT
+    const cleanOCRText = extractedText
+      .replace(/[^a-zA-Z0-9\s-]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // ALL SEARCH TERMS
+    const finalSearch = [
+      componentName,
+      partNumber,
+      cleanOCRText,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .trim();
+
+
+    if (!finalSearch) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Upload image or enter component details",
+      });
+    }
+
+    // SPLIT WORDS
+    const words = finalSearch
+      .split(" ")
+      .filter(
+        (item) =>
+          item.trim() &&
+          item.length > 2
+      );
+
+    // DYNAMIC DATABASE SEARCH
+    const searchRegex = new RegExp(
+      words.join("|"),
+      "i"
+    );
+
+    const products = await Product.find({
+      isActive: true,
+      status: "published",
+      $or: [
+        {
+          name: searchRegex,
+        },
+        {
+          mpn: searchRegex,
+        },
+
+        {
+          manufacturerPartNumber:
+            searchRegex,
+        },
+        {
+          searchKeywords:
+            searchRegex,
+        },
+      ],
+    })
+      .limit(20)
+      .lean();
+
+    // SCORE SYSTEM
+    const scoredProducts = products
+      .map((product) => {
+        let score = 0;
+
+        const normalize = (text = "") =>
+          String(text)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "");
+
+        const name = normalize(product.name);
+
+        const mpn = normalize(
+          product.manufacturerPartNumber ||
+          product.mpn ||
+          ""
+        );
+
+        const productBrand = normalize(product.brand);
+
+        const searchName = normalize(componentName);
+
+        const searchPart = normalize(partNumber);
+
+        const searchBrand = normalize(brand);
+
+        // COMPONENT NAME STRONG MATCH
+        if (
+          searchName &&
+          searchPart &&
+          name.includes(searchName) &&
+          mpn.includes(searchPart)
+        ) {
+          score = 100;
+        }
+        // PART NUMBER EXACT MATCH
+        if (
+          searchPart &&
+          (
+            mpn === searchPart ||
+            name === searchPart
+          )
+        ) {
+          score = 100;
+        }
+
+        // PARTIAL PART NUMBER MATCH
+        else if (
+          searchPart &&
+          (
+            mpn.includes(searchPart) ||
+            name.includes(searchPart)
+          )
+        ) {
+          score += 80;
+        }
+
+        // FULL PRODUCT MATCH
+        if (
+          searchName &&
+          searchPart &&
+          searchBrand &&
+          name.includes(searchName) &&
+          mpn.includes(searchPart) &&
+          productBrand.includes(searchBrand)
+        ) {
+          score = 100;
+        }
+
+        // OCR IMAGE TEXT MATCH
+        words.forEach((word) => {
+          if (
+            name.includes(word)
+          ) {
+            score += 15;
+          }
+
+          if (
+            mpn.includes(word)
+          ) {
+            score += 25;
+          }
+
+        });
+
+        return {
+          ...product,
+          similarity: Math.min(score, 100),
+        };
+      })
+      .filter((item) => item.similarity >= 20)
+      .sort((a, b) => b.similarity - a.similarity);
+
+    // SORT BEST MATCH
+    scoredProducts.sort(
+      (a, b) =>
+        b.similarity - a.similarity
+    );
+
+    res.status(200).json({
+      success: true,
+      extractedText,
+      total: scoredProducts.length,
+      products: scoredProducts,
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Match failed",
     });
   }
 };

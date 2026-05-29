@@ -18,6 +18,16 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
+  const [totalProductsCount, setTotalProductsCount] =
+    useState(0);
+
+  const [inventoryStats, setInventoryStats] =
+    useState({
+      inStock: 0,
+      lowStock: 0,
+      outOfStock: 0,
+      inventoryValue: 0,
+    });
   const [deletingId, setDeletingId] = useState("");
 
   const fetchProducts = async () => {
@@ -26,7 +36,7 @@ export default function AdminProductsPage() {
 
       const params = new URLSearchParams({
         page: String(page),
-        limit: "25",
+        limit: "100",
         keyword: search,
       });
 
@@ -34,6 +44,21 @@ export default function AdminProductsPage() {
 
       setProducts(data.products || []);
       setPages(data.pages || 1);
+
+      setTotalProductsCount(
+        data.total || 0
+      );
+
+      setInventoryStats({
+  inStock: data.inStockProducts || 0,
+
+  lowStock: data.lowStockProducts || 0,
+
+  outOfStock: data.outOfStockProducts || 0,
+
+  inventoryValue: data.totalInventoryValue || 0,
+});
+
     } catch (error) {
       toast.error(error.message || "Products load failed");
     } finally {
@@ -63,8 +88,80 @@ export default function AdminProductsPage() {
     }
   };
 
+  const totalProducts =
+    totalProductsCount;
+
+  const inStockProducts =
+    inventoryStats.inStock;
+
+  const lowStockProducts =
+    inventoryStats.lowStock;
+
+  const outOfStockProducts =
+    inventoryStats.outOfStock;
+
+  const totalInventoryValue =
+    inventoryStats.inventoryValue;
+
+
   return (
     <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm border">
+          <p className="text-xs font-bold uppercase text-slate-500">
+            Total Products
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black text-[#102033]">
+            {totalProducts}
+          </h2>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm border">
+          <p className="text-xs font-bold uppercase text-slate-500">
+            In Stock
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black text-green-600">
+            {inStockProducts}
+          </h2>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm border">
+          <p className="text-xs font-bold uppercase text-slate-500">
+            Low Stock
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black text-yellow-600">
+            {lowStockProducts}
+          </h2>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm border">
+          <p className="text-xs font-bold uppercase text-slate-500">
+            Out Of Stock
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black text-red-600">
+            {outOfStockProducts}
+          </h2>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-sm border">
+          <p className="text-xs font-bold uppercase text-slate-500">
+            Inventory Value
+          </p>
+
+          <h2 className="mt-2 text-2xl font-black text-[#7c3aed]">
+            ₹{" "}
+            {Number(
+              totalInventoryValue || 0
+            ).toLocaleString("en-IN")}
+          </h2>
+        </div>
+
+      </div>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-[#102033]">Products</h1>
@@ -129,7 +226,7 @@ export default function AdminProductsPage() {
                           {product.thumbnail || product.images?.[0]?.url ? (
                             <img
                               src={resolveImage(
-                                product.thumbnail || product.images?.[0]?.url
+                                product.thumbnail || product.images?.[0]?.url,
                               )}
                               alt={product.name}
                               className="h-full w-full object-cover"
@@ -176,15 +273,33 @@ export default function AdminProductsPage() {
                     </td>
 
                     <td className="px-4 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${
-                          Number(product.stock || 0) <= 10
-                            ? "bg-red-50 text-red-600"
-                            : "bg-green-50 text-green-600"
-                        }`}
-                      >
-                        {product.stock || 0} in stock
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold ${product.stockStatus === "out_of_stock"
+                            ? "bg-red-100 text-red-600"
+                            : product.stockStatus === "low_stock"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-green-100 text-green-600"
+                            }`}
+                        >
+                          {Number(product.stock || 0).toLocaleString("en-IN")}{" "}
+                          in stock
+                        </span>
+
+                        {product.stockStatus === "low_stock" && (
+                          <span
+                            className="rounded-full bg-yellow-100 px-2  py-1 text-[10px] font-bold text-yellow-700 " >
+                            low stock
+                          </span>
+                        )}
+
+                        {product.stockStatus === "out_of_stock" && (
+                          <span
+                            className="rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold text-red-600 ">
+                            out of stock
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="px-4 py-4">
@@ -241,5 +356,6 @@ export default function AdminProductsPage() {
         </div>
       </div>
     </div>
+
   );
 }

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const upload = multer({ dest: "uploads/search-temp/" });
 
+
 const {
   getProducts,
   getFeaturedProducts,
@@ -15,6 +16,7 @@ const {
   seedBulkProducts,
   updateProduct,
   searchProductsByImage,
+  checkProductMatch,
   deleteProduct,
 } = require("../controllers/productController");
 
@@ -25,6 +27,7 @@ router.get("/filters-meta", getProductFilterMeta);
 router.get("/slug/:slug", getProductBySlug);
 router.get("/similar/:id", getSimilarProducts);
 router.post("/search-by-image", upload.single("image"), searchProductsByImage);
+router.post("/check-match", upload.single("image"), checkProductMatch);
 router.get("/:id", getProductById);
 
 // Admin routes

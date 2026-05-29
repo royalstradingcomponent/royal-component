@@ -187,6 +187,23 @@ const orderSchema = new mongoose.Schema(
       index: true,
     },
 
+    timeline: [
+  {
+    status: {
+      type: String,
+    },
+
+    message: {
+      type: String,
+    },
+
+    time: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
+
     /* ================= ORDER LEVEL CANCEL ================= */
     cancellation: {
       cancelReason: { type: String, default: "" },

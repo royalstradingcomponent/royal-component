@@ -16,7 +16,7 @@ export default function SupplierHistoryPage() {
             const token = localStorage.getItem("adminToken");
 
             const res = await fetch(
-                `${API_BASE}/api/supplier-sources`,
+                `${API_BASE}/api/supplier-sources?limit=10000`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -27,6 +27,9 @@ export default function SupplierHistoryPage() {
             const data = await res.json();
 
             if (data.success) {
+                console.log("TOTAL API DATA =", data);
+                console.log("TOTAL SOURCES =", data.sources?.length);
+
                 setSources(data.sources || []);
             }
         } catch (err) {
@@ -39,6 +42,17 @@ export default function SupplierHistoryPage() {
             acc + Number(item.purchasePrice || 0),
         0
     );
+
+    const totalSuppliers =
+        sources.length;
+
+        console.log("FRONTEND SOURCES =", sources.length);
+
+    const activeSuppliers =
+        sources.filter(
+            (item) =>
+                item.isActive
+        ).length;
 
     return (
         <main className="min-h-screen bg-[#eef5ff] p-6">
@@ -63,7 +77,7 @@ export default function SupplierHistoryPage() {
                     </p>
 
                     <h2 className="mt-2 text-4xl font-black text-[#0f172a]">
-                        {sources.length}
+                        {totalSuppliers}
                     </h2>
                 </div>
 
@@ -73,10 +87,7 @@ export default function SupplierHistoryPage() {
                     </p>
 
                     <h2 className="mt-2 text-4xl font-black text-green-600">
-                        {
-                            sources.filter((x) => x.isActive)
-                                .length
-                        }
+                        {activeSuppliers}
                     </h2>
                 </div>
 

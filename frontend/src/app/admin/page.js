@@ -98,6 +98,7 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
     totalSales: 0,
     totalOrders: 0,
+    todayOrders: 0,
     totalProducts: 0,
     totalCustomers: 0,
     recentOrders: [],
@@ -362,6 +363,13 @@ export default function AdminDashboardPage() {
         />
 
         <StatCard
+          title="TODAY ORDERS"
+          value={stats.todayOrders}
+          icon={ShoppingCart}
+          note="Today's customer orders"
+        />
+
+        <StatCard
           title="Total Supply"
           value="Open"
           icon={PackageSearch}
@@ -417,7 +425,7 @@ export default function AdminDashboardPage() {
           icon={PackageSearch}
           note="Out for delivery"
           onClick={() =>
-           router.push("/admin/order-status/out-for-delivery")
+            router.push("/admin/order-status/out-for-delivery")
           }
         />
 

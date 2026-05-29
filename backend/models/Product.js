@@ -218,6 +218,24 @@ const productSchema = new mongoose.Schema(
       default: 0,
       index: true,
     },
+
+    reservedStock: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+
+    soldStock: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+
+    lowStockAlert: {
+      type: Number,
+      min: 0,
+      default: 5,
+    },
     stockStatus: {
       type: String,
       enum: ["in_stock", "low_stock", "out_of_stock"],
@@ -269,6 +287,12 @@ const productSchema = new mongoose.Schema(
     tags: {
       type: [String],
       default: [],
+    },
+    
+    searchKeywords: {
+      type: [String],
+      default: [],
+      index: true,
     },
 
     isFeatured: {
@@ -370,6 +394,22 @@ productSchema.pre("validate", function () {
     ].filter(Boolean);
   }
 
+  this.searchKeywords = [
+  this.name,
+  this.brand,
+  this.mpn,
+  this.sku,
+  this.category,
+  this.subCategory,
+  ...(this.tags || []),
+]
+  .filter(Boolean)
+  .map((item) =>
+    String(item)
+      .toLowerCase()
+      .trim()
+  );
+
   if (this.mrp > this.price && this.mrp > 0) {
     this.discount = Math.round(((this.mrp - this.price) / this.mrp) * 100);
   } else {
@@ -388,12 +428,31 @@ productSchema.pre("validate", function () {
     this.isOutOfStock = true;
   }
 
-  if (Number(this.stock || 0) > 0 && this.stockStatus !== "out_of_stock") {
+  if (Number(this.stock || 0) <= 0) {
+
+    this.stockStatus = "out_of_stock";
+
+    this.isOutOfStock = true;
+
+  }
+
+  else if (
+    Number(this.stock || 0) <=
+    Number(this.lowStockAlert || 5)
+  ) {
+
+    this.stockStatus = "low_stock";
+
     this.isOutOfStock = false;
 
-    if (!this.stockStatus) {
-      this.stockStatus = "in_stock";
-    }
+  }
+
+  else {
+
+    this.stockStatus = "in_stock";
+
+    this.isOutOfStock = false;
+
   }
 });
 

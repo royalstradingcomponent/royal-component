@@ -10,6 +10,9 @@ const {
   deleteSupplierSource,
   matchSupplierSources,
   importOfferText,
+  bulkImportSupplierSources,
+  parseSupplierPdf,
+  parseSupplierImage,
 } = require("../controllers/supplierSourceController");
 
 const { protect, admin } = require("../middleware/authMiddleware");
@@ -25,6 +28,34 @@ router.post(
     { name: "supplierImages", maxCount: 10 },
   ]),
   createSupplierSource,
+);
+
+router.post("/bulk-import", bulkImportSupplierSources);
+
+router.post(
+  "/parse-pdf",
+
+  upload.fields([
+    {
+      name: "pdf",
+      maxCount: 1,
+    },
+  ]),
+
+  parseSupplierPdf,
+);
+
+router.post(
+  "/parse-image",
+
+  upload.fields([
+    {
+      name: "images",
+      maxCount: 20,
+    },
+  ]),
+
+  parseSupplierImage,
 );
 
 router.post("/match", matchSupplierSources);
