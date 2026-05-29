@@ -3,7 +3,7 @@ const path = require("path");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
-const compression = require("compression");
+
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
@@ -70,7 +70,7 @@ app.use(
   })
 );
 
-app.use(compression());
+
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
