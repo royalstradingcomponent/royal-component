@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, Search, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
+import { useRouter } from "next/navigation";
 
 const QUICK_QTY = [1, 5, 10, 20, 50, 100, 500, 1000, 10000];
 
@@ -11,9 +12,13 @@ export default function AddToCartButton({
   productId,
   quantity = 1,
   moq = 1,
+  stock = 0,
+  productName = "",
   showQuantity = false,
 }) {
+
   const { addToCart, cartActionLoading } = useCart();
+  const router = useRouter();
 
   const [qty, setQty] = useState(Number(quantity || moq || 1));
   const [open, setOpen] = useState(false);
@@ -42,20 +47,77 @@ export default function AddToCartButton({
     try {
       const finalQty = showQuantity ? cleanQty(qty) : cleanQty(quantity);
 
+      if (
+  Number(stock) > 0 &&
+  finalQty > Number(stock)
+) {
+  const goBom = window.confirm(
+`Insufficient Stock
+
+Product: ${productName}
+
+Available Stock: ${stock} pcs
+
+The quantity entered exceeds our current inventory.
+
+Maximum order quantity available for immediate purchase: ${stock} pcs.
+
+Click OK to submit a BOM Request for higher quantities.`
+  );
+
+  if (goBom) {
+    router.push(
+      `/request-component?product=${encodeURIComponent(productName)}&requiredQty=${finalQty}`
+    );
+  }
+
+  return;
+}
+
       const res = await addToCart({
         productId,
         qty: finalQty,
       });
 
       if (res?.success) {
-        toast.success(`${finalQty} item(s) added to cart`);
 
-        if (finalQty >= 500) {
-          toast.info("🎉 Bulk offer unlocked! Coupon apply kar sakte ho.");
-        }
-      } else {
-        toast.error(res?.message || "Failed to add item");
-      }
+  toast.success(`${finalQty} item(s) added to cart`);
+
+  if (finalQty >= 500) {
+  toast.info(
+    "🎉 Bulk quantity eligible for promotional discounts. Apply a coupon manually during checkout."
+  );
+}
+
+} else {
+
+  if (res?.availableStock) {
+
+  const goBom = window.confirm(
+    `Available Stock: ${res.availableStock} pcs
+
+Aap maximum ${res.availableStock} pcs hi order kar sakte ho.
+
+Agar aapko aur quantity chahiye to BOM Request bhejna chahenge?`
+  );
+
+  if (goBom) {
+
+    router.push(
+      `/request-component?product=${productId}&requiredQty=${finalQty}`
+    );
+
+  }
+
+} else {
+
+    toast.error(
+      res?.message || "Failed to add item"
+    );
+
+  }
+
+}
     } catch {
       toast.error("Add to cart failed");
     }

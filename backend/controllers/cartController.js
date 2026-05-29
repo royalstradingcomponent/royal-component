@@ -198,6 +198,21 @@ exports.addItemToCart = async (req, res) => {
       (item) => item.product.toString() === productId.toString()
     );
 
+    const requestedQty = existingItem
+  ? existingItem.qty + Math.max(1, toNumber(qty, 1))
+  : Math.max(1, toNumber(qty, 1));
+
+if (
+  !product.allowBackorder &&
+  requestedQty > Number(product.stock || 0)
+) {
+  return res.status(400).json({
+    success: false,
+    availableStock: Number(product.stock || 0),
+    message: `Only ${product.stock} pcs available in stock.`
+  });
+}
+
     if (existingItem) {
       existingItem.qty += Math.max(1, toNumber(qty, 1));
     } else {
@@ -306,6 +321,20 @@ exports.updateQty = async (req, res) => {
         message: "Cart item not found",
       });
     }
+
+    const product = await Product.findById(item.product);
+
+if (
+  product &&
+  !product.allowBackorder &&
+  qty > Number(product.stock || 0)
+) {
+  return res.status(400).json({
+    success: false,
+    availableStock: Number(product.stock || 0),
+    message: `Only ${product.stock} pcs available in stock.`
+  });
+}
 
     item.qty = qty;
 

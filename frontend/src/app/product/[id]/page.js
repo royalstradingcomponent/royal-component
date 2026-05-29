@@ -742,6 +742,12 @@ export default async function ProductDetailPage({ params }) {
                 </div>
               </div>
 
+              <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3">
+                <p className="text-sm font-bold text-green-700">
+                  Available Stock: {product?.stock || 0} pcs
+                </p>
+              </div>
+
               <div className="mt-5">
                 {stockMeta.isOut ? (
                   <div className="rounded-sm border border-red-200 bg-red-50 p-5">
@@ -770,6 +776,8 @@ export default async function ProductDetailPage({ params }) {
                   <AddToCartButton
                     productId={product?._id}
                     moq={product?.moq || 1}
+                    stock={product?.stock || 0}
+                    productName={product?.name || ""}
                     showQuantity={true}
                   />
                 )}

@@ -116,8 +116,8 @@ function normalizeGuestItem(item) {
       typeof item?.stockLabel === "string"
         ? item.stockLabel
         : toNumber(item?.stock, 0) > 0
-        ? "In stock"
-        : "Out of stock",
+          ? "In stock"
+          : "Out of stock",
     estimatedDelivery: item?.estimatedDelivery || "2-5 business days",
   };
 }
@@ -256,27 +256,64 @@ export function CartProvider({ children }) {
 
     const product = await fetchProductForGuestCart(productId);
 
-if (isProductOutOfStock(product)) {
-  return {
-    success: false,
-    message: "This product is currently out of stock",
-  };
-}
+    const requestedQty =
+      Math.max(1, toNumber(qty, 1));
 
-const currentItems = getGuestCartFromStorage();
+    if (
+      !product.allowBackorder &&
+      requestedQty > Number(product.stock || 0)
+    ) {
+      return {
+        success: false,
+        availableStock: Number(product.stock || 0),
+        message: `Only ${product.stock} pcs available in stock.`,
+      };
+    }
+
+    if (isProductOutOfStock(product)) {
+      return {
+        success: false,
+        message: "This product is currently out of stock",
+      };
+    }
+
+    const currentItems = getGuestCartFromStorage();
 
     const existingIndex = currentItems.findIndex(
       (item) => String(item.productId) === String(productId)
     );
 
     if (existingIndex > -1) {
-      currentItems[existingIndex] = normalizeGuestItem({
-        ...currentItems[existingIndex],
-        quantity: toNumber(currentItems[existingIndex].quantity, 1) + Math.max(1, toNumber(qty, 1)),
-      });
-    } else {
-      currentItems.push(buildGuestCartItemFromProduct(product, qty));
-    }
+
+  const finalQty =
+    toNumber(
+      currentItems[existingIndex].quantity,
+      1
+    ) +
+    Math.max(1, toNumber(qty, 1));
+
+  if (
+    !product.allowBackorder &&
+    finalQty > Number(product.stock || 0)
+  ) {
+    return {
+      success: false,
+      availableStock: Number(product.stock || 0),
+      message: `Only ${product.stock} pcs available in stock.`,
+    };
+  }
+
+  currentItems[existingIndex] =
+    normalizeGuestItem({
+      ...currentItems[existingIndex],
+      quantity: finalQty,
+    });
+
+} else {
+  currentItems.push(
+    buildGuestCartItemFromProduct(product, qty)
+  );
+} 
 
     saveGuestCartToStorage(currentItems);
     setGuestCartState(currentItems);
@@ -320,9 +357,9 @@ const currentItems = getGuestCartFromStorage();
           .map((item) =>
             item.id === itemId
               ? normalizeGuestItem({
-                  ...item,
-                  quantity: Math.max(1, toNumber(quantity, 1)),
-                })
+                ...item,
+                quantity: Math.max(1, toNumber(quantity, 1)),
+              })
               : normalizeGuestItem(item)
           );
 
@@ -401,42 +438,42 @@ const currentItems = getGuestCartFromStorage();
     }
   };
   const applyCoupon = async (code) => {
-  try {
-    setCartActionLoading(true);
+    try {
+      setCartActionLoading(true);
 
-    const couponCode = String(code || "").trim().toUpperCase();
+      const couponCode = String(code || "").trim().toUpperCase();
 
-    if (!couponCode) {
+      if (!couponCode) {
+        return {
+          success: false,
+          message: "Please enter coupon code.",
+        };
+      }
+
+      if (!user?.token) {
+        return {
+          success: false,
+          needLogin: true,
+          message: "Login required to apply coupon.",
+        };
+      }
+
+      const data = await apiRequest("/api/cart/apply-coupon", {
+        method: "POST",
+        body: JSON.stringify({ code: couponCode }),
+      });
+
+      await fetchServerCart();
+      return data;
+    } catch (error) {
       return {
         success: false,
-        message: "Please enter coupon code.",
+        message: error?.message || "Coupon apply failed.",
       };
+    } finally {
+      setCartActionLoading(false);
     }
-
-    if (!user?.token) {
-      return {
-        success: false,
-        needLogin: true,
-        message: "Login required to apply coupon.",
-      };
-    }
-
-    const data = await apiRequest("/api/cart/apply-coupon", {
-      method: "POST",
-      body: JSON.stringify({ code: couponCode }),
-    });
-
-    await fetchServerCart();
-    return data;
-  } catch (error) {
-    return {
-      success: false,
-      message: error?.message || "Coupon apply failed.",
-    };
-  } finally {
-    setCartActionLoading(false);
-  }
-};
+  };
 
   const cartCount = useMemo(
     () => cartSummary?.itemCount || 0,

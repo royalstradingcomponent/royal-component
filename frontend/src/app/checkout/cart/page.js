@@ -82,6 +82,27 @@ function QuantityInput({ item, updateQty, disabled }) {
 
   const handleUpdate = async (value) => {
     const finalQty = cleanQty(value);
+
+    if (
+      item.stock &&
+      finalQty > Number(item.stock)
+    ) {
+      alert(
+        `Insufficient Stock
+
+Available Stock: ${stock} pcs
+
+The quantity you entered exceeds the currently available inventory.
+
+You can add a maximum of ${stock} pcs to your cart.
+
+For larger quantity requirements, please submit a BOM Request and our sourcing team will assist you.`
+      );
+
+      setQty(String(item.stock));
+      return;
+    }
+
     setQty(String(finalQty));
     setOpen(false);
     setSearchQty("");
@@ -643,7 +664,7 @@ export default function CartPage() {
                       </span>
                     </div>
 
-                    
+
 
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-[180px_minmax(0,1fr)_300px]">
                       <div>
@@ -677,8 +698,8 @@ export default function CartPage() {
                           Large quantity? Type required quantity directly.
                           Procurement team can confirm stock before dispatch.
                         </div>
-                        
-                        
+
+
                       </div>
 
                       <div>
@@ -701,103 +722,103 @@ export default function CartPage() {
                             disabled={cartActionLoading}
                           />
                         </div>
-                        
+
                       </div>
-                      
+
                     </div>
                   </div>
-                  
+
                 ))}
-                
+
               </div>
             )}
             {cartItems.length > 0 ? (
-  <div className="mt-5 rounded-[18px] border border-[#d8e8f8] bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-    <div className="flex items-start gap-4">
-      <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
-        <NotebookTabs size={24} />
-      </div>
+              <div className="mt-5 rounded-[18px] border border-[#d8e8f8] bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+                <div className="flex items-start gap-4">
+                  <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
+                    <NotebookTabs size={24} />
+                  </div>
 
-      <div>
-        <h2 className="text-[26px] font-extrabold text-[#102033]">
-          Quantity, checkout terms & order conditions
-        </h2>
-        <p className="mt-2 text-[15px] leading-7 text-[#607287]">
-          Yeh section aapke current basket quantity, delivery, GST aur bulk order rules ko clearly explain karta hai.
-        </p>
-      </div>
-    </div>
+                  <div>
+                    <h2 className="text-[26px] font-extrabold text-[#102033]">
+                      Quantity, checkout terms & order conditions
+                    </h2>
+                    <p className="mt-2 text-[15px] leading-7 text-[#607287]">
+                      Yeh section aapke current basket quantity, delivery, GST aur bulk order rules ko clearly explain karta hai.
+                    </p>
+                  </div>
+                </div>
 
-    <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-        <Boxes size={24} className="mb-3 text-[#2454b5]" />
-        <h3 className="text-[17px] font-extrabold text-[#102033]">
-          Selected quantity
-        </h3>
-        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-          Current basket me total{" "}
-          <span className="font-bold text-[#102033]">
-            {cartSummary?.itemCount || 0} unit(s)
-          </span>{" "}
-          selected hain. Aap quantity ko manually type karke ya dropdown se change kar sakte ho.
-        </p>
-      </div>
+                <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                    <Boxes size={24} className="mb-3 text-[#2454b5]" />
+                    <h3 className="text-[17px] font-extrabold text-[#102033]">
+                      Selected quantity
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                      Current basket me total{" "}
+                      <span className="font-bold text-[#102033]">
+                        {cartSummary?.itemCount || 0} unit(s)
+                      </span>{" "}
+                      selected hain. Aap quantity ko manually type karke ya dropdown se change kar sakte ho.
+                    </p>
+                  </div>
 
-      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-        <CircleDollarSign size={24} className="mb-3 text-[#2454b5]" />
-        <h3 className="text-[17px] font-extrabold text-[#102033]">
-          Price & GST condition
-        </h3>
-        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-          Product price, GST amount aur delivery charge checkout summary me clearly calculate hote hain. Final payable amount order place karne se pehle visible rahega.
-        </p>
-      </div>
+                  <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                    <CircleDollarSign size={24} className="mb-3 text-[#2454b5]" />
+                    <h3 className="text-[17px] font-extrabold text-[#102033]">
+                      Price & GST condition
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                      Product price, GST amount aur delivery charge checkout summary me clearly calculate hote hain. Final payable amount order place karne se pehle visible rahega.
+                    </p>
+                  </div>
 
-      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-        <Truck size={24} className="mb-3 text-[#2454b5]" />
-        <h3 className="text-[17px] font-extrabold text-[#102033]">
-          Delivery condition
-        </h3>
-        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-          Estimated delivery usually 2-5 business days hoti hai. Bulk quantity ya special stock items me dispatch se pehle confirmation ho sakta hai.
-        </p>
-      </div>
+                  <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                    <Truck size={24} className="mb-3 text-[#2454b5]" />
+                    <h3 className="text-[17px] font-extrabold text-[#102033]">
+                      Delivery condition
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                      Estimated delivery usually 2-5 business days hoti hai. Bulk quantity ya special stock items me dispatch se pehle confirmation ho sakta hai.
+                    </p>
+                  </div>
 
-      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-        <ShieldCheck size={24} className="mb-3 text-[#2454b5]" />
-        <h3 className="text-[17px] font-extrabold text-[#102033]">
-          Stock verification
-        </h3>
-        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-          High quantity order ke liye stock availability procurement team verify kar sakti hai. Isse wrong dispatch aur delay risk kam hota hai.
-        </p>
-      </div>
+                  <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                    <ShieldCheck size={24} className="mb-3 text-[#2454b5]" />
+                    <h3 className="text-[17px] font-extrabold text-[#102033]">
+                      Stock verification
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                      High quantity order ke liye stock availability procurement team verify kar sakti hai. Isse wrong dispatch aur delay risk kam hota hai.
+                    </p>
+                  </div>
 
-      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-        <CreditCard size={24} className="mb-3 text-[#2454b5]" />
-        <h3 className="text-[17px] font-extrabold text-[#102033]">
-          Payment terms
-        </h3>
-        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-          Online payment, GST invoice aur quotation-based order flow business buyers ke liye supported hai. Payment confirmation ke baad order process hota hai.
-        </p>
-      </div>
+                  <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                    <CreditCard size={24} className="mb-3 text-[#2454b5]" />
+                    <h3 className="text-[17px] font-extrabold text-[#102033]">
+                      Payment terms
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                      Online payment, GST invoice aur quotation-based order flow business buyers ke liye supported hai. Payment confirmation ke baad order process hota hai.
+                    </p>
+                  </div>
 
-      <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-        <BadgeCheck size={24} className="mb-3 text-[#2454b5]" />
-        <h3 className="text-[17px] font-extrabold text-[#102033]">
-          Bulk order terms
-        </h3>
-        <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-          Large quantity, reseller purchase, project requirement ya repeat order ke liye custom quotation support available ho sakta hai.
-        </p>
-      </div>
-    </div>
-  </div>
-) : null}
-            
+                  <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                    <BadgeCheck size={24} className="mb-3 text-[#2454b5]" />
+                    <h3 className="text-[17px] font-extrabold text-[#102033]">
+                      Bulk order terms
+                    </h3>
+                    <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                      Large quantity, reseller purchase, project requirement ya repeat order ke liye custom quotation support available ho sakta hai.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
           </div>
-          
+
 
           <div className="space-y-4 lg:sticky lg:top-5 lg:self-start">
             <div className="rounded-[10px] border border-[#dbe5f0] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
@@ -996,73 +1017,73 @@ export default function CartPage() {
         </div>
 
         {cartItems.length > 0 ? (
-  <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_430px]">
-    <div className="rounded-[18px] border border-[#d8e8f8] bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-      <div className="flex items-start gap-4">
-        <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
-          <Truck size={24} />
-        </div>
+          <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_430px]">
+            <div className="rounded-[18px] border border-[#d8e8f8] bg-white p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
+                  <Truck size={24} />
+                </div>
 
-        <div>
-          <h2 className="text-[26px] font-extrabold text-[#102033]">
-            Wholesale order support
-          </h2>
-          <p className="mt-2 text-[15px] leading-7 text-[#607287]">
-            Large quantity orders, stock confirmation, delivery timeline and bulk quotation support ke liye ye basket ready hai.
-          </p>
-        </div>
-      </div>
+                <div>
+                  <h2 className="text-[26px] font-extrabold text-[#102033]">
+                    Wholesale order support
+                  </h2>
+                  <p className="mt-2 text-[15px] leading-7 text-[#607287]">
+                    Large quantity orders, stock confirmation, delivery timeline and bulk quotation support ke liye ye basket ready hai.
+                  </p>
+                </div>
+              </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-          <PackageCheck size={24} className="mb-3 text-[#2454b5]" />
-          <h3 className="text-[17px] font-extrabold text-[#102033]">
-            Stock confirmation
-          </h3>
-          <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-            High quantity dispatch se pehle team stock verify kar sakti hai.
-          </p>
-        </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                  <PackageCheck size={24} className="mb-3 text-[#2454b5]" />
+                  <h3 className="text-[17px] font-extrabold text-[#102033]">
+                    Stock confirmation
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                    High quantity dispatch se pehle team stock verify kar sakti hai.
+                  </p>
+                </div>
 
-        <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-          <NotebookTabs size={24} className="mb-3 text-[#2454b5]" />
-          <h3 className="text-[17px] font-extrabold text-[#102033]">
-            Quote ready basket
-          </h3>
-          <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-            Basket ko quotation / approval flow ke liye use kar sakte ho.
-          </p>
-        </div>
+                <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                  <NotebookTabs size={24} className="mb-3 text-[#2454b5]" />
+                  <h3 className="text-[17px] font-extrabold text-[#102033]">
+                    Quote ready basket
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                    Basket ko quotation / approval flow ke liye use kar sakte ho.
+                  </p>
+                </div>
 
-        <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
-          <ShieldCheck size={24} className="mb-3 text-[#2454b5]" />
-          <h3 className="text-[17px] font-extrabold text-[#102033]">
-            GST clarity
-          </h3>
-          <p className="mt-2 text-[14px] leading-6 text-[#607287]">
-            Subtotal, GST, delivery aur discount clearly calculate ho rahe hain.
-          </p>
-        </div>
-      </div>
-    </div>
+                <div className="rounded-[14px] border border-[#dbe8f5] bg-[#f8fbff] p-5">
+                  <ShieldCheck size={24} className="mb-3 text-[#2454b5]" />
+                  <h3 className="text-[17px] font-extrabold text-[#102033]">
+                    GST clarity
+                  </h3>
+                  <p className="mt-2 text-[14px] leading-6 text-[#607287]">
+                    Subtotal, GST, delivery aur discount clearly calculate ho rahe hain.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-    <div className="rounded-[18px] border border-[#d8e8f8] bg-[#f8fbff] p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-      <h2 className="text-[22px] font-extrabold text-[#102033]">
-        Need help?
-      </h2>
-      <p className="mt-2 text-[14px] leading-7 text-[#607287]">
-        Bulk order, delivery, coupon ya quotation ke liye support le sakte ho.
-      </p>
+            <div className="rounded-[18px] border border-[#d8e8f8] bg-[#f8fbff] p-6 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+              <h2 className="text-[22px] font-extrabold text-[#102033]">
+                Need help?
+              </h2>
+              <p className="mt-2 text-[14px] leading-7 text-[#607287]">
+                Bulk order, delivery, coupon ya quotation ke liye support le sakte ho.
+              </p>
 
-      <div className="mt-5 space-y-3 text-[15px] font-semibold text-[#102033]">
-        <p>✔ Bulk quantity verification</p>
-        <p>✔ Delivery timeline support</p>
-        <p>✔ GST invoice assistance</p>
-        <p>✔ Alternate part sourcing</p>
-      </div>
-    </div>
-  </section>
-) : null}
+              <div className="mt-5 space-y-3 text-[15px] font-semibold text-[#102033]">
+                <p>✔ Bulk quantity verification</p>
+                <p>✔ Delivery timeline support</p>
+                <p>✔ GST invoice assistance</p>
+                <p>✔ Alternate part sourcing</p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {cartItems.length > 0 ? (
           <>
