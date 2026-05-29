@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Otp = require("../models/Otp");
 const jwt = require("jsonwebtoken");
+const { sendEmail } = require("../services/emailService");
 const { OAuth2Client } = require("google-auth-library");
 
 /* ================= GOOGLE CLIENT ================= */
@@ -305,6 +306,23 @@ exports.forgotPassword = async (req, res) => {
     );
 
     console.log("🔐 RESET OTP:", otp);
+
+    if (email) {
+  await sendEmail({
+    to: userEmail,
+    subject: "Password Reset OTP - Royal Component",
+    html: `
+      <div style="font-family:Arial;padding:20px">
+        <h2>Password Reset OTP</h2>
+        <p>Your OTP is:</p>
+        <h1>${otp}</h1>
+        <p>This OTP will expire in 5 minutes.</p>
+      </div>
+    `,
+  });
+
+  console.log("✅ Reset OTP email sent to:", userEmail);
+}
 
     return res.status(200).json({
       success: true,
