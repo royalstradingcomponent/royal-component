@@ -61,7 +61,7 @@ exports.registerUser = async (req, res) => {
       email: userEmail,
       phone,
       password,
-        role: role || "user",
+      role: role || "user",
 
     });
 
@@ -272,12 +272,17 @@ exports.forgotPassword = async (req, res) => {
 
     let user;
     let query = {};
+    let userEmail = "";
 
     if (email) {
-      const userEmail = email.toLowerCase().trim();
-      user = await User.findOne({ email: userEmail });
-      query.email = userEmail;
-    }
+  userEmail = email.toLowerCase().trim();
+
+  user = await User.findOne({
+    email: userEmail,
+  });
+
+  query.email = userEmail;
+}
 
     if (phone) {
       const cleanPhone = phone.trim();
@@ -308,10 +313,10 @@ exports.forgotPassword = async (req, res) => {
     console.log("🔐 RESET OTP:", otp);
 
     if (email) {
-  await sendEmail({
-    to: userEmail,
-    subject: "Password Reset OTP - Royal Component",
-    html: `
+      await sendEmail({
+        to: userEmail,
+        subject: "Password Reset OTP - Royal Component",
+        html: `
       <div style="font-family:Arial;padding:20px">
         <h2>Password Reset OTP</h2>
         <p>Your OTP is:</p>
@@ -319,10 +324,10 @@ exports.forgotPassword = async (req, res) => {
         <p>This OTP will expire in 5 minutes.</p>
       </div>
     `,
-  });
+      });
 
-  console.log("✅ Reset OTP email sent to:", userEmail);
-}
+      console.log("✅ Reset OTP email sent to:", userEmail);
+    }
 
     return res.status(200).json({
       success: true,
