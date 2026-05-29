@@ -320,7 +320,7 @@ export default function CheckoutOrderDetailPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/orders/cancel/${id}`, {
+      const res = await fetch(`${API_BASE}/api/order/cancel/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -367,7 +367,7 @@ export default function CheckoutOrderDetailPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/orders/refund/${id}`, {
+      const res = await fetch(`${API_BASE}/api/order/refund/${id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -483,7 +483,7 @@ export default function CheckoutOrderDetailPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/orders/update-address/${id}`, {
+      const res = await fetch(`${API_BASE}/api/order/update-address/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
