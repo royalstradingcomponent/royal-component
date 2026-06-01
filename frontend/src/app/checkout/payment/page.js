@@ -90,7 +90,7 @@ export default function CheckoutPaymentPage() {
       note: form.note,
     });
 
-    await fetchCart();
+    fetchCart();
 
     const orderId = data?.orderId || data?.order?._id;
 
@@ -230,6 +230,7 @@ export default function CheckoutPaymentPage() {
       </main>
 
       <Footer />
+      
     </div>
   );
 }

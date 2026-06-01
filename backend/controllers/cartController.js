@@ -219,6 +219,17 @@ if (
       cart.items.push(buildCartItemFromProduct(product, qty));
     }
 
+    cart.coupon = {
+  couponId: null,
+  code: "",
+  title: "",
+  discountType: "",
+  discountValue: 0,
+  discountAmount: 0,
+  isApplied: false,
+  appliedAt: null,
+};
+
     await cart.save();
 
     return res.status(200).json({
@@ -338,6 +349,17 @@ if (
 
     item.qty = qty;
 
+    cart.coupon = {
+  couponId: null,
+  code: "",
+  title: "",
+  discountType: "",
+  discountValue: 0,
+  discountAmount: 0,
+  isApplied: false,
+  appliedAt: null,
+};
+
     await cart.save();
 
     return res.status(200).json({
@@ -367,6 +389,18 @@ exports.deleteItemFromCart = async (req, res) => {
     }
 
     cart.items = cart.items.filter((item) => item._id.toString() !== itemId);
+
+
+    cart.coupon = {
+  couponId: null,
+  code: "",
+  title: "",
+  discountType: "",
+  discountValue: 0,
+  discountAmount: 0,
+  isApplied: false,
+  appliedAt: null,
+};
     await cart.save();
 
     return res.status(200).json({
@@ -394,6 +428,17 @@ exports.clearCart = async (req, res) => {
     }
 
     cart.items = [];
+
+    cart.coupon = {
+  couponId: null,
+  code: "",
+  title: "",
+  discountType: "",
+  discountValue: 0,
+  discountAmount: 0,
+  isApplied: false,
+  appliedAt: null,
+};
     await cart.save();
 
     return res.status(200).json({

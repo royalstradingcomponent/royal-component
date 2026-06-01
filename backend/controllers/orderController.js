@@ -278,11 +278,14 @@ exports.createOrder = async (req, res) => {
     user.lastActivity = new Date();
     await user.save();
 
-    try {
-      await sendOrderPlacedNotification(order);
-    } catch (err) {
-      console.error("Email send failed:", err.message);
-    }
+    setImmediate(async () => {
+  try {
+    await sendOrderPlacedNotification(order);
+  } catch (err) {
+    console.error("Notification failed:", err.message);
+  }
+});
+
     return res.status(201).json({
       success: true,
       message: "Order placed successfully",
