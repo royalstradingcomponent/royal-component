@@ -101,7 +101,7 @@ const generateQuotationPdf = async (reqData, res = null) => {
     );
 
     doc.text(
-        "Phone: +91 9334966286",
+        "Phone: +91 88511 49032",
         360,
         72
     );
@@ -867,7 +867,7 @@ doc
     );
 
 doc.text(
-    "+91 93349 66286",
+    "+91 88511 49032",
     40,
     footerTop + 102
 );

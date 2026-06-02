@@ -269,6 +269,70 @@ function RequestCard({ req }) {
                         Requested Components
                     </h3>
 
+                    {req.datasheetUrls.map((file, index) => (
+                        <div
+                            key={index}
+                            className="flex flex-wrap items-center gap-3 mb-4"
+                        >
+                            <span className="font-semibold text-slate-700">
+                                PDF #{index + 1}
+                            </span>
+
+                            <a
+                                href={`${API_BASE}${file.replace(
+                                    "/uploads/request-files/",
+                                    "/uploads/requests/"
+                                )}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3 shadow-md transition hover:bg-sky-600"
+                            >
+                                <span className="font-bold text-white">
+                                    👁 Preview PDF
+                                </span>
+                            </a>
+
+                            <a
+                                href={`${API_BASE}${file.replace(
+                                    "/uploads/request-files/",
+                                    "/uploads/requests/"
+                                )}`}
+                                download
+                                className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-6 py-3 shadow-md transition hover:bg-emerald-600"
+                            >
+                                <span className="font-bold text-white">
+                                    ⬇ Download PDF
+                                </span>
+                            </a>
+                        </div>
+                    ))}
+
+                    {req.imageUrls?.length > 0 && (
+                        <div className="mb-4">
+                            <p className="mb-2 text-sm font-black text-slate-700">
+                                Uploaded Images
+                            </p>
+
+                            <div className="flex flex-wrap gap-3">
+                                {req.imageUrls.map((img, index) => (
+                                    <a
+                                        key={index}
+                                        href={`${API_BASE}${img}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        <img
+                                            src={`${API_BASE}${img}`}
+                                            alt=""
+                                            className="h-24 w-24 rounded-xl border object-cover"
+                                        />
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+
                     <div className="space-y-3">
                         {items.map((item, index) => (
                             <div
@@ -280,12 +344,31 @@ function RequestCard({ req }) {
                                 </p>
 
                                 <h4 className="text-lg font-black text-slate-900">
-                                    {item.componentName || "N/A"}
+                                    {item.componentName ||
+                                        (req.datasheetUrls?.length > 0
+                                            ? "📄 BOM Uploaded"
+                                            : "N/A")}
                                 </h4>
 
                                 <div className="mt-3 grid gap-3 md:grid-cols-3">
-                                    <InfoBox label="MPN" value={item.partNumber || "N/A"} />
-                                    <InfoBox label="Brand" value={item.brand || "N/A"} />
+                                    <InfoBox
+                                        label="MPN"
+                                        value={
+                                            item.partNumber ||
+                                            (req.datasheetUrls?.length > 0
+                                                ? "Uploaded In BOM"
+                                                : "N/A")
+                                        }
+                                    />
+                                    <InfoBox
+                                        label="Brand"
+                                        value={
+                                            item.brand ||
+                                            (req.datasheetUrls?.length > 0
+                                                ? "Uploaded In BOM"
+                                                : "N/A")
+                                        }
+                                    />
                                     <InfoBox label="Quantity" value={item.quantity || 1} />
                                 </div>
                             </div>
@@ -446,9 +529,11 @@ function RequestCard({ req }) {
                             <a
                                 href={`${API_BASE}/api/component-requests/download-pdf/${req._id}`}
                                 target="_blank"
-                                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-[#102033] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0b1625]"
+                                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-3 text-sm font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:from-[#1d4ed8] hover:to-[#6d28d9]"
                             >
-                                Download Quotation PDF
+                                <span className="text-white">
+                                    Download Quotation PDF
+                                </span>
                             </a>
 
                         )}

@@ -36,9 +36,16 @@ export default function LatestBlogs() {
 
           <Link
             href="/blog"
-            className="inline-flex items-center gap-2 rounded-full border border-[#b6dcff] bg-[#dff2ff] px-6 py-3 text-sm font-extrabold text-[#075985] transition hover:bg-[#cfeeff]"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-extrabold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#6d28d9] hover:to-[#1d4ed8]"
           >
-            View All Guides <ArrowRight size={17} />
+            <span className="text-white">
+              View All Guides
+            </span>
+
+            <ArrowRight
+              size={17}
+              className="text-white"
+            />
           </Link>
         </div>
 

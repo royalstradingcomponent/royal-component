@@ -141,9 +141,8 @@ export default function Hero() {
       {slides.map((slide, index) => (
         <div
           key={slide._id || slide.image || index}
-          className={`absolute inset-0 bg-cover bg-[78%_center] transition-opacity duration-700 sm:bg-[72%_center] md:bg-center ${
-            currentSlide === index ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 bg-cover bg-[78%_center] transition-opacity duration-700 sm:bg-[72%_center] md:bg-center ${currentSlide === index ? "opacity-100" : "opacity-0"
+            }`}
           style={{
             backgroundImage: `url('${getImageUrl(slide.image)}')`,
           }}
@@ -191,18 +190,30 @@ export default function Hero() {
           <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap sm:gap-4">
             <Link
               href={activeSlide?.primaryLink || "/products"}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1d4ed8] to-[#38bdf8] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_30px_rgba(29,78,216,0.35)] transition hover:-translate-y-0.5 hover:from-[#1e40af] hover:to-[#0ea5e9] sm:w-auto sm:px-7 sm:py-3.5"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#1d4ed8] to-[#38bdf8] px-6 py-3 text-sm font-extrabold !text-white shadow-[0_10px_30px_rgba(29,78,216,0.35)] transition hover:-translate-y-0.5 hover:from-[#1e40af] hover:to-[#0ea5e9] sm:w-auto sm:px-7 sm:py-3.5"
             >
-              {activeSlide?.primaryText || "Shop Components"}
-              <ArrowRight size={18} />
+              <span className="!text-white">
+                {activeSlide?.primaryText || "Shop Components"}
+              </span>
+
+              <ArrowRight
+                size={18}
+                className="!text-white"
+              />
             </Link>
 
             <Link
               href={activeSlide?.secondaryLink || "/quote-request"}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#bae6fd] bg-[#dff2ff] px-6 py-3 text-sm font-extrabold text-[#274967] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#cfeeff] sm:w-auto sm:px-7 sm:py-3.5"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-extrabold !text-white shadow-lg transition hover:-translate-y-0.5 sm:w-auto sm:px-7 sm:py-3.5"
             >
-              <FileText size={18} />
-              {activeSlide?.secondaryText || "Request Bulk Quote"}
+              <FileText
+                size={18}
+                className="!text-white"
+              />
+
+              <span className="!text-white">
+                {activeSlide?.secondaryText || "Request Bulk Quote"}
+              </span>
             </Link>
           </div>
 
@@ -232,11 +243,10 @@ export default function Hero() {
             <button
               key={slide._id || slide.image || index}
               onClick={() => setCurrentSlide(index)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${
-                currentSlide === index
-                  ? "w-8 bg-[#0f172a]"
-                  : "w-2.5 bg-[#94a3b8]"
-              }`}
+              className={`h-2.5 rounded-full transition-all duration-300 ${currentSlide === index
+                ? "w-8 bg-[#0f172a]"
+                : "w-2.5 bg-[#94a3b8]"
+                }`}
               type="button"
               aria-label={`Go to banner ${index + 1}`}
             />

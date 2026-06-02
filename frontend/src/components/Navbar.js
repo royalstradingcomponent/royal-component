@@ -360,7 +360,7 @@ export default function Navbar() {
 
                     <Link
                       href="/products?category=semiconductors"
-                      className="rounded-full bg-[#eaf7ff] px-4 py-2 text-sm font-bold text-[#0f6cbd] hover:bg-[#dff2ff]"
+                      className="rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-2 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:from-[#1d4ed8] hover:to-[#6d28d9]"
                     >
                       View All
                     </Link>
@@ -594,13 +594,13 @@ export default function Navbar() {
       />
 
       <RegisterModal
-  isOpen={isRegisterOpen}
-  onClose={() => setIsRegisterOpen(false)}
-  openLogin={() => {
-    setIsRegisterOpen(false);
-    setIsLoginOpen(true);
-  }}
-/>
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+        openLogin={() => {
+          setIsRegisterOpen(false);
+          setIsLoginOpen(true);
+        }}
+      />
     </>
   );
 }

@@ -2,9 +2,23 @@ const mongoose = require("mongoose");
 
 const requestItemSchema = new mongoose.Schema(
   {
-    componentName: { type: String, required: true, trim: true },
-    partNumber: { type: String, required: true, trim: true },
-    brand: { type: String, required: true, trim: true },
+    componentName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    partNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    brand: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     quantity: { type: Number, required: true, min: 1, default: 1 },
   },
   { _id: false }
@@ -120,14 +134,14 @@ const componentRequestSchema = new mongoose.Schema(
       default: "",
     },
     quotationValidity: {
-  type: String,
-  default: "7 Days",
-},
+      type: String,
+      default: "7 Days",
+    },
 
-quotationSentAt: {
-  type: Date,
-  default: null,
-},
+    quotationSentAt: {
+      type: Date,
+      default: null,
+    },
 
     adminContactNumber: {
       type: String,
@@ -154,124 +168,124 @@ quotationSentAt: {
     ],
 
     matchedSupplierSources: [
-  {
-    supplierSource: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "SupplierSource",
-      default: null,
-    },
+      {
+        supplierSource: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "SupplierSource",
+          default: null,
+        },
 
-    supplierCompany: {
-      type: String,
-      default: "",
-    },
+        supplierCompany: {
+          type: String,
+          default: "",
+        },
 
-    componentName: {
-      type: String,
-      default: "",
-    },
+        componentName: {
+          type: String,
+          default: "",
+        },
 
-    partNumber: {
-      type: String,
-      default: "",
-    },
+        partNumber: {
+          type: String,
+          default: "",
+        },
 
-    brand: {
-      type: String,
-      default: "",
-    },
+        brand: {
+          type: String,
+          default: "",
+        },
 
-    purchasePrice: {
-      type: Number,
-      default: 0,
-    },
+        purchasePrice: {
+          type: Number,
+          default: 0,
+        },
 
-    finalSellingPrice: {
-      type: Number,
-      default: 0,
-    },
+        finalSellingPrice: {
+          type: Number,
+          default: 0,
+        },
 
-    gstPercent: {
-      type: Number,
-      default: 0,
-    },
+        gstPercent: {
+          type: Number,
+          default: 0,
+        },
 
-    gstAmount: {
-      type: Number,
-      default: 0,
-    },
+        gstAmount: {
+          type: Number,
+          default: 0,
+        },
 
-    profitPercent: {
-      type: Number,
-      default: 0,
-    },
+        profitPercent: {
+          type: Number,
+          default: 0,
+        },
 
-    profitAmount: {
-      type: Number,
-      default: 0,
-    },
+        profitAmount: {
+          type: Number,
+          default: 0,
+        },
 
-    extraCharge: {
-      type: Number,
-      default: 0,
-    },
+        extraCharge: {
+          type: Number,
+          default: 0,
+        },
 
-    moq: {
-      type: Number,
-      default: 1,
-    },
+        moq: {
+          type: Number,
+          default: 1,
+        },
 
-    leadTime: {
-      type: String,
-      default: "",
-    },
+        leadTime: {
+          type: String,
+          default: "",
+        },
 
-    lastPurchaseDate: {
-      type: Date,
-      default: null,
-    },
+        lastPurchaseDate: {
+          type: Date,
+          default: null,
+        },
 
-    contactPerson: {
-      type: String,
-      default: "",
-    },
+        contactPerson: {
+          type: String,
+          default: "",
+        },
 
-    address: {
-      type: String,
-      default: "",
-    },
+        address: {
+          type: String,
+          default: "",
+        },
 
-    qualityNote: {
-      type: String,
-      default: "",
-    },
+        qualityNote: {
+          type: String,
+          default: "",
+        },
 
-    phone: {
-      type: String,
-      default: "",
-    },
+        phone: {
+          type: String,
+          default: "",
+        },
 
-    whatsapp: {
-      type: String,
-      default: "",
-    },
+        whatsapp: {
+          type: String,
+          default: "",
+        },
 
-    email: {
-      type: String,
-      default: "",
-    },
+        email: {
+          type: String,
+          default: "",
+        },
 
-    availabilityStatus: {
-      type: String,
-      default: "",
-    },
+        availabilityStatus: {
+          type: String,
+          default: "",
+        },
 
-    isPreferred: {
-      type: Boolean,
-      default: false,
-    },
-  },
-],
+        isPreferred: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
 
   },
   { timestamps: true }

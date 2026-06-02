@@ -63,9 +63,12 @@ export default function ProcurementInfoBanner() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/products"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#0284c7] px-6 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:bg-[#0369a1]"
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-7 py-3 text-sm font-extrabold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#1d4ed8] hover:to-[#6d28d9]"
                 >
-                  Explore Products <ArrowRight size={17} />
+                  <span className="text-white">
+                    Explore Products
+                  </span>
+                  <ArrowRight size={18} className="text-white" />
                 </Link>
 
                 <Link

@@ -145,7 +145,7 @@ export default function CategorySlider() {
                 <Link
                   key={cat._id || slug}
                   href={href}
-                  className="group flex flex-col rounded-[24px] border border-[#d7ebfb] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#38a9f4] hover:shadow-xl"
+                  className="group flex h-full flex-col rounded-[24px] border border-[#d7ebfb] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#38a9f4] hover:shadow-xl"
                 >
                   <div className="mb-5 flex h-[140px] items-center justify-center rounded-[18px] border border-[#e0f0fb] bg-[#f5fbff]">
                     <img
@@ -163,7 +163,7 @@ export default function CategorySlider() {
                     {cat.description}
                   </p>
 
-                  <span className="mt-4 inline-block rounded-full bg-[#d8efff] px-4 py-2 text-xs font-bold">
+                  <span className="mt-auto mb-1 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-extrabold text-white shadow-lg">
                     View Category →
                   </span>
                 </Link>

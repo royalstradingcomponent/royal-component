@@ -130,7 +130,7 @@ const sendWhatsAppMessage = async (to, message) => {
 
 // ===============================
 // 📦 ORDER PLACED NOTIFICATION
-// ===============================
+// ===============================93
 async function sendOrderPlacedNotification(order) {
   const email = order?.userInfo?.email;
   const phone = getCustomerPhone(order);

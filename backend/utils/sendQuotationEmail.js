@@ -162,7 +162,7 @@ const sendQuotationEmail = async ({
             </p>
 
             <h3>
-                📞 +91 93349 66286
+                📞 +91 88511 49032
             </h3>
 
             <p>

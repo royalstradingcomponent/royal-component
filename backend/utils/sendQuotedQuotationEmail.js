@@ -521,7 +521,7 @@ const sendQuotedQuotationEmail = async ({
                 font-size:15px;
               "
             >
-              +91 93349 66286
+              +91 88511 49032
             </p>
 
           </div>

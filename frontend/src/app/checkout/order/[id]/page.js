@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-
+import { useSearchParams } from "next/navigation";
 
 import { useParams } from "next/navigation";
 import {
@@ -162,6 +162,8 @@ const trackingSteps = [
 
 export default function CheckoutOrderDetailPage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const itemId = searchParams.get("itemId");
   const { fetchOrderById } = useOrders();
 
   const [order, setOrder] = useState(null);
@@ -193,6 +195,31 @@ export default function CheckoutOrderDetailPage() {
 
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundLoading, setRefundLoading] = useState(false);
+
+  useEffect(() => {
+    if (showCancelModal) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+
+      document.documentElement.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+
+      document.documentElement.style.overflow = "";
+    };
+  }, [showCancelModal]);
+
 
   const [refundForm, setRefundForm] = useState({
     reason: "",
@@ -240,7 +267,17 @@ export default function CheckoutOrderDetailPage() {
     if (id) loadOrder();
   }, [id]);
 
-  const items = useMemo(() => order?.items || order?.products || [], [order]);
+  const items = useMemo(() => {
+    const allItems = order?.items || order?.products || [];
+
+    if (!itemId) return allItems;
+
+    return allItems.filter(
+      (item) =>
+        String(item._id) === String(itemId) ||
+        String(item.id) === String(itemId)
+    );
+  }, [order, itemId]);
 
   const buyerName =
     order?.buyer?.fullName ||
@@ -320,7 +357,7 @@ export default function CheckoutOrderDetailPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/order/cancel/${id}`, {
+      const res = await fetch(`${API_BASE}/api/orders/cancel/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -350,6 +387,48 @@ export default function CheckoutOrderDetailPage() {
     }
   };
 
+  const handleCancelItem = async (orderId, itemId) => {
+    try {
+      const user = JSON.parse(
+        localStorage.getItem("user") || "{}"
+      );
+
+      const token = user?.token;
+
+      const res = await fetch(
+        `${API_BASE}/api/orders/cancel-item/${orderId}/${itemId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            reason: "Cancelled by customer",
+            comment: "",
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+
+      toast.success("Item cancelled");
+
+      await loadOrder();
+
+    } catch (err) {
+
+      toast.error(
+        err.message || "Cancel failed"
+      );
+
+    }
+  };
+
   const handleRefundRequest = async () => {
     if (!refundForm.reason.trim()) {
       toast.error("Please select refund reason");
@@ -367,7 +446,7 @@ export default function CheckoutOrderDetailPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/order/refund/${id}`, {
+      const res = await fetch(`${API_BASE}/api/orders/refund/${id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -483,7 +562,7 @@ export default function CheckoutOrderDetailPage() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/order/update-address/${id}`, {
+      const res = await fetch(`${API_BASE}/api/orders/update-address/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -543,6 +622,16 @@ export default function CheckoutOrderDetailPage() {
 
   const orderCanCancel = canCancelOrder(order);
 
+  const heroItem = items?.[0] || {};
+  const heroImage = getItemImage(heroItem);
+  const itemTotal =
+    heroItem?.lineTotal ||
+    heroItem?.total ||
+    heroItem?.lineSubtotal ||
+    heroItem?.price ||
+    heroItem?.sellingPrice ||
+    0;
+
   return (
     <div className="min-h-screen bg-[#eef4fa] text-[#1f2937]">
       <Navbar />
@@ -559,25 +648,60 @@ export default function CheckoutOrderDetailPage() {
         <section className="mb-6 overflow-hidden rounded-[28px] border border-[#dbe5f0] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
           <div className="bg-gradient-to-r from-[#eaf4ff] via-[#f8fbff] to-[#edf7ff] px-6 py-8 md:px-9">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#2454b5]">
-                  Order Details
-                </p>
-                <h1 className="mt-3 text-[36px] font-black leading-tight text-[#102033] md:text-[52px]">
-                  {getOrderNumber(order)}
-                </h1>
-                <p className="mt-2 text-[#607287]">
-                  Ordered on {formatDate(order?.createdAt)}
-                </p>
+
+              <div className="flex items-center gap-8">
+
+                <div className="flex h-[380px] w-[380px] items-center justify-center overflow-hidden rounded-[24px] border border-[#dbe5f0] bg-white p-8 shadow-sm">
+                  {heroImage ? (
+                    <img
+                      src={getImageUrl(heroImage)}
+                      alt={getItemName(heroItem)}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <Boxes size={70} className="m-auto mt-16 text-[#2454b5]" />
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-sm font-extrabold uppercase tracking-[0.22em] text-[#2454b5]">
+                    Order Details
+                  </p>
+
+                  <h2 className="mt-3 text-[42px] font-black text-[#102033]">
+                    {getItemName(heroItem)}
+                  </h2>
+
+                  <p className="mt-2 text-[#607287]">
+                    Brand: {heroItem?.brand || "Generic"}
+                  </p>
+
+                  <p className="mt-2 text-[#607287]">
+                    Qty: {heroItem?.quantity || 1}
+                  </p>
+
+                  <p className="mt-4 text-[18px] font-bold text-green-600">
+                    {heroItem?.itemStatus || getStatus(order)}
+                  </p>
+
+                  <p className="mt-4 text-[#607287]">
+                    Order No: {getOrderNumber(order)}
+                  </p>
+
+                  <p className="text-[#607287]">
+                    Ordered on {formatDate(order?.createdAt)}
+                  </p>
+                </div>
+
               </div>
 
               <div className="rounded-3xl border border-[#dbe5f0] bg-white p-5 shadow-sm">
-                <p className="text-sm font-bold text-[#607287]">Grand Total</p>
-                <p className="mt-1 text-3xl font-black text-[#102033]">
-                  {formatCurrency(getTotal(order))}
+                <p className="text-sm font-bold text-[#607287]">
+                  Item Total
                 </p>
-                <p className="mt-3 rounded-full bg-[#ecfdf3] px-4 py-2 text-center text-sm font-extrabold text-[#15803d]">
-                  {getStatus(order)}
+
+                <p className="mt-1 text-3xl font-black text-[#102033]">
+                  {formatCurrency(itemTotal)}
                 </p>
 
                 <div className="mt-3 rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
@@ -714,10 +838,11 @@ export default function CheckoutOrderDetailPage() {
                   {items.map((item, index) => {
                     const image = getItemImage(item);
                     const qty = item?.quantity || item?.qty || 1;
+
                     const price =
-                      item?.lineSubtotal ||
                       item?.lineTotal ||
                       item?.total ||
+                      item?.lineSubtotal ||
                       item?.price ||
                       item?.sellingPrice ||
                       0;
@@ -725,22 +850,14 @@ export default function CheckoutOrderDetailPage() {
                     return (
                       <div
                         key={item?._id || item?.id || index}
-                        className="grid gap-4 rounded-2xl border border-[#dbe5f0] bg-[#fbfdff] p-4 transition hover:border-[#bcd5f5] hover:bg-white md:grid-cols-[100px_1fr_160px]"
+                        className="grid gap-6 rounded-2xl border border-[#dbe5f0] bg-[#fbfdff] p-6 transition hover:border-[#bcd5f5] hover:bg-white md:grid-cols-[180px_1fr_180px]"
                       >
-                        <div className="flex h-[100px] w-[100px] items-center justify-center overflow-hidden rounded-2xl bg-white shadow-sm">
-                          {image ? (
-                            <img
-                              src={getImageUrl(image)}
-                              alt={getItemName(item)}
-                              className="h-full w-full object-contain p-2"
-                            />
-                          ) : (
-                            <Boxes className="text-[#2454b5]" size={34} />
-                          )}
+                        <div className="flex h-[80px] w-[80px] items-center justify-center rounded-2xl bg-[#eaf3ff]">
+                          <Boxes className="text-[#2454b5]" size={40} />
                         </div>
 
                         <div>
-                          <h3 className="text-xl font-black text-[#102033]">
+                          <h3 className="text-3xl font-black text-[#102033] leading-tight">
                             {getItemName(item)}
                           </h3>
 
@@ -751,8 +868,16 @@ export default function CheckoutOrderDetailPage() {
                             <span>Qty: {qty}</span>
                           </div>
 
-                          <p className="mt-3 w-fit rounded-full bg-[#eaf3ff] px-3 py-1 text-sm font-extrabold text-[#2454b5]">
-                            {item?.itemStatus || item?.status || getStatus(order)}
+                          <p
+                            className={`mt-3 w-fit rounded-full px-3 py-1 text-sm font-extrabold
+                             ${item?.itemStatus === "Cancelled"
+                                ? "bg-red-100 text-red-600"
+                                : item?.itemStatus === "Delivered"
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-blue-100 text-blue-600"
+                              }`}
+                          >
+                            {item?.itemStatus || getStatus(order)}
                           </p>
                         </div>
 
@@ -763,6 +888,16 @@ export default function CheckoutOrderDetailPage() {
                           <p className="mt-1 text-2xl font-black text-[#102033]">
                             {formatCurrency(price)}
                           </p>
+
+                          <div className="mt-4 flex flex-wrap gap-2 justify-end">
+                            <button
+                              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white"
+                            >
+                              Track Item
+                            </button>
+
+
+                          </div>
                         </div>
                       </div>
                     );
@@ -882,11 +1017,7 @@ export default function CheckoutOrderDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-[#607287]">Subtotal</span>
                   <b className="text-[#102033]">
-                    {formatCurrency(
-                      order?.pricing?.subtotalExGst ||
-                      order?.pricing?.subtotal ||
-                      getTotal(order)
-                    )}
+                    {formatCurrency(itemTotal)}
                   </b>
                 </div>
 
@@ -1388,8 +1519,11 @@ export default function CheckoutOrderDetailPage() {
       ) : null}
 
       {showCancelModal ? (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[rgba(15,23,42,0.45)] px-4 backdrop-blur-sm">
-          <div className="w-full max-w-[560px] rounded-[28px] bg-white p-6 shadow-2xl">
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[rgba(15,23,42,0.55)] backdrop-blur-sm"
+          onWheel={(e) => e.stopPropagation()}
+        >
+          <div className="w-full max-w-[560px] max-h-[90vh] overflow-y-auto rounded-[28px] bg-white p-6 shadow-2xl">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#fff1f1] text-[#ef4444]">

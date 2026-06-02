@@ -33,9 +33,16 @@ export default function WhyChooseUs() {
 
             <Link
               href="/products"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#0284c7] px-8 py-3 text-sm font-extrabold text-white shadow-lg transition hover:bg-[#0369a1]"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-8 py-3 text-sm font-extrabold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#6d28d9] hover:to-[#1d4ed8]"
             >
-              Start Sourcing <ArrowRight size={18} />
+              <span className="text-white">
+                Start Sourcing
+              </span>
+
+              <ArrowRight
+                size={18}
+                className="text-white"
+              />
             </Link>
           </div>
 

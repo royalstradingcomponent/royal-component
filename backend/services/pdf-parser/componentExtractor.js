@@ -231,6 +231,49 @@ function extractComponents(
     lines = []
 ) {
 
+    const bomComponents = [];
+
+for (let i = 0; i < lines.length; i++) {
+
+    const line = String(lines[i] || "").trim();
+
+    if (
+        line.toLowerCase().startsWith("component name:")
+    ) {
+
+        const componentName =
+            line.split(":")[1]?.trim() || "";
+
+        const partNumber =
+            String(lines[i + 1] || "")
+                .replace(/part number:/i, "")
+                .trim();
+
+        const brand =
+            String(lines[i + 2] || "")
+                .replace(/brand:/i, "")
+                .trim();
+
+        const quantity =
+            Number(
+                String(lines[i + 3] || "")
+                    .replace(/quantity:/i, "")
+                    .trim()
+            ) || 1;
+
+        bomComponents.push({
+            componentName,
+            partNumber,
+            brand,
+            quantity,
+        });
+    }
+}
+
+if (bomComponents.length > 0) {
+    return bomComponents;
+}
+
     const unique =
         new Set();
 
@@ -350,22 +393,37 @@ function extractComponents(
 
             unique.add(comp);
 
-            final.push({
-                componentName: comp,
+const qtyMatch =
+    line.match(/\b(\d{1,6})\b/g);
 
-                brand:
-                    detectBrand(
-                        line
-                    ),
+const detectedQty =
+    qtyMatch?.length
+        ? Number(
+              qtyMatch[
+                  qtyMatch.length - 1
+              ]
+          )
+        : 1;
 
-                package:
-                    detectPackage(
-                        line
-                    ),
+final.push({
+    componentName: comp,
 
-                price:
-                    detectPrice(line),
-            });
+    partNumber: comp,
+
+    brand:
+        detectBrand(line),
+
+    package:
+        detectPackage(line),
+
+    price:
+        detectPrice(line),
+
+    quantity:
+        detectedQty > 0
+            ? detectedQty
+            : 1,
+});
         }
     }
 

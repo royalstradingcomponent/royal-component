@@ -1610,10 +1610,12 @@ function SupplierCard({ source, onEdit, onDelete }) {
             {source.phone ? (
               <a
                 href={`tel:${source.phone}`}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0f4c81] px-5 py-3 font-black text-white shadow-md hover:bg-[#0d5ea6] transition"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-3 text-sm font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:from-[#1d4ed8] hover:to-[#6d28d9]"
               >
-                <Phone size={17} />
-                Call Supplier
+                <Phone size={17} className="text-white" />
+                <span className="text-white">
+                  Call Supplier
+                </span>
               </a>
             ) : null}
 
@@ -1625,8 +1627,10 @@ function SupplierCard({ source, onEdit, onDelete }) {
                 target="_blank"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#00a86b] px-5 py-3 font-black text-white shadow-md hover:bg-[#009960] transition"
               >
-                <MessageCircle size={17} />
-                WhatsApp
+                <MessageCircle size={17} className="text-white" />
+                <span className="text-white">
+                  WhatsApp
+                </span>
               </a>
             ) : null}
 
@@ -1635,8 +1639,10 @@ function SupplierCard({ source, onEdit, onDelete }) {
                 href={`mailto:${source.email}`}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3 font-black text-white shadow-md hover:bg-sky-600 transition"
               >
-                <Mail size={17} />
-                Email
+                <Mail size={17} className="text-white" />
+                <span className="text-white">
+                  Email
+                </span>
               </a>
             ) : null}
 

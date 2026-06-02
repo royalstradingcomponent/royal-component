@@ -94,9 +94,11 @@ export default function FeaturedProducts() {
 
           <Link
             href={section.viewAllLink || "/products"}
-            className="hidden rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 md:inline-flex"
+            className="hidden rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:from-[#1d4ed8] hover:to-[#6d28d9] md:inline-flex"
           >
-            {section.viewAllText || "View All"}
+            <span className="text-white">
+              {section.viewAllText || "View All"}
+            </span>
           </Link>
         </div>
 
@@ -123,9 +125,11 @@ export default function FeaturedProducts() {
             <div className="mt-8 flex justify-center md:hidden">
               <Link
                 href={section.viewAllLink || "/products"}
-                className="inline-flex rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-700"
+                className="inline-flex rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:from-[#1d4ed8] hover:to-[#6d28d9]"
               >
-                {section.viewAllText || "View All"}
+                <span className="text-white">
+                  {section.viewAllText || "View All"}
+                </span>
               </Link>
             </div>
           </>

@@ -198,10 +198,16 @@ export default function CheckoutOrdersPage() {
 
               <Link
                 href="/products"
-                className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-[#2454b5] px-6 text-[15px] font-extrabold text-white shadow-[0_12px_28px_rgba(36,84,181,0.22)] transition hover:bg-[#1e4695]"
+                className="inline-flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 text-[15px] font-extrabold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#6d28d9] hover:to-[#1d4ed8]"
               >
-                <ShoppingBag size={18} />
-                Continue Shopping
+                <ShoppingBag
+                  size={18}
+                  className="text-white"
+                />
+
+                <span className="text-white">
+                  Continue Shopping
+                </span>
               </Link>
             </div>
           </div>
@@ -271,15 +277,22 @@ export default function CheckoutOrdersPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {filteredOrders.map((order) => {
+            {filteredOrders.flatMap((order) => {
               const orderId = order?._id || order?.id;
-              const items = getItems(order);
-              const previewItems = items.slice(0, 4);
-              const remainingItems = Math.max(items.length - previewItems.length, 0);
+
+              return getItems(order).map((item) => ({
+                order,
+                item,
+                orderId,
+              }));
+            }).map(({ order, item, orderId }) => {
+
+              const previewItems = [item];
+              const remainingItems = 0;
 
               return (
                 <section
-                  key={orderId}
+                  key={`${orderId}-${item?._id || item?.product?._id || Math.random()}`}
                   className="overflow-hidden rounded-[26px] border border-[#dbe5f0] bg-white shadow-[0_14px_38px_rgba(15,23,42,0.07)] transition hover:-translate-y-[2px] hover:shadow-[0_18px_48px_rgba(15,23,42,0.1)]"
                 >
                   <div className="flex flex-col gap-4 border-b border-[#e5edf6] bg-[#f8fbff] px-5 py-5 md:flex-row md:items-center md:justify-between md:px-6">
@@ -305,9 +318,9 @@ export default function CheckoutOrdersPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-6 p-5 md:p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="grid gap-8 p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
                     <div className="space-y-5">
-                      <div className="flex flex-col gap-4 sm:flex-row">
+                      <div className="flex flex-col gap-6 sm:flex-row">
                         <div className="flex shrink-0 -space-x-3">
                           {previewItems.length > 0 ? (
                             previewItems.map((item, index) => {
@@ -316,13 +329,13 @@ export default function CheckoutOrdersPage() {
                               return (
                                 <div
                                   key={item?._id || item?.id || index}
-                                  className="h-[78px] w-[78px] overflow-hidden rounded-2xl border-4 border-white bg-[#f3f7fb] shadow-sm"
+                                  className="h-[140px] w-[140px] overflow-hidden rounded-2xl border-4 border-white bg-[#f3f7fb] shadow-sm"
                                 >
                                   {image ? (
                                     <img
                                       src={getImageUrl(image)}
                                       alt={getItemName(item)}
-                                      className="h-full w-full object-contain p-2"
+                                      className="h-full w-full object-contain p-3"
                                     />
                                   ) : (
                                     <div className="flex h-full w-full items-center justify-center">
@@ -346,10 +359,8 @@ export default function CheckoutOrdersPage() {
                         </div>
 
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-xl font-black leading-snug text-[#102033]">
-                            {items.length > 1
-                              ? `${items.length} products in this order`
-                              : getItemName(items[0])}
+                          <h3 className="text-[32px] font-black leading-tight text-[#102033]">
+                            {getItemName(item)}
                           </h3>
 
                           <p className="mt-2 text-sm leading-6 text-[#607287]">
@@ -362,7 +373,7 @@ export default function CheckoutOrdersPage() {
                             {previewItems.map((item, index) => (
                               <div
                                 key={item?._id || item?.id || index}
-                                className="rounded-2xl border border-[#e4edf8] bg-[#fbfdff] p-4"
+                                className="rounded-2xl border border-[#e4edf8] bg-[#fbfdff] p-6"
                               >
                                 <p className="line-clamp-1 font-extrabold text-[#102033]">
                                   {getItemName(item)}
@@ -387,7 +398,13 @@ export default function CheckoutOrdersPage() {
                       </p>
 
                       <p className="mt-1 text-3xl font-black text-[#102033]">
-                        {formatCurrency(getTotal(order))}
+                        {formatCurrency(
+                          item?.lineTotal ||
+                          item?.total ||
+                          item?.lineSubtotal ||
+                          item?.price ||
+                          0
+                        )}
                       </p>
 
                       <div className="mt-5 space-y-3 text-sm text-[#607287]">
@@ -408,11 +425,17 @@ export default function CheckoutOrdersPage() {
                       </div>
 
                       <Link
-                        href={`/checkout/order/${orderId}`}
-                        className="mt-5 inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#2454b5] text-white font-extrabold shadow-[0_10px_24px_rgba(36,84,181,0.2)] transition hover:bg-[#1e4695] opacity-100"
-                        >
-                        <Eye size={18} />
-                        <span>View Details</span>
+                        href={`/checkout/order/${orderId}?itemId=${item._id}`}
+                        className="mt-5 inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] text-white font-extrabold shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#6d28d9] hover:to-[#1d4ed8]"
+                      >
+                        <Eye
+                          size={18}
+                          className="text-white"
+                        />
+
+                        <span className="text-white">
+                          View Details
+                        </span>
                       </Link>
                     </aside>
                   </div>

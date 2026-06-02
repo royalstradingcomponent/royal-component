@@ -65,14 +65,12 @@ export default function RequestComponentPage() {
   const submitRequest = async (e) => {
     e.preventDefault();
 
-    const validItems = items
-      .map((item) => ({
-        componentName: item.componentName.trim(),
-        partNumber: item.partNumber.trim(),
-        brand: item.brand.trim(),
-        quantity: Number(item.quantity || 1),
-      }))
-      .filter((item) => item.componentName && item.quantity > 0);
+    const validItems = items.map((item) => ({
+      componentName: item.componentName.trim(),
+      partNumber: item.partNumber.trim(),
+      brand: item.brand.trim(),
+      quantity: Number(item.quantity || 1),
+    }));
 
     console.log("VALID ITEMS =>", validItems);
 
@@ -87,20 +85,40 @@ export default function RequestComponentPage() {
       pinCode: form.pinCode,
     });
 
-    if (
-      !validItems.length ||
-      !form.customerName.trim() ||
-      !form.customerEmail.trim() ||
-      !form.customerPhone.trim() ||
-      !form.description.trim()
-      || !form.addressLine1.trim()
-      || !form.city.trim()
-      || !form.state.trim()
-      || !form.pinCode.trim()
-    ) {
-      toast.error("Please fill all required fields");
-      return;
+    const hasPdf = datasheets.length > 0;
+
+   if (
+  !form.customerName?.trim() ||
+  !form.customerEmail?.trim() ||
+  !form.customerPhone?.trim() ||
+  !form.description?.trim() ||
+  !form.addressLine1?.trim() ||
+  !form.city?.trim() ||
+  !form.state?.trim() ||
+  !form.pinCode?.trim()
+) {
+  toast.error("Please fill all required fields");
+  return;
+}
+
+    if (!hasPdf) {
+
+      const invalidItem = validItems.find(
+        (item) =>
+          !item.componentName ||
+          !item.partNumber ||
+          !item.brand ||
+          item.quantity <= 0
+      );
+
+      if (invalidItem) {
+        toast.error(
+          "Component Name, Part Number and Brand are required when PDF is not uploaded"
+        );
+        return;
+      }
     }
+
 
     try {
       setLoading(true);
@@ -168,6 +186,13 @@ export default function RequestComponentPage() {
         customerName: "",
         customerEmail: "",
         customerPhone: "",
+
+        companyName: "",
+        addressLine1: "",
+        addressLine2: "",
+        city: "",
+        state: "",
+        pinCode: "",
       });
       setDatasheets([]);
       setImages([]);
@@ -250,10 +275,9 @@ export default function RequestComponentPage() {
                 <div className="grid gap-4 md:grid-cols-4">
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Component Name *
+                      Component Name
                     </label>
                     <input
-                      required
                       value={item.componentName}
                       onChange={(e) =>
                         handleItemChange(index, "componentName", e.target.value)
@@ -265,10 +289,9 @@ export default function RequestComponentPage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Part Number / MPN *
+                      Part Number / MPN
                     </label>
                     <input
-                      required
                       value={item.partNumber}
                       onChange={(e) =>
                         handleItemChange(index, "partNumber", e.target.value)
@@ -280,10 +303,9 @@ export default function RequestComponentPage() {
 
                   <div>
                     <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Brand *
+                      Brand
                     </label>
                     <input
-                      required
                       value={item.brand}
                       onChange={(e) =>
                         handleItemChange(index, "brand", e.target.value)

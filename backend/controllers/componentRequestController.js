@@ -6,6 +6,25 @@ const sendWhatsAppQuotation = require("../utils/sendWhatsAppQuotation");
 const generateQuotationPdf = require("../utils/generateQuotationPdf");
 const sendQuotedQuotationEmail = require("../utils/sendQuotedQuotationEmail");
 const PDFDocument = require("pdfkit");
+const path = require("path");
+
+const {
+    runOCRFallback,
+} = require(
+    "../services/pdf-parser/ocrService"
+);
+
+const {
+    mergeBrokenLines,
+} = require(
+    "../services/pdf-parser/smartImageParser"
+);
+
+const {
+    extractComponents,
+} = require(
+    "../services/pdf-parser/componentExtractor"
+);
 
 // USER: create request
 exports.createComponentRequest = async (req, res) => {
@@ -26,6 +45,7 @@ exports.createComponentRequest = async (req, res) => {
         } = req.body;
 
         let parsedItems = [];
+        let autoExtractedItems = [];
 
         try {
             parsedItems = typeof items === "string" ? JSON.parse(items) : items;
@@ -40,10 +60,9 @@ exports.createComponentRequest = async (req, res) => {
                 brand: String(item.brand || "").trim(),
                 quantity: Number(item.quantity || 1),
             }))
-            .filter((item) => item.componentName && item.quantity > 0);
+            .filter((item) => item.quantity > 0);
 
         if (
-            !parsedItems.length ||
             !customerName?.trim() ||
             !customerEmail?.trim() ||
             !customerPhone?.trim() ||
@@ -54,6 +73,7 @@ exports.createComponentRequest = async (req, res) => {
                 message: "Please fill all required fields",
             });
         }
+
 
         let matchedSupplierSources = [];
 
@@ -76,15 +96,161 @@ exports.createComponentRequest = async (req, res) => {
 
         const imageUrls =
             req.files?.images?.map(
-                (file) => `/uploads/request-files/${file.filename}`,
+                (file) => `/uploads/requests/${file.filename}`,
             ) || [];
 
         const datasheetUrls =
             req.files?.datasheets?.map(
-                (file) => `/uploads/request-files/${file.filename}`,
+                (file) => `/uploads/requests/${file.filename}`,
             ) || [];
 
+        const hasPdf = datasheetUrls.length > 0;
+
+        if (hasPdf) {
+            try {
+
+                const pdfFile =
+                    req.files?.datasheets?.[0];
+
+                if (pdfFile) {
+
+                    const pdfParse =
+                        require("pdf-parse");
+
+                    const fs =
+                        require("fs");
+
+                    const buffer =
+                        fs.readFileSync(
+                            pdfFile.path
+                        );
+
+                    const pdfData =
+                        await pdfParse(
+                            buffer
+                        );
+
+                    let rawLines =
+                        pdfData.text
+                            .split("\n")
+                            .map((line) =>
+                                line.trim()
+                            )
+                            .filter(Boolean);
+
+                    if (
+                        rawLines.length === 0
+                    ) {
+                        rawLines =
+                            await runOCRFallback(
+                                pdfFile.path
+                            );
+                    }
+
+                    console.log(
+                        "PDF TEXT LINES =>",
+                        rawLines
+                    );
+
+                    const mergedLines =
+                        mergeBrokenLines(
+                            rawLines
+                        );
+
+                    const components =
+                        extractComponents(
+                            mergedLines
+                        );
+
+                    console.log("=================================");
+                    console.log("RAW LINES");
+                    console.log(rawLines);
+
+                    console.log("=================================");
+                    console.log("MERGED LINES");
+                    console.log(mergedLines);
+
+                    console.log("=================================");
+                    console.log("COMPONENTS");
+                    console.log(
+                        JSON.stringify(
+                            components,
+                            null,
+                            2
+                        )
+                    );
+                    console.log("=================================");
+
+                    autoExtractedItems =
+                        components.map(
+                            (item) => ({
+                                componentName:
+                                    item.componentName || "",
+
+                                partNumber:
+                                    item.partNumber ||
+                                    item.componentName ||
+                                    "",
+
+                                brand:
+                                    item.brand ||
+                                    "",
+
+                                quantity:
+                                    Number(
+                                        item.quantity || 1
+                                    ),
+                            })
+                        );
+
+                    if (
+                        autoExtractedItems.length > 0
+                    ) {
+
+                        parsedItems =
+                            autoExtractedItems;
+
+                        console.log(
+                            "AUTO DETECTED COMPONENTS =>",
+                            autoExtractedItems
+                        );
+                    }
+                }
+
+            } catch (error) {
+
+                console.log(
+                    "PDF OCR ERROR =>",
+                    error
+                );
+
+            }
+        }
+
+        if (!hasPdf) {
+
+            const invalidItem = parsedItems.find(
+                (item) =>
+                    !item.componentName ||
+                    !item.partNumber ||
+                    !item.brand ||
+                    item.quantity <= 0
+            );
+
+            if (invalidItem) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Component Name, Part Number, Brand and Quantity are required when PDF is not uploaded",
+                });
+            }
+        }
+
+
         for (const item of parsedItems) {
+
+            if (!item.partNumber) continue;
+
             const supplier = await SupplierSource.findOne({
                 partNumber: {
                     $regex: new RegExp(item.partNumber, "i"),

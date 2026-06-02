@@ -444,7 +444,14 @@ exports.getAllOrders = async (req, res) => {
 ===================================================== */
 exports.updateOrderStatus = async (req, res) => {
   try {
-    const { orderId, status, trackingId, courier, trackingUrl } = req.body;
+   const {
+  orderId,
+  status,
+  trackingId,
+  courier,
+  trackingUrl,
+  itemStatuses = [],
+} = req.body;
 
     const allowedStatuses = [
       "Order Placed",
@@ -682,6 +689,27 @@ exports.cancelOrderItem = async (req, res) => {
     } else {
       order.orderStatus = "Processing";
     }
+
+    order.pricing.subtotal = activeItems.reduce(
+  (sum, item) => sum + Number(item.lineSubtotal || 0),
+  0
+);
+
+order.pricing.tax = activeItems.reduce(
+  (sum, item) => sum + Number(item.gstAmount || 0),
+  0
+);
+
+order.pricing.totalAmount =
+  order.pricing.subtotal +
+  order.pricing.tax +
+  Number(order.pricing.shippingCharge || 0) +
+  Number(order.pricing.platformFee || 0);
+
+order.pricing.itemCount = activeItems.reduce(
+  (sum, item) => sum + Number(item.quantity || 0),
+  0
+);
 
     const product =
   await Product.findById(item.productId);

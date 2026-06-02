@@ -8,6 +8,7 @@ import {
     Search,
     RefreshCcw,
     FileText,
+    Download,
     ImageIcon,
     Save,
     PackageSearch,
@@ -478,14 +479,40 @@ function RequestCard({ req, updateRequest }) {
                         ) : null}
 
                         {(req.datasheetUrls?.length || req.datasheetUrl) ? (
-                            <a
-                                href={`${API_BASE}${req.datasheetUrls?.[0] || req.datasheetUrl}`}
-                                target="_blank"
-                                className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-700 hover:bg-emerald-100"
-                            >
-                                <FileText size={17} />
-                                View Datasheet
-                            </a>
+                            <div className="flex flex-wrap gap-3">
+
+                                <a
+                                    href={`${API_BASE}${(req.datasheetUrls?.[0] || req.datasheetUrl).replace(
+                                        "/uploads/request-files/",
+                                        "/uploads/requests/"
+                                    )}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-5 py-3 text-sm font-bold text-white shadow hover:bg-sky-600"
+                                >
+                                    <FileText size={17} className="text-white" />
+                                    <span className="text-white">
+                                        Preview BOM PDF
+                                    </span>
+                                </a>
+
+                                <a
+                                    href={`${API_BASE}${(req.datasheetUrls?.[0] || req.datasheetUrl).replace(
+                                        "/uploads/request-files/",
+                                        "/uploads/requests/"
+                                    )}`}
+                                    download
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow hover:bg-emerald-600"
+                                >
+                                    <Download size={17} className="text-white" />
+                                    <span className="text-white">
+                                        Download BOM PDF
+                                    </span>
+                                </a>
+
+                            </div>
                         ) : null}
 
                         {!(

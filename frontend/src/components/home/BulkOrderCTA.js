@@ -32,16 +32,21 @@ export default function BulkOrderCTA() {
             <div className="mt-7 flex flex-wrap gap-4">
               <Link
                 href="/quote-request"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3 text-sm font-extrabold text-[#075985] transition hover:bg-[#e0f2fe]"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#10b981] to-[#059669] px-8 py-3 text-sm font-extrabold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#059669] hover:to-[#047857]"
               >
-                Request Bulk Quote <ArrowRight size={18} />
+                <span className="text-white">
+                  Request Bulk Quote
+                </span>
               </Link>
 
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 rounded-full border border-white/40 px-7 py-3 text-sm font-extrabold text-white transition hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-7 py-3 text-sm font-extrabold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-[#1d4ed8] hover:to-[#6d28d9]"
               >
-                Explore Products
+                <span className="text-white">
+                  Explore Products
+                </span>
+                <ArrowRight size={18} className="text-white" />
               </Link>
             </div>
           </div>
