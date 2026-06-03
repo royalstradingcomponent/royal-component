@@ -2,40 +2,47 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
 export default function SupplierHistoryPage() {
     const [sources, setSources] = useState([]);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
-        fetchSources();
-    }, []);
+    fetchSources();
+}, [search]);
 
-    const fetchSources = async () => {
-        try {
-            const token = localStorage.getItem("adminToken");
+  const fetchSources = async () => {
+    try {
+        const token = localStorage.getItem("adminToken");
 
-            const res = await fetch(
-                `${API_BASE}/api/supplier-sources?limit=10000`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+        const params = new URLSearchParams();
 
-            const data = await res.json();
-
-            if (data.success) {
-                console.log("TOTAL API DATA =", data);
-                console.log("TOTAL SOURCES =", data.sources?.length);
-
-                setSources(data.sources || []);
-            }
-        } catch (err) {
-            console.log(err);
+        if (search.trim()) {
+            params.set("search", search.trim());
         }
-    };
+
+        params.set("limit", "10000");
+
+        const res = await fetch(
+            `${API_BASE}/api/supplier-sources?${params.toString()}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const data = await res.json();
+
+        if (data.success) {
+            setSources(data.sources || []);
+        }
+    } catch (err) {
+        console.log(err);
+    }
+};
 
     const totalValue = sources.reduce(
         (acc, item) =>
@@ -100,7 +107,34 @@ export default function SupplierHistoryPage() {
                         ₹{totalValue.toLocaleString("en-IN")}
                     </h2>
                 </div>
+
+                
             </div>
+
+            <div className="mb-8 grid gap-4 rounded-[26px] border border-blue-100 bg-white p-5 shadow-lg lg:grid-cols-[1fr_160px]">
+
+    <div className="relative">
+        <Search
+            size={20}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+
+        <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search component, part number, supplier, phone, email..."
+            className="h-[54px] w-full rounded-2xl border border-slate-200 bg-[#f8fbff] py-3 pl-12 pr-4 text-sm font-semibold outline-none focus:border-blue-500"
+        />
+    </div>
+
+    <button
+        onClick={fetchSources}
+        className="h-[54px] rounded-2xl bg-[#102033] px-6 font-black text-white"
+    >
+        Search
+    </button>
+
+</div>
 
             <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-200">
 
@@ -158,6 +192,8 @@ export default function SupplierHistoryPage() {
                 </div>
 
             </div>
+
+            
         </main>
     );
 }
