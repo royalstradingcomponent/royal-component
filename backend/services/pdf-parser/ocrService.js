@@ -9,17 +9,17 @@ async function runOCRFallback(
 ) {
   const convert =
     fromPath(filePath, {
-      density: 200,
+      density: 120,
       saveFilename: "page",
       savePath: "./uploads/temp",
       format: "png",
-      width: 2000,
-      height: 2000,
+      width: 1200,
+      height: 1200,
     });
 
   const pages = [];
 
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= 10; i++) {
     try {
       const page =
         await convert(i);

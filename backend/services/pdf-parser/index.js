@@ -90,9 +90,7 @@ async function parseSupplierPdfService(
     allLines.push(...pageLines);
   }
 
-  if (
-    rawText.trim().length < 100
-  ) {
+  if (!rawText.trim()) {
 
     const ocrLines =
       await runOCRFallback(filePath);

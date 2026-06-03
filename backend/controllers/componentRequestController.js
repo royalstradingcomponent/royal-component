@@ -107,6 +107,7 @@ exports.createComponentRequest = async (req, res) => {
         const hasPdf = datasheetUrls.length > 0;
 
         if (hasPdf) {
+            console.time("TOTAL_PDF_PROCESS");
             try {
 
                 const pdfFile =
@@ -124,11 +125,14 @@ exports.createComponentRequest = async (req, res) => {
                         fs.readFileSync(
                             pdfFile.path
                         );
+                    console.time("PDF_PARSE");
 
                     const pdfData =
                         await pdfParse(
                             buffer
                         );
+
+                    console.timeEnd("PDF_PARSE");
 
                     let rawLines =
                         pdfData.text
@@ -137,6 +141,8 @@ exports.createComponentRequest = async (req, res) => {
                                 line.trim()
                             )
                             .filter(Boolean);
+
+                    console.time("OCR");
 
                     if (
                         rawLines.length === 0
@@ -147,39 +153,21 @@ exports.createComponentRequest = async (req, res) => {
                             );
                     }
 
-                    console.log(
-                        "PDF TEXT LINES =>",
-                        rawLines
-                    );
+                    console.timeEnd("OCR");
 
                     const mergedLines =
                         mergeBrokenLines(
                             rawLines
                         );
 
+                    console.time("EXTRACT_COMPONENTS");
+
                     const components =
                         extractComponents(
                             mergedLines
                         );
 
-                    console.log("=================================");
-                    console.log("RAW LINES");
-                    console.log(rawLines);
 
-                    console.log("=================================");
-                    console.log("MERGED LINES");
-                    console.log(mergedLines);
-
-                    console.log("=================================");
-                    console.log("COMPONENTS");
-                    console.log(
-                        JSON.stringify(
-                            components,
-                            null,
-                            2
-                        )
-                    );
-                    console.log("=================================");
 
                     autoExtractedItems =
                         components.map(
@@ -203,17 +191,13 @@ exports.createComponentRequest = async (req, res) => {
                             })
                         );
 
+                    console.timeEnd("TOTAL_PDF_PROCESS");
+
                     if (
                         autoExtractedItems.length > 0
                     ) {
-
                         parsedItems =
                             autoExtractedItems;
-
-                        console.log(
-                            "AUTO DETECTED COMPONENTS =>",
-                            autoExtractedItems
-                        );
                     }
                 }
 
@@ -247,20 +231,32 @@ exports.createComponentRequest = async (req, res) => {
         }
 
 
+        console.log(
+            "TOTAL COMPONENTS =>",
+            parsedItems.length
+        );
+
+        const allSuppliers =
+            await SupplierSource.find({
+                availabilityStatus: "available",
+                isActive: true,
+            }).lean();
+
+        console.time("MATCHING");
         for (const item of parsedItems) {
 
             if (!item.partNumber) continue;
 
-            const supplier = await SupplierSource.findOne({
-                partNumber: {
-                    $regex: new RegExp(item.partNumber, "i"),
-                },
-                availabilityStatus: "available",
-                isActive: true,
-            }).sort({
-                isPreferred: -1,
-                purchasePrice: 1,
-            });
+            const supplier =
+                allSuppliers.find(
+                    (s) =>
+                        s.partNumber &&
+                        s.partNumber
+                            .toLowerCase()
+                            .includes(
+                                item.partNumber.toLowerCase()
+                            )
+                );
 
             if (supplier) {
                 foundSupplier = true;
@@ -339,9 +335,17 @@ exports.createComponentRequest = async (req, res) => {
             }
         }
 
+        console.log(
+            "MATCHED =>",
+            matchedSupplierSources.length
+        );
+
+        console.timeEnd("MATCHING");
         if (foundSupplier) {
             requestStatus = "available";
         }
+        console.time("DB_SAVE");
+
 
         const request = await ComponentRequest.create({
             quotationNumber: `RTC-${Date.now()}`,
@@ -382,34 +386,37 @@ exports.createComponentRequest = async (req, res) => {
             ],
             status: requestStatus,
         });
+
+        console.timeEnd("DB_SAVE");
+        
         if (requestStatus === "available") {
-            const pdfBuffer = await generateQuotationPdf(request);
+            // const pdfBuffer = await generateQuotationPdf(request);
 
-            await sendQuotationEmail({
-                customerEmail,
+            // await sendQuotationEmail({
+            //     customerEmail,
 
-                customerName,
+            //     customerName,
 
-                items: parsedItems,
+            //     items: parsedItems,
 
-                totalPrice: autoAdminPrice,
+            //     totalPrice: autoAdminPrice,
 
-                leadTime: autoLeadTime,
+            //     leadTime: autoLeadTime,
 
-                quotationNumber: request.quotationNumber,
+            //     quotationNumber: request.quotationNumber,
 
-                pdfBuffer,
-            });
+            //     pdfBuffer,
+            // });
 
-            await sendWhatsAppQuotation({
-                customerPhone,
+            // await sendWhatsAppQuotation({
+            //     customerPhone,
 
-                items: parsedItems,
+            //     items: parsedItems,
 
-                totalPrice: autoAdminPrice,
+            //     totalPrice: autoAdminPrice,
 
-                leadTime: autoLeadTime,
-            });
+            //     leadTime: autoLeadTime,
+            // });
         }
 
         res.status(201).json({
