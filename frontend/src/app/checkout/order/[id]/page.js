@@ -611,11 +611,15 @@ export default function CheckoutOrderDetailPage() {
 
   const heroItem = items?.[0] || {};
 
-  const selectedItemSubtotal = Number(heroItem?.lineSubtotal || 0);
+  const selectedItemSubtotal =
+    Number(heroItem?.price || 0) *
+    Number(heroItem?.quantity || 0);
 
-  const selectedItemTax = Number(heroItem?.gstAmount || 0);
+  const selectedItemTax =
+    Number(heroItem?.gstAmount || 0);
 
-  const selectedItemTotal = Number(heroItem?.lineTotal || 0);
+  const selectedItemTotal =
+    Number(heroItem?.lineTotal || 0);
 
   const heroImage = getItemImage(heroItem);
   const itemTotal = selectedItemTotal;
@@ -684,7 +688,7 @@ export default function CheckoutOrderDetailPage() {
                 <p className="text-sm font-bold text-[#607287]">Item Total</p>
 
                 <p className="mt-1 text-3xl font-black text-[#102033]">
-                  {formatCurrency(itemTotal)}
+                  {formatCurrency(selectedItemSubtotal)}
                 </p>
 
                 <div className="mt-3 rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
@@ -790,11 +794,10 @@ export default function CheckoutOrderDetailPage() {
                       className="rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] p-4"
                     >
                       <div
-                        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${
-                          completed
-                            ? "bg-[#16a34a] text-white"
-                            : "bg-white text-[#94a3b8]"
-                        }`}
+                        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${completed
+                          ? "bg-[#16a34a] text-white"
+                          : "bg-white text-[#94a3b8]"
+                          }`}
                       >
                         {completed ? <Check size={18} /> : index + 1}
                       </div>
@@ -872,13 +875,12 @@ export default function CheckoutOrderDetailPage() {
 
                           <p
                             className={`mt-3 w-fit rounded-full px-3 py-1 text-sm font-extrabold
-                             ${
-                               item?.itemStatus === "Cancelled"
-                                 ? "bg-red-100 text-red-600"
-                                 : item?.itemStatus === "Delivered"
-                                   ? "bg-green-100 text-green-600"
-                                   : "bg-blue-100 text-blue-600"
-                             }`}
+                             ${item?.itemStatus === "Cancelled"
+                                ? "bg-red-100 text-red-600"
+                                : item?.itemStatus === "Delivered"
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-blue-100 text-blue-600"
+                              }`}
                           >
                             {item?.itemStatus || getStatus(order)}
                           </p>
@@ -1020,7 +1022,9 @@ export default function CheckoutOrderDetailPage() {
               <div className="space-y-4 text-[15px]">
                 <div className="flex justify-between">
                   <span className="text-[#607287]">Subtotal</span>
-                  <b className="text-[#102033]">{formatCurrency(itemTotal)}</b>
+                  <b className="text-[#102033]">
+                    {formatCurrency(selectedItemSubtotal)}
+                  </b>
                 </div>
 
                 <div className="flex justify-between">
@@ -1561,11 +1565,10 @@ export default function CheckoutOrderDetailPage() {
               {cancelReasons.map((reason) => (
                 <label
                   key={reason}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${
-                    cancelReason === reason
-                      ? "border-[#2454b5] bg-[#eaf3ff]"
-                      : "border-[#dbe5f0] bg-white hover:bg-[#f8fbff]"
-                  }`}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${cancelReason === reason
+                    ? "border-[#2454b5] bg-[#eaf3ff]"
+                    : "border-[#dbe5f0] bg-white hover:bg-[#f8fbff]"
+                    }`}
                 >
                   <input
                     type="radio"
