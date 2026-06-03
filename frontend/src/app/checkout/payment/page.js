@@ -95,10 +95,10 @@ export default function CheckoutPaymentPage() {
     const orderId = data?.orderId || data?.order?._id;
 
     if (orderId) {
-  router.push(`/checkout/order/${orderId}`);
-} else {
-  router.push("/checkout/order");
-}
+      router.push(`/checkout/success/${orderId}`);
+    } else {
+      router.push("/checkout/order");
+    }
 
   };
 
@@ -230,7 +230,7 @@ export default function CheckoutPaymentPage() {
       </main>
 
       <Footer />
-      
+
     </div>
   );
 }

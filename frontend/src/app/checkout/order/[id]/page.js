@@ -69,7 +69,6 @@ function getStatus(order) {
 }
 
 function getTotal(order) {
-
   return (
     order?.pricing?.totalAmount ||
     order?.pricing?.grandTotal ||
@@ -87,14 +86,9 @@ function formatPaymentMethod(method) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-
-
 function getAddressText(order) {
   const addr =
-    order?.shippingAddress ||
-    order?.address ||
-    order?.userInfo ||
-    {};
+    order?.shippingAddress || order?.address || order?.userInfo || {};
 
   return [
     addr.name,
@@ -133,6 +127,7 @@ function getItemImage(item) {
 
 function canCancelOrder(order) {
   const status = String(getStatus(order)).toLowerCase();
+  console.log("ORDER STATUS =>", order?.orderStatus);
   return (
     !status.includes("cancel") &&
     !status.includes("deliver") &&
@@ -153,10 +148,10 @@ const cancelReasons = [
 ];
 
 const trackingSteps = [
-  "Order Request Placed",
-  "Stock Verification",
-  "Commercial Confirmation",
-  "Dispatch Planning",
+  "Order Placed",
+  "Processing",
+  "Packed",
+  "Shipped",
   "Delivered",
 ];
 
@@ -220,7 +215,6 @@ export default function CheckoutOrderDetailPage() {
     };
   }, [showCancelModal]);
 
-
   const [refundForm, setRefundForm] = useState({
     reason: "",
     comment: "",
@@ -275,7 +269,7 @@ export default function CheckoutOrderDetailPage() {
     return allItems.filter(
       (item) =>
         String(item._id) === String(itemId) ||
-        String(item.id) === String(itemId)
+        String(item.id) === String(itemId),
     );
   }, [order, itemId]);
 
@@ -389,9 +383,7 @@ export default function CheckoutOrderDetailPage() {
 
   const handleCancelItem = async (orderId, itemId) => {
     try {
-      const user = JSON.parse(
-        localStorage.getItem("user") || "{}"
-      );
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       const token = user?.token;
 
@@ -407,7 +399,7 @@ export default function CheckoutOrderDetailPage() {
             reason: "Cancelled by customer",
             comment: "",
           }),
-        }
+        },
       );
 
       const data = await res.json();
@@ -419,13 +411,8 @@ export default function CheckoutOrderDetailPage() {
       toast.success("Item cancelled");
 
       await loadOrder();
-
     } catch (err) {
-
-      toast.error(
-        err.message || "Cancel failed"
-      );
-
+      toast.error(err.message || "Cancel failed");
     }
   };
 
@@ -623,14 +610,15 @@ export default function CheckoutOrderDetailPage() {
   const orderCanCancel = canCancelOrder(order);
 
   const heroItem = items?.[0] || {};
+
+  const selectedItemSubtotal = Number(heroItem?.lineSubtotal || 0);
+
+  const selectedItemTax = Number(heroItem?.gstAmount || 0);
+
+  const selectedItemTotal = Number(heroItem?.lineTotal || 0);
+
   const heroImage = getItemImage(heroItem);
-  const itemTotal =
-    heroItem?.lineTotal ||
-    heroItem?.total ||
-    heroItem?.lineSubtotal ||
-    heroItem?.price ||
-    heroItem?.sellingPrice ||
-    0;
+  const itemTotal = selectedItemTotal;
 
   return (
     <div className="min-h-screen bg-[#eef4fa] text-[#1f2937]">
@@ -648,9 +636,7 @@ export default function CheckoutOrderDetailPage() {
         <section className="mb-6 overflow-hidden rounded-[28px] border border-[#dbe5f0] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
           <div className="bg-gradient-to-r from-[#eaf4ff] via-[#f8fbff] to-[#edf7ff] px-6 py-8 md:px-9">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-
               <div className="flex items-center gap-8">
-
                 <div className="flex h-[380px] w-[380px] items-center justify-center overflow-hidden rounded-[24px] border border-[#dbe5f0] bg-white p-8 shadow-sm">
                   {heroImage ? (
                     <img
@@ -692,13 +678,10 @@ export default function CheckoutOrderDetailPage() {
                     Ordered on {formatDate(order?.createdAt)}
                   </p>
                 </div>
-
               </div>
 
               <div className="rounded-3xl border border-[#dbe5f0] bg-white p-5 shadow-sm">
-                <p className="text-sm font-bold text-[#607287]">
-                  Item Total
-                </p>
+                <p className="text-sm font-bold text-[#607287]">Item Total</p>
 
                 <p className="mt-1 text-3xl font-black text-[#102033]">
                   {formatCurrency(itemTotal)}
@@ -755,7 +738,8 @@ export default function CheckoutOrderDetailPage() {
                       {refundStatus}
                     </p>
                     <p className="mt-1 text-sm leading-6 text-slate-600">
-                      Amount: {formatCurrency(order?.refund?.amount || getTotal(order))}
+                      Amount:{" "}
+                      {formatCurrency(order?.refund?.amount || getTotal(order))}
                     </p>
                   </div>
                 ) : null}
@@ -785,7 +769,20 @@ export default function CheckoutOrderDetailPage() {
                 {trackingSteps.map((step, index) => {
                   const status = String(getStatus(order)).toLowerCase();
                   const cancelled = status.includes("cancel");
-                  const completed = cancelled ? index === 0 : index <= 1;
+                  const statusMap = {
+                    "order placed": 0,
+                    processing: 1,
+                    packed: 2,
+                    shipped: 3,
+                    "out for delivery": 3,
+                    delivered: 4,
+                  };
+
+                  const currentStep = statusMap[status] ?? 0;
+
+                  const completed = cancelled
+                    ? index === 0
+                    : index <= currentStep;
 
                   return (
                     <div
@@ -793,10 +790,11 @@ export default function CheckoutOrderDetailPage() {
                       className="rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] p-4"
                     >
                       <div
-                        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${completed
-                          ? "bg-[#16a34a] text-white"
-                          : "bg-white text-[#94a3b8]"
-                          }`}
+                        className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full ${
+                          completed
+                            ? "bg-[#16a34a] text-white"
+                            : "bg-white text-[#94a3b8]"
+                        }`}
                       >
                         {completed ? <Check size={18} /> : index + 1}
                       </div>
@@ -832,7 +830,9 @@ export default function CheckoutOrderDetailPage() {
               </div>
 
               {items.length === 0 ? (
-                <p className="text-[#607287]">Item details are not available.</p>
+                <p className="text-[#607287]">
+                  Item details are not available.
+                </p>
               ) : (
                 <div className="space-y-4">
                   {items.map((item, index) => {
@@ -862,7 +862,9 @@ export default function CheckoutOrderDetailPage() {
                           </h3>
 
                           <div className="mt-2 flex flex-wrap gap-2 text-sm text-[#607287]">
-                            {item?.brand ? <span>Brand: {item.brand}</span> : null}
+                            {item?.brand ? (
+                              <span>Brand: {item.brand}</span>
+                            ) : null}
                             {item?.sku ? <span>SKU: {item.sku}</span> : null}
                             {item?.mpn ? <span>MPN: {item.mpn}</span> : null}
                             <span>Qty: {qty}</span>
@@ -870,12 +872,13 @@ export default function CheckoutOrderDetailPage() {
 
                           <p
                             className={`mt-3 w-fit rounded-full px-3 py-1 text-sm font-extrabold
-                             ${item?.itemStatus === "Cancelled"
-                                ? "bg-red-100 text-red-600"
-                                : item?.itemStatus === "Delivered"
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-blue-100 text-blue-600"
-                              }`}
+                             ${
+                               item?.itemStatus === "Cancelled"
+                                 ? "bg-red-100 text-red-600"
+                                 : item?.itemStatus === "Delivered"
+                                   ? "bg-green-100 text-green-600"
+                                   : "bg-blue-100 text-blue-600"
+                             }`}
                           >
                             {item?.itemStatus || getStatus(order)}
                           </p>
@@ -890,13 +893,9 @@ export default function CheckoutOrderDetailPage() {
                           </p>
 
                           <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                            <button
-                              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white"
-                            >
+                            <button className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white">
                               Track Item
                             </button>
-
-
                           </div>
                         </div>
                       </div>
@@ -913,8 +912,9 @@ export default function CheckoutOrderDetailPage() {
                     Need help with this order?
                   </h2>
                   <p className="mt-2 max-w-3xl text-[#607287]">
-                    Ask about dispatch timeline, GST invoice, alternate part, bulk quotation,
-                    delivery update or product technical details.
+                    Ask about dispatch timeline, GST invoice, alternate part,
+                    bulk quotation, delivery update or product technical
+                    details.
                   </p>
                 </div>
 
@@ -957,7 +957,9 @@ export default function CheckoutOrderDetailPage() {
 
                 <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
                   <Clock3 className="mb-3 text-[#2454b5]" size={26} />
-                  <p className="font-extrabold text-[#102033]">Procurement Timeline</p>
+                  <p className="font-extrabold text-[#102033]">
+                    Procurement Timeline
+                  </p>
                   <p className="mt-1 text-sm text-[#607287]">
                     Stock verification and dispatch confirmation.
                   </p>
@@ -993,7 +995,9 @@ export default function CheckoutOrderDetailPage() {
 
                 <p className="flex gap-3">
                   <MapPin className="shrink-0 text-[#2454b5]" size={20} />
-                  <span>{getAddressText(order) || "Address not available"}</span>
+                  <span>
+                    {getAddressText(order) || "Address not available"}
+                  </span>
                 </p>
                 {order?.canEditAddress ? (
                   <button
@@ -1016,28 +1020,26 @@ export default function CheckoutOrderDetailPage() {
               <div className="space-y-4 text-[15px]">
                 <div className="flex justify-between">
                   <span className="text-[#607287]">Subtotal</span>
-                  <b className="text-[#102033]">
-                    {formatCurrency(itemTotal)}
-                  </b>
+                  <b className="text-[#102033]">{formatCurrency(itemTotal)}</b>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-[#607287]">GST</span>
                   <b className="text-[#102033]">
-                    {formatCurrency(order?.pricing?.gstTotal || 0)}
+                    {formatCurrency(selectedItemTax)}
                   </b>
                 </div>
 
                 <div className="flex justify-between">
                   <span className="text-[#607287]">Delivery</span>
-                  <b className="text-[#102033]">
-                    {formatCurrency(order?.pricing?.shipping || 0)}
-                  </b>
+                  <b className="text-[#102033]">₹ 0.00</b>
                 </div>
 
                 <div className="flex justify-between border-t border-[#e5e7eb] pt-4 text-xl">
                   <span className="font-black text-[#102033]">Total</span>
-                  <b className="text-[#102033]">{formatCurrency(getTotal(order))}</b>
+                  <b className="text-[#102033]">
+                    {formatCurrency(selectedItemTotal)}
+                  </b>
                 </div>
               </div>
             </section>
@@ -1060,7 +1062,10 @@ export default function CheckoutOrderDetailPage() {
 
                 {order?.payment?.proof?.utr ? (
                   <p className="flex gap-3">
-                    <ReceiptText className="shrink-0 text-[#2454b5]" size={20} />
+                    <ReceiptText
+                      className="shrink-0 text-[#2454b5]"
+                      size={20}
+                    />
                     UTR / Ref: {order.payment.proof.utr}
                   </p>
                 ) : null}
@@ -1112,9 +1117,9 @@ export default function CheckoutOrderDetailPage() {
                 </h2>
 
                 <p className="mt-2 text-sm leading-6 text-[#607287]">
-                  Payment karne ke baad UTR / transaction ID ya payment screenshot
-                  upload karein. Admin verify karne ke baad payment status Paid ho
-                  jayega.
+                  Payment karne ke baad UTR / transaction ID ya payment
+                  screenshot upload karein. Admin verify karne ke baad payment
+                  status Paid ho jayega.
                 </p>
               </div>
 
@@ -1214,9 +1219,9 @@ export default function CheckoutOrderDetailPage() {
                   Request Refund
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[#607287]">
-                  Refund request admin panel me review hoga. Approval ke baad refund
-                  UPI, bank account, card reference ya original payment method ke
-                  hisaab se process hoga.
+                  Refund request admin panel me review hoga. Approval ke baad
+                  refund UPI, bank account, card reference ya original payment
+                  method ke hisaab se process hoga.
                 </p>
               </div>
 
@@ -1273,7 +1278,9 @@ export default function CheckoutOrderDetailPage() {
                   <option value="BANK_ACCOUNT">Bank Account</option>
                 ) : (
                   <>
-                    <option value="ORIGINAL_PAYMENT">Original Payment Method</option>
+                    <option value="ORIGINAL_PAYMENT">
+                      Original Payment Method
+                    </option>
                     <option value="UPI">UPI</option>
                     <option value="BANK_ACCOUNT">Bank Account</option>
                     <option value="CARD">Card Reference</option>
@@ -1286,7 +1293,10 @@ export default function CheckoutOrderDetailPage() {
                   <input
                     value={refundForm.upiId}
                     onChange={(e) =>
-                      setRefundForm((prev) => ({ ...prev, upiId: e.target.value }))
+                      setRefundForm((prev) => ({
+                        ...prev,
+                        upiId: e.target.value,
+                      }))
                     }
                     placeholder="UPI ID"
                     className="h-12 rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
@@ -1391,7 +1401,10 @@ export default function CheckoutOrderDetailPage() {
                 rows={4}
                 value={refundForm.comment}
                 onChange={(e) =>
-                  setRefundForm((prev) => ({ ...prev, comment: e.target.value }))
+                  setRefundForm((prev) => ({
+                    ...prev,
+                    comment: e.target.value,
+                  }))
                 }
                 placeholder="Write more details about refund request..."
                 className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0284c7]"
@@ -1409,8 +1422,6 @@ export default function CheckoutOrderDetailPage() {
           </div>
         </div>
       ) : null}
-
-
 
       {showAddressModal ? (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-hidden bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
@@ -1533,8 +1544,8 @@ export default function CheckoutOrderDetailPage() {
                   Cancel this order?
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-[#607287]">
-                  Please select the correct reason. This helps the procurement team process
-                  cancellation and refund/update request faster.
+                  Please select the correct reason. This helps the procurement
+                  team process cancellation and refund/update request faster.
                 </p>
               </div>
 
@@ -1550,10 +1561,11 @@ export default function CheckoutOrderDetailPage() {
               {cancelReasons.map((reason) => (
                 <label
                   key={reason}
-                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${cancelReason === reason
-                    ? "border-[#2454b5] bg-[#eaf3ff]"
-                    : "border-[#dbe5f0] bg-white hover:bg-[#f8fbff]"
-                    }`}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${
+                    cancelReason === reason
+                      ? "border-[#2454b5] bg-[#eaf3ff]"
+                      : "border-[#dbe5f0] bg-white hover:bg-[#f8fbff]"
+                  }`}
                 >
                   <input
                     type="radio"

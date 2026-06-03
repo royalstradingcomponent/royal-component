@@ -116,7 +116,36 @@ export default function AdminOrderDetailPage() {
     loadOrder();
   }, [id]);
 
-  const products = useMemo(() => order?.products || [], [order]);
+  const products = useMemo(() => {
+    if (!order) return [];
+
+    const itemId =
+      new URLSearchParams(window.location.search).get("itemId");
+
+    if (!itemId) {
+      return order.products || [];
+    }
+
+    const selectedItem = (order.products || []).find(
+      (item) => String(item._id) === String(itemId)
+    );
+
+    return selectedItem ? [selectedItem] : [];
+  }, [order]);
+
+  const selectedItem = products?.[0];
+
+  const selectedSubtotal =
+    Number(selectedItem?.price || 0) *
+    Number(selectedItem?.quantity || 0);
+
+  const selectedTax =
+    Number(selectedItem?.gstAmount || 0);
+
+  const selectedShipping = 0;
+
+  const selectedTotal =
+    Number(selectedItem?.lineTotal || 0);
 
   const saveOrder = async () => {
     try {
@@ -126,6 +155,10 @@ export default function AdminOrderDetailPage() {
         method: "PUT",
         body: JSON.stringify({
           orderId: id,
+
+          itemId:
+            new URLSearchParams(window.location.search).get("itemId"),
+
           status: form.status,
           paymentStatus: form.paymentStatus,
           courier: form.courier,
@@ -151,6 +184,10 @@ export default function AdminOrderDetailPage() {
         method: "PUT",
         body: JSON.stringify({
           orderId: id,
+
+          itemId:
+            new URLSearchParams(window.location.search).get("itemId"),
+
           status: form.status,
           paymentStatus,
           courier: form.courier,
@@ -234,12 +271,15 @@ export default function AdminOrderDetailPage() {
         </button>
 
         <button
-          onClick={() =>
+          onClick={() => {
+            const itemId =
+              new URLSearchParams(window.location.search).get("itemId");
+
             window.open(
-              `${API_BASE}/api/orders/admin/download-pdf/${id}`,
+              `${API_BASE}/api/orders/admin/download-pdf/${id}?itemId=${itemId}`,
               "_blank"
-            )
-          }
+            );
+          }}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white px-5 py-3 text-sm font-bold text-[#2454b5]"
         >
           <FileText size={18} />
@@ -719,7 +759,7 @@ export default function AdminOrderDetailPage() {
                     <div className="text-right">
 
                       <p className="text-[28px] font-extrabold text-[#102033]">
-                        {money(order.pricing?.subtotal)}
+                        {money(selectedSubtotal)}
                       </p>
                     </div>
                   </div>
@@ -747,7 +787,7 @@ export default function AdminOrderDetailPage() {
                     <div className="text-right">
 
                       <p className="text-[28px] font-extrabold text-[#ea580c]">
-                        {money(order.pricing?.tax)}
+                        {money(selectedTax)}
                       </p>
                     </div>
                   </div>
@@ -775,7 +815,7 @@ export default function AdminOrderDetailPage() {
                     <div className="text-right">
 
                       <p className="text-[28px] font-extrabold text-[#16a34a]">
-                        {money(order.pricing?.shippingCharge)}
+                        {money(selectedShipping)}
                       </p>
                     </div>
                   </div>
@@ -797,7 +837,7 @@ export default function AdminOrderDetailPage() {
                           </p>
 
                           <h3 className="mt-2 text-[32px] font-extrabold text-white">
-                            {money(order.pricing?.totalAmount)}
+                            {money(selectedTotal)}
                           </h3>
 
                           <p className="mt-2 text-sm text-white/80">
