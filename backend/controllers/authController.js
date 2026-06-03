@@ -519,3 +519,132 @@ exports.updateProfile = async (req, res) => {
     });
   }
 };
+
+exports.adminSendOtp = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+      role: "admin",
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Admin not found",
+      });
+    }
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Invalid password",
+      });
+    }
+
+    const otp = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString();
+
+    const expiresAt = new Date(
+      Date.now() + 5 * 60 * 1000
+    );
+
+    await Otp.findOneAndUpdate(
+      { email: user.email },
+      {
+        otp,
+        expiresAt,
+        attempts: 0,
+        lockedUntil: null,
+      },
+      {
+        upsert: true,
+        new: true,
+      }
+    );
+
+    await sendEmail({
+      to: user.email,
+      subject: "Admin Login OTP",
+      html: `
+        <h2>Royal Component Admin Login</h2>
+        <h1>${otp}</h1>
+        <p>OTP valid for 5 minutes.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      success: true,
+      email: user.email,
+      message: "OTP sent successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Failed to send OTP",
+    });
+  }
+};
+
+exports.adminVerifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+      role: "admin",
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Admin not found",
+      });
+    }
+
+    const record = await Otp.findOne({
+      email: email.toLowerCase().trim(),
+    });
+
+    if (!record) {
+      return res.status(400).json({
+        message: "OTP not found",
+      });
+    }
+
+    if (Date.now() > new Date(record.expiresAt).getTime()) {
+      await record.deleteOne();
+
+      return res.status(400).json({
+        message: "OTP expired",
+      });
+    }
+
+    if (String(record.otp) !== String(otp)) {
+      return res.status(400).json({
+        message: "Invalid OTP",
+      });
+    }
+
+    await record.deleteOne();
+
+    return res.status(200).json({
+      success: true,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      message: "OTP verification failed",
+    });
+  }
+};

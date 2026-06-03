@@ -5,18 +5,20 @@ const router = express.Router();
    CONTROLLERS IMPORT 
 ================================ */
 const {
-  registerUser,
-  loginUser,
-  loginWithPassword,
-  googleLogin,
-  forgotPassword,
-  verifyResetOTP,   // ✅ FROM AUTH CONTROLLER
-  resetPassword,
+   registerUser,
+   loginUser,
+   loginWithPassword,
+   adminSendOtp,
+   adminVerifyOtp,
+   googleLogin,
+   forgotPassword,
+   verifyResetOTP,
+   resetPassword,
 } = require("../controllers/authController");
 
 const {
-  sendOTP,
-  verifyOTP,
+   sendOTP,
+   verifyOTP,
 } = require("../controllers/otpController");
 
 /* ===============================
@@ -28,6 +30,8 @@ router.post("/register", registerUser);
    🔐 LOGIN (PASSWORD)
 ================================ */
 router.post("/login", loginWithPassword);
+router.post("/admin/send-otp", adminSendOtp);
+router.post("/admin/verify-otp", adminVerifyOtp);
 
 /* ===============================
    🔐 LOGIN WITH OTP FLOW

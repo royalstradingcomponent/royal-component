@@ -166,11 +166,32 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    trustedDevices: [
+  {
+    deviceId: {
+      type: String,
+      default: "",
+    },
+
+    browser: {
+      type: String,
+      default: "",
+    },
+
+    lastLogin: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
   },
   {
     timestamps: true,
   }
 );
+
+
 
 /* =====================================================
    🔐 HASH PASSWORD (SAFE VERSION)
