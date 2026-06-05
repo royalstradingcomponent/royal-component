@@ -182,10 +182,6 @@ export default function AddressFormModal({
       return;
     }
 
-    if (!payload.locationVerified) {
-      setPinError("Please use current location to verify delivery address");
-      return;
-    }
 
     if (editingAddress?._id) {
       await updateAddress(editingAddress._id, payload);

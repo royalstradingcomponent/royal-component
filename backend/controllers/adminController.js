@@ -8,6 +8,11 @@ const Chat = require("../models/Chat");
 const HeroSlide = require("../models/HeroSlide");
 const HomeSection = require("../models/HomeSection");
 const PolicyPage = require("../models/PolicyPage");
+const SecurityAlert = require("../models/SecurityAlert");
+
+const AdminActivity = require("../models/AdminActivity");
+const AdminSession = require("../models/AdminSession");
+const logAdminActivity = require("../utils/logAdminActivity");
 
 let notificationService = {};
 try {
@@ -125,7 +130,7 @@ const serializeOrder = (orderDoc) => {
       lineTotal:
         item.lineTotal ||
         Number(item.price || item.priceSnapshot || 0) *
-          Number(item.quantity || item.qty || 1),
+        Number(item.quantity || item.qty || 1),
       itemStatus: item.itemStatus || order.orderStatus || "Order Placed",
       itemStatusHistory: item.itemStatusHistory || [],
     })),
@@ -509,6 +514,20 @@ exports.createProduct = async (req, res) => {
 
     const product = await Product.create(payload);
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "CREATE",
+      module: "PRODUCT",
+      targetId: product._id,
+      details: {
+        productName: product.name,
+        sku: product.sku,
+      },
+    });
+
+
+
     res.status(201).json({
       success: true,
       message: "Product created successfully",
@@ -563,24 +582,24 @@ exports.updateProduct = async (req, res) => {
 
     if (data.stock !== undefined || data.stockStatus !== undefined) {
 
-  const stockQty = Number(data.stock || 0);
+      const stockQty = Number(data.stock || 0);
 
-  if (stockQty <= 0) {
+      if (stockQty <= 0) {
 
-    data.stockStatus = "out_of_stock";
-    data.isOutOfStock = true;
+        data.stockStatus = "out_of_stock";
+        data.isOutOfStock = true;
 
-  } else if (stockQty <= 5) {
+      } else if (stockQty <= 5) {
 
-    data.stockStatus = "low_stock";
-    data.isOutOfStock = false;
+        data.stockStatus = "low_stock";
+        data.isOutOfStock = false;
 
-  } else {
+      } else {
 
-    data.stockStatus = "in_stock";
-    data.isOutOfStock = false;
-  }
-}
+        data.stockStatus = "in_stock";
+        data.isOutOfStock = false;
+      }
+    }
 
     if (data.metaTitle || data.metaDescription || data.metaKeywords) {
       data.seo = {
@@ -596,6 +615,18 @@ exports.updateProduct = async (req, res) => {
     const product = await Product.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
+    });
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "PRODUCT",
+      targetId: product._id,
+      details: {
+        productName: product.name,
+        sku: product.sku,
+      },
     });
 
     if (!product) {
@@ -622,6 +653,18 @@ exports.deleteProduct = async (req, res) => {
       { isActive: false, status: "archived" },
       { new: true },
     );
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "PRODUCT",
+      targetId: product._id,
+      details: {
+        productName: product.name,
+        sku: product.sku,
+      },
+    });
 
     if (!product) {
       return res
@@ -777,6 +820,20 @@ exports.updateInventory = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Product not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "INVENTORY_UPDATE",
+      module: "INVENTORY",
+      targetId: product._id,
+      details: {
+        productName: product.name,
+        sku: product.sku,
+        stock: product.stock,
+        price: product.price,
+      },
+    });
 
     res.json({ success: true, message: "Inventory updated", product });
   } catch (error) {
@@ -968,6 +1025,17 @@ exports.createCategory = async (req, res) => {
       },
     });
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "CREATE",
+      module: "CATEGORY",
+      targetId: category._id,
+      details: {
+        categoryName: category.name,
+      },
+    });
+
     res
       .status(201)
       .json({ success: true, message: "Category created", category });
@@ -1006,6 +1074,17 @@ exports.updateCategory = async (req, res) => {
         .json({ success: false, message: "Category not found" });
     }
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "CATEGORY",
+      targetId: category._id,
+      details: {
+        categoryName: category.name,
+      },
+    });
+
     res.json({ success: true, message: "Category updated", category });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1021,6 +1100,17 @@ exports.deleteCategory = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Category not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "CATEGORY",
+      targetId: category._id,
+      details: {
+        categoryName: category.name,
+      },
+    });
 
     res.json({ success: true, message: "Category deleted" });
   } catch (error) {
@@ -1234,6 +1324,18 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "STATUS_CHANGE",
+      module: "ORDER",
+      targetId: order._id,
+      details: {
+        orderNumber: order.orderNumber,
+        status,
+      },
+    });
+
     try {
       if (
         status === "Delivered" &&
@@ -1330,6 +1432,20 @@ exports.updateOrderAddress = async (req, res) => {
     order.userInfo.country = country || "India";
 
     await order.save();
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "ADDRESS_UPDATE",
+      module: "ORDER",
+      targetId: order._id,
+      details: {
+        orderNumber: order.orderNumber,
+        customer: order.userInfo.name,
+        city: order.userInfo.city,
+        state: order.userInfo.state,
+      },
+    });
 
     return res.json({
       success: true,
@@ -1471,6 +1587,18 @@ exports.updateCustomer = async (req, res) => {
         .json({ success: false, message: "Customer not found" });
     }
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "CUSTOMER",
+      targetId: user._id,
+      details: {
+        customerName: user.name,
+        email: user.email,
+      },
+    });
+
     res.json({ success: true, message: "Customer updated", user });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1494,6 +1622,18 @@ exports.deleteUser = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "CUSTOMER",
+      targetId: user._id,
+      details: {
+        customerName: user.name,
+        email: user.email,
+      },
+    });
 
     res.json({ success: true, message: "Customer deleted" });
   } catch (error) {
@@ -1523,6 +1663,19 @@ exports.toggleUserStatus = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "STATUS_CHANGE",
+      module: "CUSTOMER",
+      targetId: user._id,
+      details: {
+        customerName: user.name,
+        email: user.email,
+        newStatus: status,
+      },
+    });
 
     res.json({ success: true, message: "User status updated", user });
   } catch (error) {
@@ -1557,6 +1710,18 @@ exports.createCoupon = async (req, res) => {
       expiresAt: req.body.expiresAt || null,
     });
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "CREATE",
+      module: "COUPON",
+      targetId: coupon._id,
+      details: {
+        code: coupon.code,
+        title: coupon.title,
+      },
+    });
+
     res.status(201).json({ success: true, message: "Coupon created", coupon });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1583,6 +1748,18 @@ exports.updateCoupon = async (req, res) => {
         .json({ success: false, message: "Coupon not found" });
     }
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "COUPON",
+      targetId: coupon._id,
+      details: {
+        code: coupon.code,
+        title: coupon.title,
+      },
+    });
+
     res.json({ success: true, message: "Coupon updated", coupon });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1598,6 +1775,18 @@ exports.deleteCoupon = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Coupon not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "COUPON",
+      targetId: coupon._id,
+      details: {
+        code: coupon.code,
+        title: coupon.title,
+      },
+    });
 
     res.json({ success: true, message: "Coupon deleted" });
   } catch (error) {
@@ -1776,6 +1965,18 @@ exports.getHeroSlides = async (req, res) => {
 exports.createHeroSlide = async (req, res) => {
   try {
     const slide = await HeroSlide.create(req.body);
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "CREATE",
+      module: "HERO_SLIDE",
+      targetId: slide._id,
+      details: {
+        title: slide.title || "Hero Slide",
+      },
+    });
+
     res
       .status(201)
       .json({ success: true, message: "Hero slide created", slide });
@@ -1797,6 +1998,17 @@ exports.updateHeroSlide = async (req, res) => {
         .json({ success: false, message: "Hero slide not found" });
     }
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "HERO_SLIDE",
+      targetId: slide._id,
+      details: {
+        title: slide.title || "Hero Slide",
+      },
+    });
+
     res.json({ success: true, message: "Hero slide updated", slide });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1812,6 +2024,17 @@ exports.deleteHeroSlide = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Hero slide not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "HERO_SLIDE",
+      targetId: slide._id,
+      details: {
+        title: slide.title || "Hero Slide",
+      },
+    });
 
     res.json({ success: true, message: "Hero slide deleted" });
   } catch (error) {
@@ -1831,6 +2054,18 @@ exports.getHomeSections = async (req, res) => {
 exports.createHomeSection = async (req, res) => {
   try {
     const section = await HomeSection.create(req.body);
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "CREATE",
+      module: "HOME_SECTION",
+      targetId: section._id,
+      details: {
+        title: section.title || "Home Section",
+      },
+    });
+
     res.status(201).json({ success: true, section });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1851,6 +2086,17 @@ exports.updateHomeSection = async (req, res) => {
         .json({ success: false, message: "Section not found" });
     }
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "HOME_SECTION",
+      targetId: section._id,
+      details: {
+        title: section.title || "Home Section",
+      },
+    });
+
     res.json({ success: true, section });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -1866,6 +2112,17 @@ exports.deleteHomeSection = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Section not found" });
     }
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "HOME_SECTION",
+      targetId: section._id,
+      details: {
+        title: section.title || "Home Section",
+      },
+    });
 
     res.json({ success: true, message: "Section deleted" });
   } catch (error) {
@@ -1937,9 +2194,9 @@ const makePolicyPayload = (body = {}) => {
       metaTitle: String(body.seo?.metaTitle || body.metaTitle || title).trim(),
       metaDescription: String(
         body.seo?.metaDescription ||
-          body.metaDescription ||
-          body.shortDescription ||
-          "",
+        body.metaDescription ||
+        body.shortDescription ||
+        "",
       ).trim(),
       metaKeywords: parsePolicyArray(
         body.seo?.metaKeywords || body.metaKeywords,
@@ -2016,6 +2273,17 @@ exports.createPolicyPage = async (req, res) => {
 
     const page = await PolicyPage.create(payload);
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "CREATE",
+      module: "POLICY_PAGE",
+      targetId: page._id,
+      details: {
+        title: page.title,
+      },
+    });
+
     res.status(201).json({
       success: true,
       message: "Policy page created successfully",
@@ -2047,6 +2315,17 @@ exports.updatePolicyPage = async (req, res) => {
       runValidators: true,
     });
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "POLICY_PAGE",
+      targetId: page._id,
+      details: {
+        title: page.title,
+      },
+    });
+
     if (!page) {
       return res.status(404).json({
         success: false,
@@ -2075,11 +2354,290 @@ exports.deletePolicyPage = async (req, res) => {
       });
     }
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "DELETE",
+      module: "POLICY_PAGE",
+      targetId: page._id,
+      details: {
+        title: page.title,
+      },
+    });
+
     res.json({
       success: true,
       message: "Policy page deleted successfully",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getAdminActivities = async (req, res) => {
+  try {
+    const logs = await AdminActivity.find()
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean();
+
+    res.json({
+      success: true,
+      logs,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.getActiveSessions = async (req, res) => {
+  try {
+    const sessions = await AdminSession.find({
+      isActive: true,
+    })
+      .populate(
+        "adminId",
+        "name email"
+      )
+      .sort({
+        lastSeenAt: -1,
+      })
+      .lean();
+
+    res.json({
+      success: true,
+      sessions,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.logoutSession = async (req, res) => {
+  try {
+
+    const session = await AdminSession.findById(
+      req.params.id
+    );
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    session.isActive = false;
+    session.logoutAt = new Date();
+
+    await session.save();
+
+    const User = require("../models/User");
+
+    await User.findByIdAndUpdate(
+      session.adminId,
+      {
+        $inc: {
+          tokenVersion: 1,
+        },
+      }
+    );
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "SESSION_LOGOUT",
+      module: "SECURITY",
+      targetId: session._id,
+      details: {
+        sessionId: session._id,
+        device: session.deviceName,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Session terminated",
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+exports.logoutAllSessions = async (req, res) => {
+  try {
+    await AdminSession.updateMany(
+      {
+        adminId: req.user._id,
+        isActive: true,
+      },
+      {
+        $set: {
+          isActive: false,
+          logoutAt: new Date(),
+        },
+      }
+    );
+
+    await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $inc: {
+          tokenVersion: 1,
+        },
+      }
+    );
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "LOGOUT_ALL_DEVICES",
+      module: "SECURITY",
+      details: {
+        adminId: req.user._id,
+      },
+    });
+
+    await SecurityAlert.create({
+      adminId: req.user._id,
+
+      type: "LOGOUT_ALL_DEVICES",
+
+      title: "Logout From All Devices",
+
+      message: "Admin logged out from all active devices.",
+
+      ipAddress:
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress ||
+        "",
+    });
+
+    res.json({
+      success: true,
+      message: "All devices logged out successfully",
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+
+
+exports.getSecurityAlerts = async (req, res) => {
+  try {
+
+    const alerts = await SecurityAlert.find({
+      adminId: req.user._id,
+    })
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    res.json({
+      success: true,
+      alerts,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+exports.markAlertRead = async (req, res) => {
+  try {
+
+    await SecurityAlert.findByIdAndUpdate(
+      req.params.id,
+      {
+        isRead: true,
+        readAt: new Date(),
+      }
+    );
+
+    res.json({
+      success: true,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
+
+exports.trackPageView = async (req, res) => {
+  try {
+    const {
+      page,
+      sessionId,
+      browser,
+      os,
+      adminEmail,
+    } = req.body;
+
+    await AdminActivity.create({
+      adminId: req.user._id,
+
+      adminName: req.user.name,
+
+      adminEmail:
+        adminEmail || req.user.email || "",
+
+      action: "VIEW",
+
+      module: "PAGE",
+
+      targetId: "",
+
+      sessionId: sessionId || "",
+
+      browser: browser || "",
+
+      os: os || "",
+
+      details: {
+        page,
+      },
+
+      ipAddress:
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress ||
+        "",
+    });
+
+    res.json({
+      success: true,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

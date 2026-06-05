@@ -7,6 +7,11 @@ const Tesseract = require("tesseract.js");
 const Category = require("../models/Category");
 const Order = require("../models/Order");
 
+const logAdminActivity = require("../utils/logAdminActivity");
+
+const auditService = require("../services/auditService");
+
+const securityAlertService = require("../services/securityAlertService");
 
 const { generateImageHash } = require("../utils/imageHash");
 
@@ -16,8 +21,7 @@ const parseCsv = (value) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const escapeRegex = (text = "") =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (text = "") => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const slugify = (value = "") =>
   String(value)
@@ -36,7 +40,9 @@ const normalizeSubCategoryFilter = (value = "") => {
 };
 
 const normalizeCategorySlug = (value = "") => {
-  const raw = String(value || "").toLowerCase().trim();
+  const raw = String(value || "")
+    .toLowerCase()
+    .trim();
 
   const map = {
     semiconductors: "semiconductors",
@@ -106,7 +112,12 @@ const getCategoryAliases = (value = "") => {
   const normalized = normalizeCategorySlug(value);
 
   const aliases = {
-    semiconductors: ["semiconductors", "semiconductor", "components", "component"],
+    semiconductors: [
+      "semiconductors",
+      "semiconductor",
+      "components",
+      "component",
+    ],
 
     cableswires: [
       "cableswires",
@@ -247,8 +258,7 @@ const buildProductFilter = (query = {}) => {
     filter.stock = { $gt: 0 };
   }
 
-  const isTrue = (value) =>
-    ["true", "1", 1, true].includes(value);
+  const isTrue = (value) => ["true", "1", 1, true].includes(value);
 
   if (isTrue(query.featured)) {
     filter.isFeatured = true;
@@ -299,8 +309,12 @@ const buildSeedProduct = (item) => {
     mpn: item.mpn || "",
     brand: item.brand || "Generic",
     category: normalizeCategorySlug(item.category),
-    subCategory: item.subCategory ? normalizeSubCategoryFilter(item.subCategory) : "",
-    childCategory: item.childCategory ? normalizeSubCategoryFilter(item.childCategory) : "",
+    subCategory: item.subCategory
+      ? normalizeSubCategoryFilter(item.subCategory)
+      : "",
+    childCategory: item.childCategory
+      ? normalizeSubCategoryFilter(item.childCategory)
+      : "",
     shortDescription: item.shortDescription || "",
     description: item.description || item.shortDescription || "",
     thumbnail: primaryFile ? makeImagePath(primaryFile) : "",
@@ -310,7 +324,9 @@ const buildSeedProduct = (item) => {
       isPrimary: index === 0,
       order: index,
     })),
-    specifications: Array.isArray(item.specifications) ? item.specifications : [],
+    specifications: Array.isArray(item.specifications)
+      ? item.specifications
+      : [],
     documents: Array.isArray(item.documents) ? item.documents : [],
     price: Number(item.price || 0),
     mrp: Number(item.mrp || 0),
@@ -339,14 +355,20 @@ const dedupeAndInsert = async (products) => {
     slug: item.slug ? slugify(item.slug) : slugify(item.name),
     sku: item.sku ? String(item.sku).toUpperCase() : undefined,
     category: normalizeCategorySlug(item.category),
-    subCategory: item.subCategory ? normalizeSubCategoryFilter(item.subCategory) : "",
-    childCategory: item.childCategory ? normalizeSubCategoryFilter(item.childCategory) : "",
+    subCategory: item.subCategory
+      ? normalizeSubCategoryFilter(item.subCategory)
+      : "",
+    childCategory: item.childCategory
+      ? normalizeSubCategoryFilter(item.childCategory)
+      : "",
     status: item.status || "published",
     isActive: item.isActive !== false,
     isFeatured: item.isFeatured || false,
     isBestSeller: item.isBestSeller || false,
     images: Array.isArray(item.images) ? item.images : [],
-    specifications: Array.isArray(item.specifications) ? item.specifications : [],
+    specifications: Array.isArray(item.specifications)
+      ? item.specifications
+      : [],
     documents: Array.isArray(item.documents) ? item.documents : [],
     tags: Array.isArray(item.tags) ? item.tags : [],
     seo: item.seo || {
@@ -367,13 +389,13 @@ const dedupeAndInsert = async (products) => {
   }).select("slug sku name");
 
   const existingSlugSet = new Set(
-    existingProducts.map((item) => String(item.slug).toLowerCase())
+    existingProducts.map((item) => String(item.slug).toLowerCase()),
   );
 
   const existingSkuSet = new Set(
     existingProducts
       .filter((item) => item.sku)
-      .map((item) => String(item.sku).toUpperCase())
+      .map((item) => String(item.sku).toUpperCase()),
   );
 
   const requestSlugSet = new Set();
@@ -383,7 +405,6 @@ const dedupeAndInsert = async (products) => {
   const skippedProducts = [];
 
   for (const item of cleanedProducts) {
-
     if (!item.name || !item.category) {
       skippedProducts.push({
         name: item.name || "Unknown",
@@ -401,11 +422,14 @@ const dedupeAndInsert = async (products) => {
     const slugExistsInDb = existingSlugSet.has(slug);
     const skuExistsInDb = sku ? existingSkuSet.has(sku) : false;
     const slugDuplicateInRequest = requestSlugSet.has(slug);
-    const skuDuplicateInRequest = sku
-      ? requestSkuSet.has(sku)
-      : false;
+    const skuDuplicateInRequest = sku ? requestSkuSet.has(sku) : false;
 
-    if (slugExistsInDb || skuExistsInDb || slugDuplicateInRequest || skuDuplicateInRequest) {
+    if (
+      slugExistsInDb ||
+      skuExistsInDb ||
+      slugDuplicateInRequest ||
+      skuDuplicateInRequest
+    ) {
       skippedProducts.push({
         name: item.name,
         slug: item.slug,
@@ -425,8 +449,6 @@ const dedupeAndInsert = async (products) => {
     if (sku) requestSkuSet.add(sku);
     uniqueProducts.push(item);
   }
-
-
 
   let insertedProducts = [];
 
@@ -481,7 +503,9 @@ exports.getProducts = async (req, res) => {
       to us child ke parent + siblings bucket ke products dikhao.
     */
     if (total === 0 && req.query.subCategory) {
-      const requestedSubCategory = normalizeSubCategoryFilter(req.query.subCategory);
+      const requestedSubCategory = normalizeSubCategoryFilter(
+        req.query.subCategory,
+      );
 
       const currentCategory = await Category.findOne({
         slug: requestedSubCategory,
@@ -523,7 +547,7 @@ exports.getProducts = async (req, res) => {
 
     const products = await Product.find(filter)
       .select(
-        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription isFeatured isBestSeller createdAt"
+        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder moq unit shortDescription isFeatured isBestSeller createdAt",
       )
       .sort(sortOption)
       .skip((page - 1) * limit)
@@ -536,12 +560,9 @@ exports.getProducts = async (req, res) => {
       success: true,
 
       products: products.map((product) => ({
-
         ...product,
 
-        lowStock:
-          Number(product.stock || 0) <= 5,
-
+        lowStock: Number(product.stock || 0) <= 5,
       })),
 
       page,
@@ -550,7 +571,6 @@ exports.getProducts = async (req, res) => {
 
       total,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -567,7 +587,7 @@ exports.getFeaturedProducts = async (req, res) => {
       status: "published",
     })
       .select(
-        "name slug sku brand thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder shortDescription"
+        "name slug sku brand thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder shortDescription",
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -576,16 +596,11 @@ exports.getFeaturedProducts = async (req, res) => {
       success: true,
 
       products: products.map((product) => ({
-
         ...product,
 
-        lowStock:
-          Number(product.stock || 0) <= 5,
-
+        lowStock: Number(product.stock || 0) <= 5,
       })),
-
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -766,36 +781,23 @@ exports.createProduct = async (req, res) => {
     }
 
     const product = await Product.create({
-
       ...data,
 
       slug,
 
-      sku: data.sku
-        ? data.sku.toUpperCase()
-        : undefined,
+      sku: data.sku ? data.sku.toUpperCase() : undefined,
 
-      category:
-        normalizeCategorySlug(
-          data.category
-        ),
+      category: normalizeCategorySlug(data.category),
 
-      subCategory:
-        data.subCategory
-          ? normalizeSubCategoryFilter(
-            data.subCategory
-          )
-          : "",
+      subCategory: data.subCategory
+        ? normalizeSubCategoryFilter(data.subCategory)
+        : "",
 
-      childCategory:
-        data.childCategory
-          ? normalizeSubCategoryFilter(
-            data.childCategory
-          )
-          : "",
+      childCategory: data.childCategory
+        ? normalizeSubCategoryFilter(data.childCategory)
+        : "",
 
-      isOutOfStock:
-        Number(data.stock || 0) <= 0,
+      isOutOfStock: Number(data.stock || 0) <= 0,
 
       stockStatus:
         Number(data.stock || 0) <= 0
@@ -803,8 +805,30 @@ exports.createProduct = async (req, res) => {
           : Number(data.stock || 0) <= 5
             ? "low_stock"
             : "in_stock",
-
     });
+
+    if (req.user?.role === "admin") {
+      await logAdminActivity({
+        req,
+        admin: req.user,
+        action: "CREATE",
+        module: "PRODUCT",
+        targetId: product._id,
+        details: {
+          description: `Created product ${product.name}`,
+        },
+      });
+
+      await auditService({
+        req,
+        admin: req.user,
+        module: "PRODUCT",
+        action: "CREATE",
+        targetId: product._id,
+        oldData: {},
+        newData: product.toObject(),
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -829,7 +853,8 @@ exports.bulkCreateProducts = async (req, res) => {
       });
     }
 
-    const { insertedProducts, skippedProducts } = await dedupeAndInsert(products);
+    const { insertedProducts, skippedProducts } =
+      await dedupeAndInsert(products);
 
     res.status(201).json({
       success: true,
@@ -860,7 +885,8 @@ exports.seedBulkProducts = async (req, res) => {
 
     const preparedProducts = items.map(buildSeedProduct);
 
-    const { insertedProducts, skippedProducts } = await dedupeAndInsert(preparedProducts);
+    const { insertedProducts, skippedProducts } =
+      await dedupeAndInsert(preparedProducts);
 
     res.status(201).json({
       success: true,
@@ -881,6 +907,11 @@ exports.seedBulkProducts = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
+
+    const oldData =
+      JSON.parse(
+        JSON.stringify(product)
+      );
 
     if (!product) {
       return res.status(404).json({
@@ -910,10 +941,8 @@ exports.updateProduct = async (req, res) => {
         product[key] = normalizeCategorySlug(req.body[key]);
       } else if (key === "subCategory" && req.body[key]) {
         product[key] = normalizeSubCategoryFilter(req.body[key]);
-
       } else if (key === "childCategory" && req.body[key]) {
         product[key] = normalizeSubCategoryFilter(req.body[key]);
-
       } else {
         product[key] = req.body[key];
       }
@@ -937,38 +966,44 @@ exports.updateProduct = async (req, res) => {
       product.slug = newSlug;
     }
 
-    if (
-      Number(product.stock || 0) <= 0
-    ) {
-
-      product.stockStatus =
-        "out_of_stock";
+    if (Number(product.stock || 0) <= 0) {
+      product.stockStatus = "out_of_stock";
 
       product.isOutOfStock = true;
-
-    }
-
-    else if (
-      Number(product.stock || 0) <= 5
-    ) {
-
-      product.stockStatus =
-        "low_stock";
+    } else if (Number(product.stock || 0) <= 5) {
+      product.stockStatus = "low_stock";
 
       product.isOutOfStock = false;
-
-    }
-
-    else {
-
-      product.stockStatus =
-        "in_stock";
+    } else {
+      product.stockStatus = "in_stock";
 
       product.isOutOfStock = false;
-
     }
 
     const updatedProduct = await product.save();
+
+    if (req.user?.role === "admin") {
+      await logAdminActivity({
+        req,
+        admin: req.user,
+        action: "UPDATE",
+        module: "PRODUCT",
+        targetId: updatedProduct._id,
+        details: {
+          description: `Updated product ${updatedProduct.name}`,
+        },
+      });
+
+      await auditService({
+        req,
+        admin: req.user,
+        module: "PRODUCT",
+        action: "UPDATE",
+        targetId: updatedProduct._id,
+        oldData,
+        newData: updatedProduct.toObject(),
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -995,6 +1030,43 @@ exports.deleteProduct = async (req, res) => {
 
     product.isActive = false;
     await product.save();
+    if (req.user?.role === "admin") {
+
+      await logAdminActivity({
+        req,
+        admin: req.user,
+        action: "DELETE",
+        module: "PRODUCT",
+        targetId: product._id,
+        details: {
+          description: `Deleted product ${product.name}`,
+        },
+      });
+
+      await auditService({
+        req,
+        admin: req.user,
+        module: "PRODUCT",
+        action: "DELETE",
+        targetId: product._id,
+        oldData: product.toObject(),
+        newData: {},
+      });
+
+      await securityAlertService({
+        adminId: req.user._id,
+
+        type: "SUSPICIOUS_LOGIN",
+
+        title: "Product Deleted",
+
+        message: `${req.user.name} deleted product ${product.name}`,
+
+        ipAddress:
+          req.headers["x-forwarded-for"] ||
+          req.socket.remoteAddress,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -1033,7 +1105,7 @@ exports.getSimilarProducts = async (req, res) => {
       ],
     })
       .select(
-        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder shortDescription"
+        "name slug sku brand category subCategory childCategory thumbnail images price mrp discount stock stockStatus isOutOfStock allowBackorder shortDescription",
       )
       .limit(12)
       .lean();
@@ -1042,16 +1114,11 @@ exports.getSimilarProducts = async (req, res) => {
       success: true,
 
       products: products.map((product) => ({
-
         ...product,
 
-        lowStock:
-          Number(product.stock || 0) <= 5,
-
+        lowStock: Number(product.stock || 0) <= 5,
       })),
-
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -1059,7 +1126,6 @@ exports.getSimilarProducts = async (req, res) => {
     });
   }
 };
-
 
 exports.searchProductsByImage = async (req, res) => {
   try {
@@ -1085,7 +1151,7 @@ exports.searchProductsByImage = async (req, res) => {
       imageHashes: { $exists: true, $ne: [] },
     })
       .select(
-        "name slug sku brand category subCategory childCategory thumbnail images imageHashes price mrp stock shortDescription"
+        "name slug sku brand category subCategory childCategory thumbnail images imageHashes price mrp stock shortDescription",
       )
       .lean();
 
@@ -1099,11 +1165,7 @@ exports.searchProductsByImage = async (req, res) => {
 
         let difference = 0;
 
-        for (
-          let i = 0;
-          i < Math.min(uploadedHash.length, dbHash.length);
-          i++
-        ) {
+        for (let i = 0; i < Math.min(uploadedHash.length, dbHash.length); i++) {
           if (uploadedHash[i] !== dbHash[i]) {
             difference++;
           }
@@ -1122,9 +1184,7 @@ exports.searchProductsByImage = async (req, res) => {
       }
     }
 
-    matchedProducts.sort(
-      (a, b) => a.similarity - b.similarity
-    );
+    matchedProducts.sort((a, b) => a.similarity - b.similarity);
 
     return res.status(200).json({
       success: true,
@@ -1164,6 +1224,11 @@ exports.requestRefund = async (req, res) => {
       userId: req.user._id,
     });
 
+    const oldData =
+      JSON.parse(
+        JSON.stringify(order)
+      );
+
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -1174,11 +1239,16 @@ exports.requestRefund = async (req, res) => {
     if (!["Delivered", "Cancelled"].includes(order.orderStatus)) {
       return res.status(400).json({
         success: false,
-        message: "Refund can be requested only after delivered or cancelled order",
+        message:
+          "Refund can be requested only after delivered or cancelled order",
       });
     }
 
-    if (["Requested", "Approved", "Processing", "Refunded"].includes(order.refund?.status)) {
+    if (
+      ["Requested", "Approved", "Processing", "Refunded"].includes(
+        order.refund?.status,
+      )
+    ) {
       return res.status(400).json({
         success: false,
         message: "Refund request already exists for this order",
@@ -1259,6 +1329,43 @@ exports.requestRefund = async (req, res) => {
 
     await order.save();
 
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "PAYMENT",
+      targetId: order._id,
+      details: {
+        description:
+          `Payment status changed to ${paymentStatus}`,
+      },
+    });
+
+    await auditService({
+      req,
+      admin: req.user,
+      module: "PAYMENT",
+      action: "UPDATE",
+      targetId: order._id,
+      oldData,
+      newData: order.toObject(),
+    });
+
+    await securityAlertService({
+      adminId: req.user._id,
+
+      type: "SUSPICIOUS_LOGIN",
+
+      title: "Payment Status Changed",
+
+      message:
+        `${req.user.name} changed payment status to ${paymentStatus}`,
+
+      ipAddress:
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Refund request submitted successfully",
@@ -1275,12 +1382,7 @@ exports.requestRefund = async (req, res) => {
 
 exports.adminUpdateRefund = async (req, res) => {
   try {
-    const {
-      status,
-      adminNote = "",
-      refundReferenceId = "",
-      amount,
-    } = req.body;
+    const { status, adminNote = "", refundReferenceId = "", amount } = req.body;
 
     const allowed = ["Approved", "Rejected", "Processing", "Refunded"];
 
@@ -1364,24 +1466,16 @@ exports.adminUpdateRefund = async (req, res) => {
 
 exports.checkProductMatch = async (req, res) => {
   try {
-    const {
-      componentName = "",
-      partNumber = "",
-      brand = "",
-    } = req.body;
+    const { componentName = "", partNumber = "", brand = "" } = req.body;
 
     let extractedText = "";
 
     // OCR IMAGE TEXT
     if (req.file?.path) {
       try {
-        const result = await Tesseract.recognize(
-          req.file.path,
-          "eng"
-        );
+        const result = await Tesseract.recognize(req.file.path, "eng");
 
-        extractedText =
-          result?.data?.text || "";
+        extractedText = result?.data?.text || "";
       } catch (err) {
         console.log("OCR ERROR", err);
       }
@@ -1394,38 +1488,25 @@ exports.checkProductMatch = async (req, res) => {
       .trim();
 
     // ALL SEARCH TERMS
-    const finalSearch = [
-      componentName,
-      partNumber,
-      cleanOCRText,
-    ]
+    const finalSearch = [componentName, partNumber, cleanOCRText]
       .join(" ")
       .toLowerCase()
       .trim();
 
-
     if (!finalSearch) {
       return res.status(400).json({
         success: false,
-        message:
-          "Upload image or enter component details",
+        message: "Upload image or enter component details",
       });
     }
 
     // SPLIT WORDS
     const words = finalSearch
       .split(" ")
-      .filter(
-        (item) =>
-          item.trim() &&
-          item.length > 2
-      );
+      .filter((item) => item.trim() && item.length > 2);
 
     // DYNAMIC DATABASE SEARCH
-    const searchRegex = new RegExp(
-      words.join("|"),
-      "i"
-    );
+    const searchRegex = new RegExp(words.join("|"), "i");
 
     const products = await Product.find({
       isActive: true,
@@ -1439,12 +1520,10 @@ exports.checkProductMatch = async (req, res) => {
         },
 
         {
-          manufacturerPartNumber:
-            searchRegex,
+          manufacturerPartNumber: searchRegex,
         },
         {
-          searchKeywords:
-            searchRegex,
+          searchKeywords: searchRegex,
         },
       ],
     })
@@ -1464,9 +1543,7 @@ exports.checkProductMatch = async (req, res) => {
         const name = normalize(product.name);
 
         const mpn = normalize(
-          product.manufacturerPartNumber ||
-          product.mpn ||
-          ""
+          product.manufacturerPartNumber || product.mpn || "",
         );
 
         const productBrand = normalize(product.brand);
@@ -1487,23 +1564,14 @@ exports.checkProductMatch = async (req, res) => {
           score = 100;
         }
         // PART NUMBER EXACT MATCH
-        if (
-          searchPart &&
-          (
-            mpn === searchPart ||
-            name === searchPart
-          )
-        ) {
+        if (searchPart && (mpn === searchPart || name === searchPart)) {
           score = 100;
         }
 
         // PARTIAL PART NUMBER MATCH
         else if (
           searchPart &&
-          (
-            mpn.includes(searchPart) ||
-            name.includes(searchPart)
-          )
+          (mpn.includes(searchPart) || name.includes(searchPart))
         ) {
           score += 80;
         }
@@ -1522,18 +1590,13 @@ exports.checkProductMatch = async (req, res) => {
 
         // OCR IMAGE TEXT MATCH
         words.forEach((word) => {
-          if (
-            name.includes(word)
-          ) {
+          if (name.includes(word)) {
             score += 15;
           }
 
-          if (
-            mpn.includes(word)
-          ) {
+          if (mpn.includes(word)) {
             score += 25;
           }
-
         });
 
         return {
@@ -1545,10 +1608,7 @@ exports.checkProductMatch = async (req, res) => {
       .sort((a, b) => b.similarity - a.similarity);
 
     // SORT BEST MATCH
-    scoredProducts.sort(
-      (a, b) =>
-        b.similarity - a.similarity
-    );
+    scoredProducts.sort((a, b) => b.similarity - a.similarity);
 
     res.status(200).json({
       success: true,

@@ -2,6 +2,12 @@ const Order = require("../models/Order");
 const Cart = require("../models/cart");
 const User = require("../models/User");
 const Product = require("../models/Product");
+
+const logAdminActivity = require("../utils/logAdminActivity");
+
+const auditService = require("../services/auditService");
+
+const securityAlertService = require("../services/securityAlertService");
 const {
   sendOrderPlacedNotification,
 } = require("../services/notificationService");
@@ -444,6 +450,11 @@ exports.updateOrderStatus = async (req, res) => {
 
     const order = await Order.findById(orderId);
 
+    const oldData =
+      JSON.parse(
+        JSON.stringify(order)
+      );
+
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -518,6 +529,46 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     await order.save();
+
+    if (req.user?.role === "admin") {
+
+      await logAdminActivity({
+        req,
+        admin: req.user,
+        action: "UPDATE",
+        module: "ORDER",
+        targetId: order._id,
+        details: {
+          description:
+            `Order status changed to ${status}`,
+        },
+      });
+
+      await auditService({
+        req,
+        admin: req.user,
+        module: "ORDER",
+        action: "UPDATE_STATUS",
+        targetId: order._id,
+        oldData,
+        newData: order.toObject(),
+      });
+
+      await securityAlertService({
+        adminId: req.user._id,
+
+        type: "SUSPICIOUS_LOGIN",
+
+        title: "Order Status Changed",
+
+        message:
+          `${req.user.name} changed order ${order.orderNumber} status to ${status}`,
+
+        ipAddress:
+          req.headers["x-forwarded-for"] ||
+          req.socket.remoteAddress,
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -1149,6 +1200,11 @@ exports.adminUpdateRefund = async (req, res) => {
 
     const order = await Order.findById(req.params.id);
 
+    const oldData =
+      JSON.parse(
+        JSON.stringify(order)
+      );
+
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -1200,6 +1256,43 @@ exports.adminUpdateRefund = async (req, res) => {
     });
 
     await order.save();
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "REFUND",
+      targetId: order._id,
+      details: {
+        description:
+          `Refund changed to ${status}`,
+      },
+    });
+
+    await auditService({
+      req,
+      admin: req.user,
+      module: "REFUND",
+      action: "UPDATE",
+      targetId: order._id,
+      oldData,
+      newData: order.toObject(),
+    });
+
+    await securityAlertService({
+      adminId: req.user._id,
+
+      type: "SUSPICIOUS_LOGIN",
+
+      title: "Refund Updated",
+
+      message:
+        `${req.user.name} changed refund status to ${status}`,
+
+      ipAddress:
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress,
+    });
 
     return res.status(200).json({
       success: true,
@@ -1447,8 +1540,7 @@ exports.downloadOrderPdf = async (req, res) => {
       .font("Helvetica")
       .fontSize(12)
       .text(
-        `${order.userInfo?.addressLine1 || ""}, ${
-          order.userInfo?.city || ""
+        `${order.userInfo?.addressLine1 || ""}, ${order.userInfo?.city || ""
         }, ${order.userInfo?.state || ""} - ${order.userInfo?.pincode || ""}`,
         60,
         y + 140,

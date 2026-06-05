@@ -28,17 +28,43 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 4️⃣ Fetch user
-    const user = await User.findById(decoded.id).select("-password");
+const user = await User.findById(decoded.id).select("-password");
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User no longer exists",
-      });
-    }
+if (!user) {
+  return res.status(401).json({
+    success: false,
+    message: "User no longer exists",
+  });
+}
+
+if (
+  decoded.tokenVersion !==
+  user.tokenVersion
+) {
+  return res.status(401).json({
+    success: false,
+    message: "Session expired",
+  });
+}
 
     // 5️⃣ Attach user
     req.user = user;
+
+    const AdminSession =
+      require("../models/AdminSession");
+
+    await AdminSession.findOneAndUpdate(
+      {
+        adminId: user._id,
+        isActive: true,
+      },
+      {
+        lastSeenAt: new Date(),
+      },
+      {
+        sort: { createdAt: -1 },
+      }
+    );
 
     return next(); // 🔥 IMPORTANT
   } catch (error) {

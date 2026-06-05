@@ -55,30 +55,30 @@ const addressSchema = new mongoose.Schema(
     },
 
     isDefault: {
-  type: Boolean,
-  default: false,
-},
+      type: Boolean,
+      default: false,
+    },
 
-latitude: {
-  type: Number,
-  default: null,
-},
+    latitude: {
+      type: Number,
+      default: null,
+    },
 
-longitude: {
-  type: Number,
-  default: null,
-},
+    longitude: {
+      type: Number,
+      default: null,
+    },
 
-mapAddress: {
-  type: String,
-  default: "",
-  trim: true,
-},
+    mapAddress: {
+      type: String,
+      default: "",
+      trim: true,
+    },
 
-locationVerified: {
-  type: Boolean,
-  default: false,
-},
+    locationVerified: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: true }
 );
@@ -137,6 +137,11 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
+    tokenVersion: {
+      type: Number,
+      default: 1,
+    },
+
     wishlist: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -167,24 +172,41 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+
+
     trustedDevices: [
-  {
-    deviceId: {
-      type: String,
-      default: "",
-    },
+      {
+        deviceId: {
+          type: String,
+          default: "",
+        },
 
-    browser: {
-      type: String,
-      default: "",
-    },
+        browser: {
+          type: String,
+          default: "",
+        },
 
-    lastLogin: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-],
+        deviceType: {
+          type: String,
+          default: "",
+        },
+
+        os: {
+          type: String,
+          default: "",
+        },
+
+        ipAddress: {
+          type: String,
+          default: "",
+        },
+
+        lastLogin: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

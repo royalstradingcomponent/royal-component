@@ -58,6 +58,22 @@ router.delete(
   adminController.deleteHeroSlide,
 );
 
+/* ================= SECURITY ALERTS ================= */
+
+router.get(
+  "/security-alerts",
+  protect,
+  admin,
+  adminController.getSecurityAlerts,
+);
+
+router.patch(
+  "/security-alerts/:id/read",
+  protect,
+  admin,
+  adminController.markAlertRead,
+);
+
 /* ================= PRODUCTS ================= */
 router.get("/products", protect, admin, adminController.getProducts);
 router.post("/products", protect, admin, adminController.createProduct);
@@ -170,6 +186,40 @@ router.patch(
   admin,
   adminController.updateChatStatus,
 );
+
+
+/* ================= PAGE VIEW TRACKING ================= */
+
+router.post(
+  "/page-view",
+  protect,
+  admin,
+  adminController.trackPageView,
+);
+/* ================= ADMIN SECURITY ================= */
+
+router.get(
+  "/activity-logs",
+  protect,
+  admin,
+  adminController.getAdminActivities,
+);
+
+router.get(
+  "/active-sessions",
+  protect,
+  admin,
+  adminController.getActiveSessions,
+);
+
+router.post(
+  "/security/logout-all",
+  protect,
+  admin,
+  adminController.logoutAllSessions,
+);
+
+router.delete("/session/:id", protect, admin, adminController.logoutSession);
 
 /* ================= POLICY PAGES ================= */
 router.get("/policies", protect, admin, adminController.getPolicyPages);

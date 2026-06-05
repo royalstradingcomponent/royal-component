@@ -3,6 +3,9 @@ const Otp = require("../models/Otp");
 const jwt = require("jsonwebtoken");
 const { sendEmail } = require("../services/emailService");
 const { OAuth2Client } = require("google-auth-library");
+const AdminActivity = require("../models/AdminActivity");
+const AdminSession = require("../models/AdminSession");
+const SecurityAlert = require("../models/SecurityAlert");
 
 /* ================= GOOGLE CLIENT ================= */
 if (!process.env.GOOGLE_CLIENT_ID) {
@@ -16,10 +19,17 @@ if (!process.env.JWT_SECRET) {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /* ================= TOKEN ================= */
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
+const generateToken = (id, tokenVersion = 1) => {
+  return jwt.sign(
+    {
+      id,
+      tokenVersion,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "30d",
+    },
+  );
 };
 
 /* ======================================================
@@ -47,11 +57,6 @@ exports.registerUser = async (req, res) => {
 
     if (!record) return res.status(400).json({ message: "OTP not found" });
 
-    if (Date.now() > new Date(record.expiresAt).getTime()) {
-      await record.deleteOne();
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
     if (String(record.otp) !== String(otp)) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
@@ -62,7 +67,6 @@ exports.registerUser = async (req, res) => {
       phone,
       password,
       role: role || "user",
-
     });
 
     await record.deleteOne();
@@ -73,9 +77,8 @@ exports.registerUser = async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.tokenVersion),
     });
-
   } catch (error) {
     console.error("REGISTER ERROR:", error);
     return res.status(500).json({
@@ -121,9 +124,8 @@ exports.loginWithPassword = async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.tokenVersion),
     });
-
   } catch (error) {
     console.error("LOGIN ERROR:", error);
     return res.status(500).json({ message: "Login failed" });
@@ -177,9 +179,8 @@ exports.loginUser = async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.tokenVersion),
     });
-
   } catch (error) {
     console.error("OTP LOGIN ERROR:", error);
     return res.status(500).json({ message: "Login failed" });
@@ -243,7 +244,7 @@ exports.googleLogin = async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.tokenVersion),
     });
   } catch (error) {
     console.error("GOOGLE LOGIN ERROR:", error.message);
@@ -275,14 +276,14 @@ exports.forgotPassword = async (req, res) => {
     let userEmail = "";
 
     if (email) {
-  userEmail = email.toLowerCase().trim();
+      userEmail = email.toLowerCase().trim();
 
-  user = await User.findOne({
-    email: userEmail,
-  });
+      user = await User.findOne({
+        email: userEmail,
+      });
 
-  query.email = userEmail;
-}
+      query.email = userEmail;
+    }
 
     if (phone) {
       const cleanPhone = phone.trim();
@@ -307,7 +308,7 @@ exports.forgotPassword = async (req, res) => {
         attempts: 0,
         lockedUntil: null,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     console.log("🔐 RESET OTP:", otp);
@@ -333,7 +334,6 @@ exports.forgotPassword = async (req, res) => {
       success: true,
       message: "Reset OTP sent",
     });
-
   } catch (error) {
     console.error("FORGOT PASSWORD ERROR:", error);
     return res.status(500).json({
@@ -341,7 +341,6 @@ exports.forgotPassword = async (req, res) => {
     });
   }
 };
-
 
 /* ======================================================
    VERIFY RESET OTP (EMAIL + PHONE)
@@ -400,7 +399,6 @@ exports.verifyResetOTP = async (req, res) => {
       success: true,
       resetToken,
     });
-
   } catch (error) {
     console.error("VERIFY RESET OTP ERROR:", error);
     return res.status(500).json({
@@ -408,7 +406,6 @@ exports.verifyResetOTP = async (req, res) => {
     });
   }
 };
-
 
 /* ======================================================
    RESET PASSWORD (EMAIL + PHONE)
@@ -451,9 +448,8 @@ exports.resetPassword = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Password reset successful",
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.tokenVersion),
     });
-
   } catch (error) {
     console.error("RESET PASSWORD ERROR:", error);
     return res.status(400).json({
@@ -543,13 +539,9 @@ exports.adminSendOtp = async (req, res) => {
       });
     }
 
-    const otp = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const expiresAt = new Date(
-      Date.now() + 5 * 60 * 1000
-    );
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await Otp.findOneAndUpdate(
       { email: user.email },
@@ -562,7 +554,7 @@ exports.adminSendOtp = async (req, res) => {
       {
         upsert: true,
         new: true,
-      }
+      },
     );
 
     await sendEmail({
@@ -580,7 +572,6 @@ exports.adminSendOtp = async (req, res) => {
       email: user.email,
       message: "OTP sent successfully",
     });
-
   } catch (error) {
     console.error(error);
 
@@ -631,20 +622,385 @@ exports.adminVerifyOtp = async (req, res) => {
 
     await record.deleteOne();
 
+    const userAgent = req.headers["user-agent"] || "";
+
+    let browser = "Unknown";
+    let os = "Unknown";
+    let deviceType = "Desktop";
+    let deviceName = "Unknown Device";
+    let platform = "Web";
+
+    if (userAgent.includes("Chrome")) browser = "Chrome";
+    if (userAgent.includes("Firefox")) browser = "Firefox";
+    if (userAgent.includes("Safari") && !userAgent.includes("Chrome"))
+      browser = "Safari";
+    if (userAgent.includes("Edg")) browser = "Edge";
+
+    if (userAgent.includes("Android")) {
+      os = "Android";
+    } else if (userAgent.includes("iPhone")) {
+      os = "iOS";
+    } else if (userAgent.includes("Windows")) {
+      os = "Windows";
+    } else if (userAgent.includes("Mac")) {
+      os = "MacOS";
+    } else if (userAgent.includes("Linux")) {
+      os = "Linux";
+    }
+
+    if (
+      userAgent.includes("Mobile") ||
+      userAgent.includes("Android") ||
+      userAgent.includes("iPhone")
+    ) {
+      deviceType = "Mobile";
+    }
+    if (userAgent.includes("Windows")) {
+      deviceName = "Windows PC";
+    }
+
+    if (userAgent.includes("Mac")) {
+      deviceName = "MacBook";
+    }
+
+    if (userAgent.includes("Android")) {
+      deviceName = "Android Phone";
+    }
+
+    if (userAgent.includes("iPhone")) {
+      deviceName = "iPhone";
+    }
+
+    const ipAddress =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
+
+    console.log("ADMIN LOGIN HISTORY SAVE");
+    console.log(browser);
+    console.log(os);
+    console.log(deviceType);
+    console.log(ipAddress);
+
+    const existingDevice = user.trustedDevices.find(
+  (d) =>
+    d.browser === browser &&
+    d.os === os &&
+    d.ipAddress === ipAddress
+);
+
+    if (existingDevice) {
+
+      existingDevice.lastLogin =
+        new Date();
+
+    } else {
+
+      user.trustedDevices.push({
+        browser,
+        os,
+        deviceType,
+        ipAddress,
+        lastLogin: new Date(),
+      });
+
+    }
+
+    if (!existingDevice) {
+      console.log("CREATING SECURITY ALERT");
+      await SecurityAlert.create({
+        adminId: user._id,
+
+        type: "NEW_DEVICE_LOGIN",
+
+        title: "New Device Login",
+
+        message:
+          `New admin login detected from ${deviceName}`,
+
+        ipAddress,
+        browser,
+        os,
+      });
+
+    }
+
+    const AdminSession = require("../models/AdminSession");
+
+    await AdminSession.updateMany(
+      {
+        adminId: user._id,
+        ipAddress,
+        browser,
+        isActive: true,
+      },
+      {
+        isActive: false,
+        logoutAt: new Date(),
+      },
+    );
+
+    await AdminSession.create({
+      adminId: user._id,
+
+      browser,
+      os,
+
+      deviceType,
+
+      deviceName,
+      platform,
+
+      ipAddress,
+
+      lastSeenAt: new Date(),
+    });
+
+    await User.findByIdAndUpdate(user._id, {
+      lastActivity: new Date(),
+    });
+
+    await AdminActivity.create({
+      adminId: user._id,
+      adminName: user.name,
+
+      action: "LOGIN",
+
+      module: "AUTH",
+
+      details: {
+        message: "Admin logged in",
+      },
+
+      ipAddress,
+      browser,
+      os,
+    });
+
+    await user.save();
+
     return res.status(200).json({
       success: true,
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.tokenVersion),
     });
-
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
       message: "OTP verification failed",
+    });
+  }
+};
+
+exports.adminResendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({
+      email: email.toLowerCase().trim(),
+      role: "admin",
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Admin not found",
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await Otp.findOneAndUpdate(
+      { email: user.email },
+      {
+        otp,
+        expiresAt,
+      },
+      {
+        upsert: true,
+        new: true,
+      },
+    );
+
+    await sendEmail({
+      to: user.email,
+      subject: "Admin Login OTP",
+      html: `
+        <h2>Royal Component Admin Login</h2>
+        <h1>${otp}</h1>
+        <p>OTP valid for 5 minutes.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP resent successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to resend OTP",
+    });
+  }
+};
+
+exports.adminMe = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        message: "No token provided",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user || user.role !== "admin") {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    return res.status(401).json({
+      message: "Invalid token",
+    });
+  }
+};
+
+exports.adminLoginHistory = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        message: "No token provided",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const AdminSession = require("../models/AdminSession");
+
+    const sessions = await AdminSession.find({
+      adminId: decoded.id,
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      history: sessions,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+};
+exports.adminSessions = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const AdminSession = require("../models/AdminSession");
+
+    const sessions = await AdminSession.find({
+      adminId: decoded.id,
+    }).sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      sessions,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.adminActivities = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const activities = await AdminActivity.find({
+      adminId: decoded.id,
+    })
+      .sort({ createdAt: -1 })
+      .limit(200);
+
+    return res.json({
+      success: true,
+      activities,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.logoutAllSessions = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    user.tokenVersion += 1;
+    await user.save();
+
+    await AdminSession.updateMany(
+      {
+        adminId: user._id,
+        isActive: true,
+      },
+      {
+        isActive: false,
+        logoutAt: new Date(),
+      },
+    );
+
+    await AdminActivity.create({
+      adminId: user._id,
+      adminName: user.name,
+
+      action: "LOGOUT_ALL_DEVICES",
+
+      module: "SECURITY",
+
+      details: {
+        message: "Admin logged out from all devices",
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Logged out from all devices",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };

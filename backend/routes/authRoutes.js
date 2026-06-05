@@ -14,12 +14,15 @@ const {
    forgotPassword,
    verifyResetOTP,
    resetPassword,
+   adminResendOtp,
+   adminMe,
+   adminLoginHistory,
+   adminSessions,
+   adminActivities,
 } = require("../controllers/authController");
+const { protect, admin } = require("../middleware/authMiddleware");
 
-const {
-   sendOTP,
-   verifyOTP,
-} = require("../controllers/otpController");
+const { sendOTP, verifyOTP } = require("../controllers/otpController");
 
 /* ===============================
    🆕 REGISTER
@@ -31,7 +34,12 @@ router.post("/register", registerUser);
 ================================ */
 router.post("/login", loginWithPassword);
 router.post("/admin/send-otp", adminSendOtp);
+router.post("/admin/resend-otp", adminResendOtp);
 router.post("/admin/verify-otp", adminVerifyOtp);
+router.get("/admin/me", adminMe);
+router.get("/admin/login-history", adminLoginHistory);
+router.get("/admin/sessions", adminSessions);
+router.get("/admin/activities", adminActivities);
 
 /* ===============================
    🔐 LOGIN WITH OTP FLOW

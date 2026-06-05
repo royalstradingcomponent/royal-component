@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { API_BASE } from "@/lib/api";
@@ -16,15 +16,11 @@ export default function AdminAuthPage() {
 
   const [step, setStep] = useState("login");
   const [otp, setOtp] = useState("");
+  const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
-  const [otpArray, setOtpArray] = useState([
-  "",
-  "",
-  "",
-  "",
-  "",
-  "",
-]);
+  const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
+
+  const [timer, setTimer] = useState(60);
 
   const signin = async (e) => {
     e.preventDefault();
@@ -56,6 +52,7 @@ export default function AdminAuthPage() {
 
       setAdminEmail(data.email);
       setStep("otp");
+      setTimer(60);
 
       toast.success("OTP sent to admin email");
     } catch (error) {
@@ -97,6 +94,14 @@ export default function AdminAuthPage() {
 
       localStorage.setItem("adminRole", data.role);
 
+      localStorage.setItem("adminName", data.name);
+
+      localStorage.setItem("adminEmail", data.email);
+
+      const sessionId = crypto.randomUUID();
+
+      localStorage.setItem("adminSessionId", sessionId);
+
       toast.success("Admin login successful");
 
       router.replace("/admin");
@@ -107,6 +112,49 @@ export default function AdminAuthPage() {
     }
   };
 
+  const resendOtp = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE}/api/auth/admin/resend-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message);
+      }
+
+      setTimer(60);
+
+      toast.success("OTP resent successfully");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (step !== "otp") return;
+
+    if (timer <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [step, timer]);
+
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 px-4">
       <div className="w-full max-w-md rounded-[32px] border border-white/60 bg-white/95 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur">
@@ -115,12 +163,12 @@ export default function AdminAuthPage() {
             R
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
-            Royal Trading Component
+          <h1 className="text-lg font-bold">
+            {adminName || "Royal Trading Component"}
           </h1>
 
-          <p className="mt-2 text-base text-slate-500">
-            Secure Admin Authentication
+          <p className="text-xs text-slate-300">
+            {adminEmail || "Admin Control Panel"}
           </p>
         </div>
 
@@ -249,11 +297,25 @@ export default function AdminAuthPage() {
                 onClick={() => {
                   setStep("login");
                   setOtp("");
+                  setTimer(60);
                   setOtpArray(["", "", "", "", "", ""]);
                 }}
                 className="w-full rounded-2xl bg-gradient-to-r from-slate-400 to-slate-500 py-4 text-sm font-bold text-white shadow-md transition-all duration-200 hover:from-slate-500 hover:to-slate-600"
               >
                 Back
+              </button>
+
+              <button
+                type="button"
+                disabled={timer > 0}
+                onClick={resendOtp}
+                className={`w-full rounded-2xl py-4 text-sm font-bold ${
+                  timer > 0
+                    ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                    : "bg-blue-600 text-white"
+                }`}
+              >
+                {timer > 0 ? `Resend OTP in ${timer}s` : "Resend OTP"}
               </button>
             </>
           )}
