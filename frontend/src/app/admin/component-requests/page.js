@@ -294,6 +294,23 @@ function RequestCard({ req, updateRequest }) {
             },
         ];
 
+    const autoSubTotal =
+        items.reduce(
+            (total, item) =>
+                total + Number(item.lineTotal || 0),
+            0
+        );
+
+    const autoGst =
+        items.reduce(
+            (total, item) =>
+                total + Number(item.gstAmount || 0),
+            0
+        );
+
+    const autoGrandTotal =
+        autoSubTotal + autoGst;
+
     const totalQty =
         items.reduce((total, item) => total + Number(item.quantity || 0), 0) || 1;
 
@@ -710,24 +727,23 @@ function RequestCard({ req, updateRequest }) {
 
                             <InfoBox
                                 label="Sub Total"
-                                value={`₹${req.subTotal || 0}`}
+                                value={`₹${autoSubTotal.toFixed(2)}`}
                             />
 
                             <InfoBox
-                                label="SGST"
-                                value={`₹${req.sgstAmount || 0}`}
-                            />
-
-                            <InfoBox
-                                label="CGST"
-                                value={`₹${req.cgstAmount || 0}`}
+                                label="GST Total"
+                                value={`₹${autoGst.toFixed(2)}`}
                             />
 
                             <InfoBox
                                 label="Grand Total"
-                                value={`₹${req.adminPrice || 0}`}
+                                value={`₹${autoGrandTotal.toFixed(2)}`}
                             />
 
+                            <InfoBox
+                                label="Items"
+                                value={items.length}
+                            />
                         </div>
 
                         <div className="mt-3 grid gap-3 md:grid-cols-3">

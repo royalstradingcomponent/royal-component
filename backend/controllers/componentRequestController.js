@@ -245,95 +245,149 @@ exports.createComponentRequest = async (req, res) => {
         console.time("MATCHING");
         for (const item of parsedItems) {
 
-            if (!item.partNumber) continue;
+            item.availabilityStatus = "checking";
+
+            item.unitPrice = 0;
+
+            item.gstAmount = 0;
+
+            item.lineTotal = 0;
 
             const supplier =
-                allSuppliers.find(
-                    (s) =>
-                        s.partNumber &&
-                        s.partNumber
-                            .toLowerCase()
-                            .includes(
-                                item.partNumber.toLowerCase()
-                            )
+                allSuppliers.find((s) => {
+
+                    const requestPart =
+                        String(item.partNumber || "")
+                            .trim()
+                            .toUpperCase();
+
+                    const supplierPart =
+                        String(s.partNumber || "")
+                            .trim()
+                            .toUpperCase();
+
+                    return (
+                        requestPart &&
+                        supplierPart &&
+                        requestPart === supplierPart
+                    );
+                });
+
+            if (!supplier) {
+                continue;
+            }
+
+            foundSupplier = true;
+
+            item.availabilityStatus =
+                "available";
+
+            const requestedQty =
+                Number(item.quantity || 1);
+
+            const unitPrice =
+                Number(
+                    supplier.sellingPrice || 0
                 );
 
-            if (supplier) {
-                foundSupplier = true;
+            const lineSubTotal =
+                unitPrice * requestedQty;
 
-                requestStatus = "available";
+            const gstAmount =
+                (lineSubTotal *
+                    Number(
+                        supplier.gstPercent || 18
+                    )) /
+                100;
 
-                autoLeadTime = supplier.leadTime || "2-5 business days";
+            const lineTotal =
+                lineSubTotal + gstAmount;
 
-                autoCustomerMessage =
-                    "Great news! Your required components are currently available in stock and ready for dispatch. We have prepared your quotation with best pricing, fast delivery timeline and procurement support. For bulk discount, technical confirmation or immediate order processing, please call or WhatsApp our sales team.";
+            item.unitPrice =
+                Number(
+                    unitPrice.toFixed(2)
+                );
 
-                const basePrice = supplier.purchasePrice * item.quantity;
+            item.gstAmount =
+                Number(
+                    gstAmount.toFixed(2)
+                );
 
-                const gstAmount = (basePrice * supplier.gstPercent) / 100;
+            item.lineTotal =
+                Number(
+                    lineTotal.toFixed(2)
+                );
 
-                const profitAmount = (basePrice * supplier.profitPercent) / 100;
+            subTotal += lineSubTotal;
 
-                const quotationPrice =
-                    basePrice + gstAmount + profitAmount + supplier.extraCharge;
+            matchedSupplierSources.push({
+                supplierSource:
+                    supplier._id,
 
-                subTotal += quotationPrice;
+                supplierCompany:
+                    supplier.supplierCompany,
 
-                sgstAmount = subTotal * 0.09;
+                componentName:
+                    supplier.componentName,
 
-                cgstAmount = subTotal * 0.09;
+                partNumber:
+                    supplier.partNumber,
 
-                autoAdminPrice = subTotal + sgstAmount + cgstAmount;
+                brand:
+                    supplier.brand,
 
-                matchedSupplierSources.push({
-                    supplierSource: supplier._id,
+                purchasePrice:
+                    supplier.purchasePrice,
 
-                    supplierCompany: supplier.supplierCompany,
+                requestedQty,
 
-                    componentName: supplier.componentName,
+                unitPrice,
 
-                    partNumber: supplier.partNumber,
+                lineTotal,
 
-                    brand: supplier.brand,
+                finalSellingPrice:
+                    Number(
+                        lineTotal.toFixed(2)
+                    ),
 
-                    purchasePrice: supplier.purchasePrice,
+                gstPercent:
+                    supplier.gstPercent,
 
-                    finalSellingPrice: Number(quotationPrice.toFixed(2)),
+                gstAmount,
 
-                    gstPercent: supplier.gstPercent,
+                profitPercent:
+                    supplier.profitPercent,
 
-                    gstAmount: Number(gstAmount.toFixed(2)),
+                extraCharge:
+                    supplier.extraCharge,
 
-                    profitPercent: supplier.profitPercent,
+                moq:
+                    supplier.moq,
 
-                    profitAmount: Number(profitAmount.toFixed(2)),
+                leadTime:
+                    supplier.leadTime,
 
-                    extraCharge: supplier.extraCharge,
+                phone:
+                    supplier.phone,
 
-                    moq: supplier.moq,
+                email:
+                    supplier.email,
 
-                    leadTime: supplier.leadTime,
-
-                    lastPurchaseDate: supplier.lastPurchaseDate,
-
-                    contactPerson: supplier.contactPerson,
-
-                    address: supplier.address,
-
-                    qualityNote: supplier.qualityNote,
-
-                    phone: supplier.phone,
-
-                    whatsapp: supplier.whatsapp,
-
-                    email: supplier.email,
-
-                    availabilityStatus: supplier.availabilityStatus,
-
-                    isPreferred: supplier.isPreferred,
-                });
-            }
+                availabilityStatus:
+                    "available",
+            });
         }
+
+        sgstAmount =
+            subTotal * 0.09;
+
+        cgstAmount =
+            subTotal * 0.09;
+
+        autoAdminPrice =
+            subTotal +
+            sgstAmount +
+            cgstAmount;
 
         console.log(
             "MATCHED =>",
@@ -388,7 +442,7 @@ exports.createComponentRequest = async (req, res) => {
         });
 
         console.timeEnd("DB_SAVE");
-        
+
         if (requestStatus === "available") {
             // const pdfBuffer = await generateQuotationPdf(request);
 
@@ -494,6 +548,8 @@ exports.updateComponentRequest = async (req, res) => {
             adminContactNumber,
             availableItemsNote,
         } = req.body;
+
+        const updatedItems = req.body.items || [];
 
         const request = await ComponentRequest.findById(req.params.id);
 
@@ -619,6 +675,78 @@ sales@royaltradingcomponent.com
 
         if (availableItemsNote !== undefined) {
             request.availableItemsNote = String(availableItemsNote || "").trim();
+        }
+
+        if (updatedItems.length) {
+
+            let subTotal = 0;
+
+            updatedItems.forEach((item) => {
+
+                const qty =
+                    Number(item.quantity || 0);
+
+                const unitPrice =
+                    Number(item.unitPrice || 0);
+
+                const gstAmount =
+                    Number(item.gstAmount || 0);
+
+                const lineTotal =
+                    (qty * unitPrice) + gstAmount;
+
+                item.lineTotal =
+                    Number(lineTotal.toFixed(2));
+
+                subTotal += lineTotal;
+
+            });
+
+            const sgstAmount =
+                Number((subTotal * 0.09).toFixed(2));
+
+            const cgstAmount =
+                Number((subTotal * 0.09).toFixed(2));
+
+            request.subTotal =
+                Number(subTotal.toFixed(2));
+
+            request.sgstAmount =
+                sgstAmount;
+
+            request.cgstAmount =
+                cgstAmount;
+
+            request.adminPrice =
+                Number(
+                    (subTotal + sgstAmount + cgstAmount)
+                        .toFixed(2)
+                );
+
+            let availableCount = 0;
+
+            updatedItems.forEach((item) => {
+                if (item.availabilityStatus === "available") {
+                    availableCount++;
+                }
+            });
+
+            if (availableCount > 0) {
+                request.status = "available";
+            } else {
+                request.status = "checking";
+            }
+
+            request.items =
+                updatedItems;
+
+
+
+            request.activityLogs.push({
+                message:
+                    "Component pricing and availability updated by admin",
+            });
+
         }
 
         console.log("REQUEST BEFORE SAVE =>", {

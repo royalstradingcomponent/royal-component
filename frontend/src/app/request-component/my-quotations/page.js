@@ -219,6 +219,42 @@ export default function MyQuotationsPage() {
                               </span>{" "}
                               {item.brand}
                             </p>
+
+                            <div className="mt-3 space-y-2">
+
+                              <div
+                                className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${item.availabilityStatus === "available"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-yellow-100 text-yellow-700"
+                                  }`}
+                              >
+                                {item.availabilityStatus === "available"
+                                  ? "AVAILABLE"
+                                  : "CHECKING"}
+                              </div>
+
+                              <p>
+                                <span className="font-semibold">
+                                  Unit Price:
+                                </span>{" "}
+                                ₹{Number(item.unitPrice || 0).toLocaleString("en-IN")}
+                              </p>
+
+                              <p>
+                                <span className="font-semibold">
+                                  GST:
+                                </span>{" "}
+                                ₹{Number(item.gstAmount || 0).toLocaleString("en-IN")}
+                              </p>
+
+                              <p className="font-bold text-green-700">
+                                Total:
+                                {" "}
+                                ₹{Number(item.lineTotal || 0).toLocaleString("en-IN")}
+                              </p>
+
+                            </div>
+
                           </div>
                         </div>
 

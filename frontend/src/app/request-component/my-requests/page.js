@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { API_BASE } from "@/lib/api";
 import { toast } from "sonner";
+import { Package, IndianRupee, Receipt, Boxes, BadgeCheck } from "lucide-react";
 import {
     Search,
     Phone,
@@ -51,43 +52,33 @@ export default function MyComponentRequestsPage() {
         fetchAllRequests();
     }, []);
 
-
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const fetchAllRequests = async () => {
         try {
-
             setLoading(true);
 
             const storedUser = JSON.parse(localStorage.getItem("user"));
 
             const token = storedUser?.token;
 
-            const res = await fetch(
-                `${API_BASE}/api/component-requests/my`,
-                {
-                    cache: "no-store",
+            const res = await fetch(`${API_BASE}/api/component-requests/my`, {
+                cache: "no-store",
 
-                    headers: {
-                        Authorization: token ? `Bearer ${token}` : "",
-                    },
-                }
-            );
+                headers: {
+                    Authorization: token ? `Bearer ${token}` : "",
+                },
+            });
 
             const data = await res.json();
 
             if (data.success) {
-
                 setRequests(data.requests || []);
             }
-
         } catch (error) {
-
             console.log(error);
-
         } finally {
-
             setLoading(false);
         }
     };
@@ -103,9 +94,9 @@ export default function MyComponentRequestsPage() {
 
             const res = await fetch(
                 `${API_BASE}/api/component-requests/lookup?search=${encodeURIComponent(
-                    search.trim()
+                    search.trim(),
                 )}`,
-                { cache: "no-store" }
+                { cache: "no-store" },
             );
 
             const data = await res.json();
@@ -187,9 +178,7 @@ export default function MyComponentRequestsPage() {
                                 href="/request-component"
                                 className="mt-5 inline-flex items-center justify-center rounded-xl bg-[#0f4c81] px-6 py-3 font-black text-white shadow-lg transition-all duration-200 hover:bg-[#0b3b66] hover:text-white"
                             >
-                                <span className="text-white">
-                                    Submit New Request
-                                </span>
+                                <span className="text-white">Submit New Request</span>
                             </Link>
                         </div>
                     ) : (
@@ -270,10 +259,7 @@ function RequestCard({ req }) {
                     </h3>
 
                     {req.datasheetUrls.map((file, index) => (
-                        <div
-                            key={index}
-                            className="flex flex-wrap items-center gap-3 mb-4"
-                        >
+                        <div key={index} className="flex flex-wrap items-center gap-3 mb-4">
                             <span className="font-semibold text-slate-700">
                                 PDF #{index + 1}
                             </span>
@@ -281,28 +267,24 @@ function RequestCard({ req }) {
                             <a
                                 href={`${API_BASE}${file.replace(
                                     "/uploads/request-files/",
-                                    "/uploads/requests/"
+                                    "/uploads/requests/",
                                 )}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center justify-center rounded-2xl bg-sky-500 px-6 py-3 shadow-md transition hover:bg-sky-600"
                             >
-                                <span className="font-bold text-white">
-                                    👁 Preview PDF
-                                </span>
+                                <span className="font-bold text-white">👁 Preview PDF</span>
                             </a>
 
                             <a
                                 href={`${API_BASE}${file.replace(
                                     "/uploads/request-files/",
-                                    "/uploads/requests/"
+                                    "/uploads/requests/",
                                 )}`}
                                 download
                                 className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-6 py-3 shadow-md transition hover:bg-emerald-600"
                             >
-                                <span className="font-bold text-white">
-                                    ⬇ Download PDF
-                                </span>
+                                <span className="font-bold text-white">⬇ Download PDF</span>
                             </a>
                         </div>
                     ))}
@@ -332,7 +314,6 @@ function RequestCard({ req }) {
                         </div>
                     )}
 
-
                     <div className="space-y-3">
                         {items.map((item, index) => (
                             <div
@@ -345,12 +326,10 @@ function RequestCard({ req }) {
 
                                 <h4 className="text-lg font-black text-slate-900">
                                     {item.componentName ||
-                                        (req.datasheetUrls?.length > 0
-                                            ? "📄 BOM Uploaded"
-                                            : "N/A")}
+                                        (req.datasheetUrls?.length > 0 ? "📄 BOM Uploaded" : "N/A")}
                                 </h4>
 
-                                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                <div className="mt-3 grid gap-3 md:grid-cols-4">
                                     <InfoBox
                                         label="MPN"
                                         value={
@@ -370,6 +349,38 @@ function RequestCard({ req }) {
                                         }
                                     />
                                     <InfoBox label="Quantity" value={item.quantity || 1} />
+
+                                    <InfoBox
+                                        label="Status"
+                                        value={item.availabilityStatus || "Checking"}
+                                    />
+
+                                    <InfoBox
+                                        label="Unit Price"
+                                        value={
+                                            item.unitPrice
+                                                ? `₹${Number(item.unitPrice).toLocaleString("en-IN")}`
+                                                : "Pending"
+                                        }
+                                    />
+
+                                    <InfoBox
+                                        label="GST"
+                                        value={
+                                            item.gstAmount
+                                                ? `₹${Number(item.gstAmount).toLocaleString("en-IN")}`
+                                                : "Pending"
+                                        }
+                                    />
+
+                                    <InfoBox
+                                        label="Line Total"
+                                        value={
+                                            item.lineTotal
+                                                ? `₹${Number(item.lineTotal).toLocaleString("en-IN")}`
+                                                : "Pending"
+                                        }
+                                    />
                                 </div>
                             </div>
                         ))}
@@ -399,17 +410,13 @@ function RequestCard({ req }) {
 
                     {req.adminPrice ? (
                         <div className="mt-4 rounded-2xl bg-blue-50 p-4">
-
                             <p className="text-xs font-black uppercase text-blue-700">
                                 Final Quotation
                             </p>
 
                             <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
-
                                 <div className="grid gap-3 md:grid-cols-2">
-
                                     <div>
-
                                         <p className="text-xs font-black uppercase text-slate-400">
                                             Quotation Number
                                         </p>
@@ -417,11 +424,9 @@ function RequestCard({ req }) {
                                         <p className="mt-1 text-sm font-black text-slate-800">
                                             {req.quotationNumber || "N/A"}
                                         </p>
-
                                     </div>
 
                                     <div>
-
                                         <p className="text-xs font-black uppercase text-slate-400">
                                             Validity
                                         </p>
@@ -429,114 +434,197 @@ function RequestCard({ req }) {
                                         <p className="mt-1 text-sm font-black text-slate-800">
                                             {req.quotationValidity || "7 Days"}
                                         </p>
-
                                     </div>
-
                                 </div>
-
                             </div>
 
-                            <div className="mt-4 space-y-3">
+                            <div className="mt-4 space-y-4">
+                                {items.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="
+                       group
+                     rounded-3xl
+                      border
+                          border-slate-200
+                               bg-white
+                                   p-5
+                                    shadow-sm
+                                      transition-all
+                                        duration-300
+                                          hover:shadow-xl
+                                       hover:-translate-y-1
+                                              "
+                                    >
+                                        <div className="flex items-center justify-between">
 
-                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
-                                    <span>
-                                        Unit Price
-                                    </span>
+                                            <h4 className="text-lg font-black text-slate-900">
+                                                {item.componentName}
+                                            </h4>
 
-                                    <span>
-                                        ₹{
-                                            Math.round(
-                                                Number(req.subTotal || 0) /
-                                                (items[0]?.quantity || 1)
-                                            ).toLocaleString("en-IN")
-                                        }
-                                    </span>
+                                            <span
+                                                className="rounded-full  bg-emerald-100  px-3 py-1 text-xs font-black text-emerald-700 ">
+
+                                                Available
+                                            </span>
+
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between">
+
+                                            <div className="flex items-center gap-2">
+
+                                                <Boxes size={16} className="text-blue-600" />
+
+                                                <span className="font-medium">
+                                                    Quantity
+                                                </span>
+
+                                            </div>
+
+                                            <span className="font-black">
+                                                {item.quantity}
+                                            </span>
+
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between">
+
+                                            <div className="flex items-center gap-2">
+
+                                                <IndianRupee
+                                                    size={16}
+                                                    className="text-green-600"
+                                                />
+
+                                                <span className="font-medium">
+                                                    Unit Price
+                                                </span>
+
+                                            </div>
+
+                                            <span className="font-black text-green-700">
+                                                ₹{Number(item.unitPrice || 0).toLocaleString("en-IN")}
+                                            </span>
+
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between">
+
+                                            <div className="flex items-center gap-2">
+
+                                                <Receipt
+                                                    size={16}
+                                                    className="text-orange-600"
+                                                />
+
+                                                <span className="font-medium">
+                                                    GST
+                                                </span>
+
+                                            </div>
+
+                                            <span className="font-black text-orange-700">
+                                                ₹{Number(item.gstAmount || 0).toLocaleString("en-IN")}
+                                            </span>
+
+                                        </div>
+
+                                        <div
+                                            className="
+    mt-5
+    rounded-2xl
+    bg-gradient-to-r
+    from-blue-600
+    to-indigo-600
+    p-4
+    text-white
+    "
+                                        >
+
+                                            <div className="flex items-center justify-between">
+
+                                                <span className="font-bold">
+                                                    Item Total
+                                                </span>
+
+                                                <span className="text-xl font-black">
+                                                    ₹{Number(item.lineTotal || 0).toLocaleString("en-IN")}
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <div className="border-t pt-4">
+                                    <div className="flex justify-between font-bold">
+                                        <span>Sub Total</span>
+                                        <span>
+                                            ₹{Number(req.subTotal || 0).toLocaleString("en-IN")}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-2 flex justify-between font-bold">
+                                        <span>SGST</span>
+                                        <span>
+                                            ₹{Number(req.sgstAmount || 0).toLocaleString("en-IN")}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-2 flex justify-between font-bold">
+                                        <span>CGST</span>
+                                        <span>
+                                            ₹{Number(req.cgstAmount || 0).toLocaleString("en-IN")}
+                                        </span>
+                                    </div>
+
+                                    <div
+                                        className="
+    mt-6
+    rounded-3xl
+    bg-gradient-to-r
+    from-[#0f4c81]
+    to-[#2563eb]
+    p-5
+    text-white
+    "
+                                    >
+
+                                        <div className="flex items-center justify-between">
+
+                                            <div>
+
+                                                <p className="text-sm opacity-80">
+                                                    Final Payable Amount
+                                                </p>
+
+                                                <p className="text-3xl font-black">
+                                                    ₹{Number(req.adminPrice || 0).toLocaleString("en-IN")}
+                                                </p>
+
+                                            </div>
+
+                                            <BadgeCheck size={42} />
+
+                                        </div>
+
+                                    </div>
                                 </div>
-
-                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
-                                    <span>
-                                        Quantity
-                                    </span>
-
-                                    <span>
-                                        {items[0]?.quantity || 1}
-                                    </span>
-                                </div>
-
-                                <div className="border-t pt-3 flex items-center justify-between text-sm font-bold text-slate-700">
-                                    <span>
-                                        Sub Total
-                                    </span>
-
-                                    <span>
-                                        ₹{
-                                            Number(
-                                                req.subTotal || 0
-                                            ).toLocaleString("en-IN")
-                                        }
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
-                                    <span>
-                                        SGST (9%)
-                                    </span>
-
-                                    <span>
-                                        ₹{
-                                            Number(
-                                                req.sgstAmount || 0
-                                            ).toLocaleString("en-IN")
-                                        }
-                                    </span>
-                                </div>
-
-                                <div className="flex items-center justify-between text-sm font-bold text-slate-700">
-                                    <span>
-                                        CGST (9%)
-                                    </span>
-
-                                    <span>
-                                        ₹{
-                                            Number(
-                                                req.cgstAmount || 0
-                                            ).toLocaleString("en-IN")
-                                        }
-                                    </span>
-                                </div>
-
-                                <div className="border-t pt-4 flex items-center justify-between">
-                                    <span className="text-lg font-black text-slate-900">
-                                        Grand Total
-                                    </span>
-
-                                    <span className="text-2xl font-black text-blue-900">
-                                        ₹{
-                                            Number(
-                                                req.adminPrice || 0
-                                            ).toLocaleString("en-IN")
-                                        }
-                                    </span>
-                                </div>
-
                             </div>
                         </div>
                     ) : null}
 
-                    {(req.status === "available" ||
-                        req.status === "quoted") && (
-
-                            <a
-                                href={`${API_BASE}/api/component-requests/download-pdf/${req._id}`}
-                                target="_blank"
-                                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-3 text-sm font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:from-[#1d4ed8] hover:to-[#6d28d9]"
-                            >
-                                <span className="text-white">
-                                    Download Quotation PDF
-                                </span>
-                            </a>
-
-                        )}
+                    {(req.status === "available" || req.status === "quoted") && (
+                        <a
+                            href={`${API_BASE}/api/component-requests/download-pdf/${req._id}`}
+                            target="_blank"
+                            className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-3 text-sm font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:from-[#1d4ed8] hover:to-[#6d28d9]"
+                        >
+                            <span className="text-white">Download Quotation PDF</span>
+                        </a>
+                    )}
 
                     {req.adminLeadTime ? (
                         <div className="mt-4 rounded-2xl bg-yellow-50 p-4">
@@ -556,9 +644,7 @@ function RequestCard({ req }) {
                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0f4c81] px-5 py-3 font-black text-white shadow transition hover:bg-[#0b3b66]"
                             >
                                 <Phone size={18} className="text-white" />
-                                <span className="text-white">
-                                    Call Now: {phone}
-                                </span>
+                                <span className="text-white">Call Now: {phone}</span>
                             </a>
 
                             <a
@@ -583,7 +669,7 @@ function RequestCard({ req }) {
                        Unit Price:
                        ₹${Math.round(
                                     Number(req.adminPrice || 0) /
-                                    (items[0]?.quantity || 1)
+                                    (items[0]?.quantity || 1),
                                 )}
 
                         Total Amount:
@@ -600,9 +686,7 @@ function RequestCard({ req }) {
                                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-black text-white shadow transition hover:bg-emerald-700"
                             >
                                 <MessageCircle size={18} className="text-white" />
-                                <span className="text-white">
-                                    WhatsApp Now
-                                </span>
+                                <span className="text-white">WhatsApp Now</span>
                             </a>
                         </div>
                     ) : null}

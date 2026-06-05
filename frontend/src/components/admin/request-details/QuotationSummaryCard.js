@@ -1,6 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { adminRequest } from "@/lib/api";
+
 export default function QuotationSummaryCard({ request }) {
+
+  const [editableItems, setEditableItems] = useState(
+    request?.items || []
+  );
 
   const items = request?.items || [];
 
@@ -15,8 +22,14 @@ export default function QuotationSummaryCard({ request }) {
       ? Number(request.subTotal || 0) / quantity
       : 0;
 
-  const subTotal =
-    Number(request.subTotal || 0);
+  const calculatedSubTotal =
+    editableItems.reduce(
+      (sum, item) =>
+        sum + Number(item.lineTotal || 0),
+      0
+    );
+
+  const subTotal = calculatedSubTotal;
 
   const sgst =
     Number(request.sgstAmount || 0);
@@ -25,8 +38,35 @@ export default function QuotationSummaryCard({ request }) {
     Number(request.cgstAmount || 0);
 
   const grandTotal =
-    subTotal + sgst + cgst;
+    calculatedSubTotal +
+    sgst +
+    cgst;
 
+  const handleItemChange = (
+    index,
+    field,
+    value
+  ) => {
+
+    const updated = [...editableItems];
+
+    updated[index][field] = value;
+
+    const qty =
+      Number(updated[index].quantity || 0);
+
+    const unitPrice =
+      Number(updated[index].unitPrice || 0);
+
+    const gstAmount =
+      Number(updated[index].gstAmount || 0);
+
+    updated[index].lineTotal =
+      qty * unitPrice + gstAmount;
+
+    setEditableItems(updated);
+
+  };
   return (
 
     <div className="rounded-[32px] border border-slate-200 bg-white p-4 md:p-8 shadow-sm">
@@ -183,8 +223,16 @@ export default function QuotationSummaryCard({ request }) {
                   Qty
                 </th>
 
+                <th className="px-4 py-4 text-center text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">
+                  Status
+                </th>
+
                 <th className="px-4 py-4 text-right text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">
                   Unit Price
+                </th>
+
+                <th className="px-4 py-4 text-right text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">
+                  GST
                 </th>
 
                 <th className="px-4 py-4 text-right text-xs md:text-sm font-black uppercase tracking-wider text-slate-700">
@@ -197,13 +245,10 @@ export default function QuotationSummaryCard({ request }) {
 
             <tbody className="divide-y divide-slate-100 bg-white">
 
-              {items.map((item, index) => {
-
+              {editableItems.map((item, index) => {
                 const qty =
                   Number(item.quantity || 0);
 
-                const total =
-                  unitPrice * qty;
 
                 return (
 
@@ -232,13 +277,65 @@ export default function QuotationSummaryCard({ request }) {
                       {qty}
                     </td>
 
-                    <td className="px-4 py-4 text-right font-bold text-blue-700">
-                      ₹{unitPrice.toFixed(2)}
+                    <td className="px-4 py-4 text-center">
+
+                      <select
+                        value={item.availabilityStatus}
+                        onChange={(e) =>
+                          handleItemChange(
+                            index,
+                            "availabilityStatus",
+                            e.target.value
+                          )
+                        }
+                        className="rounded-lg border px-2 py-1"
+                      >
+                        <option value="checking">
+                          CHECKING
+                        </option>
+
+                        <option value="available">
+                          AVAILABLE
+                        </option>
+                      </select>
+
                     </td>
 
-                    <td className="px-4 py-4 text-right font-black text-green-700">
-                      ₹{total.toFixed(2)}
+                    <td className="px-4 py-4 text-right font-bold text-blue-700">
+                      <input
+                        type="number"
+                        value={item.unitPrice || 0}
+                        onChange={(e) =>
+                          handleItemChange(
+                            index,
+                            "unitPrice",
+                            Number(e.target.value)
+                          )
+                        }
+                        className="w-24 rounded border p-2 text-right"
+                      />
                     </td>
+
+                    <>
+                      <td className="px-4 py-4 text-right font-bold text-orange-600">
+                        <input
+                          type="number"
+                          value={item.gstAmount || 0}
+                          onChange={(e) =>
+                            handleItemChange(
+                              index,
+                              "gstAmount",
+                              Number(e.target.value)
+                            )
+                          }
+                          className="w-24 rounded border p-2 text-right"
+                        />
+                      </td>
+
+                      <td className="px-4 py-4 text-right font-black text-green-700">
+                        ₹{Number(item.lineTotal || 0).toFixed(2)}
+                      </td>
+                    </>
 
                   </tr>
 
@@ -249,6 +346,39 @@ export default function QuotationSummaryCard({ request }) {
 
           </table>
 
+          <div className="flex justify-end p-4">
+
+            <button
+              onClick={async () => {
+
+                await adminRequest(
+                  `/api/component-requests/admin/${request._id}`,
+                  {
+                    method: "PUT",
+
+                    headers: {
+                      "Content-Type":
+                        "application/json",
+                    },
+
+                    body: JSON.stringify({
+                      items: editableItems,
+                    }),
+                  }
+                );
+
+                alert("Items Updated");
+
+                window.location.reload();
+
+              }}
+              className="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white"
+            >
+              Save Component Pricing
+            </button>
+
+          </div>
+
         </div>
 
       </div>
@@ -258,3 +388,4 @@ export default function QuotationSummaryCard({ request }) {
   );
 
 }
+

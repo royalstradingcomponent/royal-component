@@ -19,9 +19,33 @@ const requestItemSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
-    quantity: { type: Number, required: true, min: 1, default: 1 },
+    quantity: {
+      type: Number, required: true, min: 1, default: 1
+    },
+
+    availabilityStatus: {
+      type: String,
+      enum: ["available", "checking"],
+      default: "checking",
+    },
+
+    unitPrice: {
+      type: Number,
+      default: 0,
+    },
+
+    gstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    lineTotal: {
+      type: Number,
+      default: 0,
+    },
+
   },
-  { _id: false }
+  { _id: false },
 );
 
 const componentRequestSchema = new mongoose.Schema(
@@ -100,14 +124,7 @@ const componentRequestSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: [
-        "new",
-        "checking",
-        "available",
-        "quoted",
-        "unavailable",
-        "closed",
-      ],
+      enum: ["new", "checking", "available", "quoted", "unavailable", "closed"],
       default: "new",
     },
 
@@ -200,6 +217,21 @@ const componentRequestSchema = new mongoose.Schema(
           default: 0,
         },
 
+        requestedQty: {
+          type: Number,
+          default: 1,
+        },
+
+        unitPrice: {
+          type: Number,
+          default: 0,
+        },
+
+        lineTotal: {
+          type: Number,
+          default: 0,
+        },
+
         finalSellingPrice: {
           type: Number,
           default: 0,
@@ -286,9 +318,8 @@ const componentRequestSchema = new mongoose.Schema(
         },
       },
     ],
-
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 componentRequestSchema.index({

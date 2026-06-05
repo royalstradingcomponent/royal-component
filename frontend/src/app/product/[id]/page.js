@@ -684,36 +684,7 @@ export default async function ProductDetailPage({ params }) {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-sm bg-white p-5 shadow-sm">
-              <div
-                className={`inline-flex items-center rounded-full px-4 py-2 text-[15px] font-bold ${stockMeta.className}`}
-              >
-                <span className="mr-2 inline-block h-4 w-4 rounded-full bg-current opacity-90" />
-                {stockMeta.label}
-              </div>
 
-              <ul className="mt-5 space-y-3 text-[16px] leading-7 text-[#1f2937]">
-                <li>• {stockMeta.note}</li>
-                <li>• Bulk quantity pricing available on request.</li>
-                <li>• Dispatch timelines may vary based on stock and pack size.</li>
-              </ul>
-
-              <div className="mt-5 flex items-start gap-3 rounded-sm bg-[#f8fafc] p-3 text-[15px] text-[#065f73]">
-                <Info className="mt-0.5 shrink-0" size={18} />
-                <p>
-                  Stock levels and delivery timelines refer to current wholesale
-                  procurement availability.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 border-2 border-[#2452c6] bg-white px-5 text-[18px] font-semibold text-[#2452c6] transition hover:bg-[#eff6ff]"
-              >
-                <Truck size={20} />
-                Check delivery dates
-              </button>
-            </div>
 
             <div className="rounded-sm bg-white p-5 shadow-sm">
               <div className="space-y-3">
@@ -804,6 +775,66 @@ export default async function ProductDetailPage({ params }) {
                   Delhi, India
                 </p>
               </div>
+            </div>
+
+                        <div className="rounded-sm bg-white p-5 shadow-sm">
+
+              <div
+
+                className={`inline-flex items-center rounded-full px-4 py-2 text-[15px] font-bold ${stockMeta.className}`}
+
+              >
+
+                <span className="mr-2 inline-block h-4 w-4 rounded-full bg-current opacity-90" />
+
+                {stockMeta.label}
+
+              </div>
+
+
+
+              <ul className="mt-5 space-y-3 text-[16px] leading-7 text-[#1f2937]">
+
+                <li>• {stockMeta.note}</li>
+
+                <li>• Bulk quantity pricing available on request.</li>
+
+                <li>• Dispatch timelines may vary based on stock and pack size.</li>
+
+              </ul>
+
+
+
+              <div className="mt-5 flex items-start gap-3 rounded-sm bg-[#f8fafc] p-3 text-[15px] text-[#065f73]">
+
+                <Info className="mt-0.5 shrink-0" size={18} />
+
+                <p>
+
+                  Stock levels and delivery timelines refer to current wholesale
+
+                  procurement availability.
+
+                </p>
+
+              </div>
+
+
+
+              <button
+
+                type="button"
+
+                className="mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 border-2 border-[#2452c6] bg-white px-5 text-[18px] font-semibold text-[#2452c6] transition hover:bg-[#eff6ff]"
+
+              >
+
+                <Truck size={20} />
+
+                Check delivery dates
+
+              </button>
+
             </div>
 
             <div className="rounded-sm bg-white p-5 shadow-sm">
