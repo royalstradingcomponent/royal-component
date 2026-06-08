@@ -1,22 +1,17 @@
 const PDFDocument = require("pdfkit");
 
 const generateQuotationPdf = async (reqData, res = null) => {
-
     const doc = new PDFDocument({
         margin: 40,
         size: "A4",
     });
 
     if (res) {
-
-        res.setHeader(
-            "Content-Type",
-            "application/pdf"
-        );
+        res.setHeader("Content-Type", "application/pdf");
 
         res.setHeader(
             "Content-Disposition",
-            `attachment; filename=${reqData.quotationNumber || "quotation"}.pdf`
+            `attachment; filename=${reqData.quotationNumber || "quotation"}.pdf`,
         );
     }
 
@@ -44,85 +39,52 @@ const generateQuotationPdf = async (reqData, res = null) => {
     // HEADER
     // ======================================================
 
-    doc
-        .rect(0, 0, 650, 125)
-        .fill(primary);
+    doc.rect(0, 0, 650, 125).fill(primary);
 
-    doc
-        .rect(0, 110, 650, 15)
-        .fill("#2563eb");
+    doc.rect(0, 110, 650, 15).fill("#2563eb");
 
     doc
         .fillColor("white")
         .fontSize(30)
         .font("Helvetica-Bold")
-        .text(
-            "ROYAL TRADING CO",
-            40,
-            28
-        );
+        .text("ROYAL TRADING CO", 40, 28);
 
-    doc
-        .fontSize(11)
-        .font("Helvetica")
-        .text(
-            "Industrial Electronic Components Supplier",
+    doc.fontSize(11).font("Helvetica").text(
+        "Industrial Electronic Components Supplier",
 
-            42,
-            65
-        );
+        42,
+        65,
+    );
     doc
         .fontSize(10)
         .fillColor("#dbeafe")
         .text(
             "Trusted Global Semiconductor & Electronic Components Distributor",
             42,
-            82
+            82,
         );
 
     // RIGHT CONTACT
 
-    doc
-        .fontSize(10)
-        .font("Helvetica")
-        .text(
-            "Email:",
-            360,
-            32
-        );
+    doc.fontSize(10).font("Helvetica").text("Email:", 360, 32);
 
-    doc.text(
-        "royalstradingcomponent1@gmail.com",
-        360,
-        48,
-        {
-            width: 190,
-        }
-    );
+    doc.text("royalstradingcomponent1@gmail.com", 360, 48, {
+        width: 190,
+    });
 
-    doc.text(
-        "Phone: +91 88511 49032",
-        360,
-        72
-    );
+    doc.text("Phone: +91 88511 49032", 360, 72);
 
     // ======================================================
     // TITLE
     // ======================================================
 
-    doc
-        .roundedRect(40, 130, 515, 50, 8)
-        .fill(lightBlue);
+    doc.roundedRect(40, 130, 515, 50, 8).fill(lightBlue);
 
     doc
         .fillColor(primary)
         .fontSize(24)
         .font("Helvetica-Bold")
-        .text(
-            "QUOTATION",
-            55,
-            145
-        );
+        .text("QUOTATION", 55, 145);
 
     // ======================================================
     // QUOTATION INFO
@@ -132,20 +94,14 @@ const generateQuotationPdf = async (reqData, res = null) => {
         .fillColor(dark)
         .fontSize(12)
         .font("Helvetica-Bold")
-        .text(
-            `Quotation No: ${reqData.quotationNumber || "N/A"}`,
-            40,
-            205
-        );
+        .text(`Quotation No: ${reqData.quotationNumber || "N/A"}`, 40, 205);
 
     doc
         .font("Helvetica")
         .text(
-            `Date: ${new Date(
-                reqData.createdAt
-            ).toLocaleDateString("en-IN")}`,
+            `Date: ${new Date(reqData.createdAt).toLocaleDateString("en-IN")}`,
             40,
-            225
+            225,
         );
 
     // ======================================================
@@ -156,750 +112,457 @@ const generateQuotationPdf = async (reqData, res = null) => {
         .fillColor(primary)
         .fontSize(18)
         .font("Helvetica-Bold")
-        .text(
-            "Customer Details",
-            40,
-            270
-        );
+        .text("Customer Details", 40, 270);
 
-    doc
-        .roundedRect(
-            40,
-            300,
-            515,
-            145,
-            10
-        )
-        .fillAndStroke("#f8fbff", border);
+    doc.roundedRect(40, 300, 515, 145, 10).fillAndStroke("#f8fbff", border);
 
     let cy = 320;
 
     const addLine = (label, value) => {
-
         doc
             .font("Helvetica-Bold")
             .fontSize(11)
             .fillColor(primary)
-            .text(
-                `${label}:`,
-                60,
-                cy
-            );
+            .text(`${label}:`, 60, cy);
 
         doc
             .font("Helvetica")
             .fillColor(dark)
-            .text(
-                value || "N/A",
-                170,
-                cy,
-                {
-                    width: 320,
-                }
-            );
+            .text(value || "N/A", 170, cy, {
+                width: 320,
+            });
 
         cy += 22;
     };
 
-    addLine(
-        "Customer Name",
-        reqData.customerName
-    );
+    addLine("Customer Name", reqData.customerName);
 
-    addLine(
-        "Company",
-        reqData.companyName
-    );
+    addLine("Company", reqData.companyName);
 
-    addLine(
-        "Phone",
-        reqData.customerPhone
-    );
+    addLine("Phone", reqData.customerPhone);
 
-    addLine(
-        "Email",
-        reqData.customerEmail
-    );
+    addLine("Email", reqData.customerEmail);
 
     addLine(
         "Address",
-        `${reqData.addressLine1 || ""} ${reqData.addressLine2 || ""}`
+        `${reqData.addressLine1 || ""} ${reqData.addressLine2 || ""}`,
     );
 
     addLine(
         "City / State",
-        `${reqData.city}, ${reqData.state} - ${reqData.pinCode}`
+        `${reqData.city}, ${reqData.state} - ${reqData.pinCode}`,
     );
 
-    // ======================================================
-    // COMPONENT DETAILS
-    // ======================================================
+    let tableTop = 500;
 
     doc
         .fillColor(primary)
         .fontSize(18)
         .font("Helvetica-Bold")
-        .text(
-            "Component Details",
-            40,
-            480
-        );
-
-    // TABLE HEADER
-
-    const tableTop = 520;
-
-    const col1 = 50;
-    const col2 = 230;
-    const col3 = 360;
-    const col4 = 470;
-
-    doc
-        .rect(40, tableTop, 500, 35)
-        .fill(primary);
-
-    doc
-        .fillColor("white")
-        .fontSize(11)
-        .font("Helvetica-Bold");
-
-    doc.text(
-        "Component",
-        col1,
-        tableTop + 11
-    );
-
-    doc.text(
-        "Part Number",
-        col2,
-        tableTop + 11
-    );
-
-    doc.text(
-        "Brand",
-        col3,
-        tableTop + 11
-    );
-
-    doc.text(
-        "Qty",
-        col4,
-        tableTop + 11
-    );
-
-    let rowY = tableTop + 35;
-
-    reqData.items.forEach((item, index) => {
-
-        doc
-            .rect(
-                40,
-                rowY,
-                500,
-                38
-            )
-            .fillAndStroke(
-                index % 2 === 0
-                    ? "#f8fbff"
-                    : "#eef6ff",
-                border
-            );
-
-        doc
-            .fillColor(dark)
-            .font("Helvetica")
-            .fontSize(10);
-
-        doc.text(
-            item.componentName,
-            col1,
-            rowY + 12,
-            {
-                width: 150,
-            }
-        );
-
-        doc.text(
-            item.partNumber,
-            col2,
-            rowY + 12,
-            {
-                width: 110,
-            }
-        );
-
-        doc.text(
-            item.brand,
-            col3,
-            rowY + 12,
-            {
-                width: 90,
-            }
-        );
-
-        doc.text(
-            String(item.quantity),
-            col4,
-            rowY + 12
-        );
-
-        rowY += 38;
-    });
-
-    // ======================================================
-    // PRICING SECTION
-    // ======================================================
-
-    // ======================================================
-    // PRICING SECTION
-    // ======================================================
-
-    doc.addPage();
-
-    doc
-        .fillColor(primary)
-        .fontSize(20)
-        .font("Helvetica-Bold")
-        .text(
-            "Pricing Summary",
-            40,
-            50
-        );
-
-    // TABLE START
-
-    const startX = 40;
-    const startY = 100;
-
-    const colWidths = [
-        80,
-        75,
-        95,
-        75,
-        75,
-        120,
-    ];
+        .text("Quotation Items", 40, tableTop);
 
     const headers = [
+        "Component",
+        "Part No",
+        "Brand",
+        "Qty",
         "Unit Price",
-        "Quantity",
-        "Sub Total",
-        "SGST",
-        "CGST",
-        "Grand Total",
+        "GST/Unit",
+        "Without GST",
+        "GST",
+        "Total",
     ];
 
-    const values = [
-
-        `Rs. ${(
-            reqData.subTotal /
-            reqData.items[0].quantity
-        ).toFixed(2)}`,
-
-        `${reqData.items[0].quantity}`,
-
-        `Rs. ${Number(
-            reqData.subTotal || 0
-        ).toFixed(2)}`,
-
-        `Rs. ${Number(
-            reqData.sgstAmount || 0
-        ).toFixed(2)}`,
-
-        `Rs. ${Number(
-            reqData.cgstAmount || 0
-        ).toFixed(2)}`,
-
-        `Rs. ${Number(
-            reqData.adminPrice || 0
-        ).toFixed(2)}`,
+    const colWidths = [
+        65, // Component
+        65, // Part No
+        50, // Brand
+        35, // Qty
+        55, // Unit Price
+        55, // GST/Unit
+        65, // Without GST
+        50, // GST
+        65, // Total
     ];
 
-    // HEADER ROW
+    let x = 40;
+    let y = tableTop + 35;
 
-    let currentX = startX;
+    const PAGE_BOTTOM = 700;
+
+const redrawTableHeader = () => {
+    let hx = 40;
 
     headers.forEach((header, index) => {
+        doc.rect(hx, y, colWidths[index], 30)
+            .fillAndStroke("#0f4c81", "#0f4c81");
+
+        doc.fillColor("white")
+            .fontSize(9)
+            .font("Helvetica-Bold")
+            .text(header, hx + 4, y + 10, {
+                width: colWidths[index] - 8,
+                align: "center",
+            });
+
+        hx += colWidths[index];
+    });
+
+    y += 30;
+};
+
+    headers.forEach((header, index) => {
+        doc.rect(x, y, colWidths[index], 30).fillAndStroke("#0f4c81", "#0f4c81");
 
         doc
-            .rect(
-                currentX,
-                startY,
-                colWidths[index],
-                45
-            )
-            .fillAndStroke(
-                primary,
-                border
-            );
+            .fillColor("white")
+            .fontSize(9)
+            .font("Helvetica-Bold")
+            .text(header, x + 4, y + 10, {
+                width: colWidths[index] - 8,
+                align: "center",
+            });
 
+        x += colWidths[index];
+    });
+
+    y += 30;
+
+    (reqData.items || []).forEach((item, index) => {
+
+        if (y > PAGE_BOTTOM) {
+    doc.addPage();
+    y = 50;
+    redrawTableHeader();
+}
+
+        const qty = Number(item.quantity || 0);
+
+        const unitPrice = Number(item.unitPrice || 0);
+
+        const gst = Number(item.gstAmount || 0);
+
+        const gstPerUnit = qty > 0 ? gst / qty : 0;
+
+        const withoutGST = qty * unitPrice;
+
+        const total = Number(item.lineTotal || 0);
+
+        let rowX = 40;
+
+        const row = [
+            item.componentName || "-",
+            item.partNumber || "-",
+            item.brand || "-",
+            qty,
+            unitPrice.toFixed(2),
+            gstPerUnit.toFixed(2),
+            withoutGST.toFixed(2),
+            gst.toFixed(2),
+            total.toFixed(2)
+        ];
+
+        row.forEach((value, colIndex) => {
+            doc
+                .rect(rowX, y, colWidths[colIndex], 30)
+                .fillAndStroke(index % 2 === 0 ? "#f8fbff" : "#eef6ff", border);
+
+            doc
+                .fillColor(dark)
+                .fontSize(9)
+                .font("Helvetica")
+                .text(String(value), rowX + 2, y + 6, {
+                    width: colWidths[colIndex] - 4,
+                    align: "center",
+                });
+
+            rowX += colWidths[colIndex];
+        });
+
+        y += 30;
+    });
+
+    if (y + 250 > PAGE_BOTTOM) {
+    doc.addPage();
+    y = 50;
+}
+
+
+// ==========================================
+// QUOTATION SUMMARY CARD
+// ==========================================
+
+const quotationCardY = y;
+
+doc
+  .roundedRect(40, quotationCardY, 515, 170, 15)
+  .fillAndStroke("#f8fbff", border);
+
+doc
+  .fillColor(dark)
+  .fontSize(24)
+  .font("Helvetica-Bold")
+  .text("Quotation Summary", 60, quotationCardY + 25);
+
+const qTableY = quotationCardY + 75;
+
+doc
+  .roundedRect(55, qTableY, 485, 45, 10)
+  .fill("#2563eb");
+
+const qHeaders = [
+  "TOTAL ITEMS",
+  "TOTAL QTY",
+  "TOTAL GST",
+  "TOTAL VALUE"
+];
+
+const qColW = 485 / 4;
+
+qHeaders.forEach((head, i) => {
+  doc
+    .fillColor("white")
+    .fontSize(11)
+    .font("Helvetica-Bold")
+    .text(
+      head,
+      55 + (i * qColW),
+      qTableY + 15,
+      {
+        width: qColW,
+        align: "center",
+      }
+    );
+});
+
+doc
+  .fillColor(dark)
+  .fontSize(16)
+  .font("Helvetica-Bold");
+
+const totalItems = (reqData.items || []).length;
+
+const totalQty = (reqData.items || []).reduce(
+  (sum, item) => sum + Number(item.quantity || 0),
+  0
+);
+
+const totalGST = (reqData.items || []).reduce(
+  (sum, item) => sum + Number(item.gstAmount || 0),
+  0
+);
+
+doc
+  .fillColor(dark)
+  .fontSize(18)
+  .font("Helvetica-Bold");
+
+doc.text(
+  String(totalItems),
+  55,
+  qTableY + 70,
+  {
+    width: qColW,
+    align: "center"
+  }
+);
+
+doc.text(
+  String(totalQty),
+  55 + qColW,
+  qTableY + 70,
+  {
+    width: qColW,
+    align: "center"
+  }
+);
+
+doc.text(
+  `${totalGST.toFixed(2)}`,
+  55 + qColW * 2,
+  qTableY + 70,
+  {
+    width: qColW,
+    align: "center"
+  }
+);
+
+doc.text(
+  `${Number(reqData.adminPrice || 0).toFixed(2)}`,
+  55 + qColW * 3,
+  qTableY + 70,
+  {
+    width: qColW,
+    align: "center"
+  }
+);
+
+y = quotationCardY + 190;
+    // ======================================================
+    // QUOTATION SUMMARY (MATCH WEBSITE DESIGN)
+    // ======================================================
+
+    y += 10;
+
+    const summaryCardX = 40;
+    const summaryCardY = y;
+    const summaryCardW = 515;
+    const summaryCardH = 210;
+    // Outer Card
+    doc
+        .roundedRect(summaryCardX, summaryCardY, summaryCardW, summaryCardH, 15)
+        .fillAndStroke("#f8fbff", border);
+
+    doc
+        .fillColor(dark)
+        .fontSize(24)
+        .font("Helvetica-Bold")
+        .text("Pricing Summary", summaryCardX + 25, summaryCardY + 25);
+
+    // Table Start
+    const tableY = summaryCardY + 75;
+    const colW = summaryCardW / 4;
+
+    // Header Background
+    doc
+        .roundedRect(summaryCardX + 15, tableY, summaryCardW - 30, 45, 10)
+        .fill(primary);
+
+    // Header Titles
+    const heads = ["SUBTOTAL", "SGST", "CGST", "GRAND TOTAL"];
+
+    heads.forEach((head, i) => {
         doc
             .fillColor("white")
             .fontSize(11)
             .font("Helvetica-Bold")
             .text(
-                header,
-                currentX + 8,
-                startY + 15,
+                head,
+                summaryCardX + (i * colW),
+                tableY + 15,
                 {
-                    width:
-                        colWidths[index] - 10,
+                    width: colW,
                     align: "center",
                 }
             );
-
-        currentX += colWidths[index];
     });
 
-    // VALUE ROW
+    // Values Row
+    const valueY = tableY + 85;
 
-    currentX = startX;
+    const values = [
+        `${Number(reqData.subTotal || 0).toFixed(2)}`,
+        `${Number(reqData.sgstAmount || 0).toFixed(2)}`,
+        `${Number(reqData.cgstAmount || 0).toFixed(2)}`,
+        `${Number(reqData.adminPrice || 0).toFixed(2)}`
+    ];
 
-    values.forEach((value, index) => {
-
+    values.forEach((val, i) => {
         doc
-            .rect(
-                currentX,
-                startY + 45,
-                colWidths[index],
-                60
-            )
-            .fillAndStroke(
-                "#f8fbff",
-                border
-            );
-
-        doc
-            .fillColor(
-                index === 5
-                    ? green
-                    : dark
-            )
-            .fontSize(
-                index === 5
-                    ? 16
-                    : 12
-            )
-            .font(
-                index === 5
-                    ? "Helvetica-Bold"
-                    : "Helvetica"
-            )
+            .fillColor(i === 3 ? green : dark)
+            .fontSize(18)
+            .font("Helvetica-Bold")
             .text(
-                value,
-                currentX + 5,
-                startY + 68,
+                val,
+                summaryCardX + (i * colW),
+                valueY,
                 {
-                    width:
-                        colWidths[index] - 10,
+                    width: colW,
                     align: "center",
                 }
             );
-
-        currentX += colWidths[index];
     });
-
-    // LEAD TIME
-
-    doc
-        .roundedRect(
-            40,
-            230,
-            500,
-            55,
-            8
-        )
-        .fill("#fff7ed");
-
-    doc
-        .fillColor("#b45309")
-        .fontSize(14)
-        .font("Helvetica-Bold")
-        .text(
-            "Lead Time",
-            60,
-            245
-        );
-
-    doc
-        .fillColor(dark)
-        .fontSize(12)
-        .font("Helvetica")
-        .text(
-            reqData.adminLeadTime ||
-            "2-5 business days",
-            180,
-            245
-        );
-    doc.moveDown(6);
-
-   // ======================================================
-// QUOTATION READY SECTION
-// ======================================================
-
-const readyTop = 310;
-
-doc
-    .roundedRect(40, readyTop, 500, 220, 12)
-    .fill("#eff6ff");
-
-doc
-    .fillColor("#1e3a8a")
-    .fontSize(24)
-    .font("Helvetica-Bold")
-    .text(
-        "Quotation Details",
-        60,
-        readyTop + 20
-    );
-
-doc
-    .fillColor("#111827")
-    .fontSize(15)
-    .font("Helvetica")
-    .text(
-        `Dear ${reqData.customerName},`,
-        60,
-        readyTop + 65
-    );
-
-doc
-    .fontSize(14)
-    .fillColor("#374151")
-    .text(
-        "Thank you for choosing Royal Trading Component.",
-        60,
-        readyTop + 95
-    );
-
-doc.text(
-    "We are pleased to inform you that your requested components are currently available and your quotation has been successfully prepared.",
-    60,
-    readyTop + 125,
-    {
-        width: 420,
-        lineGap: 5,
-    }
-);
-
-// ======================================================
-// INFO TABLE
-// ======================================================
-
-const infoTop = readyTop + 240;
-
-doc
-    .roundedRect(40, infoTop, 500, 115, 10)
-    .fill("#ffffff");
-
-doc
-    .strokeColor("#dbeafe")
-    .lineWidth(1)
-    .roundedRect(40, infoTop, 500, 115, 10)
-    .stroke();
-
-doc
-    .fillColor("#0f172a")
-    .fontSize(13)
-    .font("Helvetica-Bold");
-
-doc
-    .font("Helvetica-Bold")
-    .fontSize(13)
-    .fillColor("#0f172a");
-
-doc.text(
-    `Quotation No : ${reqData.quotationNumber}`,
-    60,
-    infoTop + 25
-);
-
-doc.text(
-    `Status : Quotation Ready`,
-    60,
-    infoTop + 55
-);
-
-doc.text(
+   
+   doc
+  .fillColor(primary)
+  .fontSize(12)
+  .font("Helvetica-Bold")
+  .text(
     `Lead Time : ${reqData.adminLeadTime || "2-5 Business Days"}`,
-    60,
-    infoTop + 85
-);
+    summaryCardX + 20,
+    valueY + 40
+  );
 
-// ======================================================
-// QUOTATION SUMMARY
-// ======================================================
+    y = summaryCardY + summaryCardH + 40;
 
-// ======================================================
-// QUOTATION SUMMARY
-// ======================================================
+    if (y + 120 > PAGE_BOTTOM) {
+    doc.addPage();
+    y = 50;
+}
 
-const summaryTop = infoTop + 145;
-
-doc
-    .fillColor("#0f172a")
-    .fontSize(20)
-    .font("Helvetica-Bold")
-    .text(
-        "Quotation Summary",
-        40,
-        summaryTop
-    );
-
-// HEADER
-
-doc
-    .rect(40, summaryTop + 35, 500, 38)
-    .fill("#2563eb");
-
-doc
-    .fillColor("white")
-    .fontSize(11)
-    .font("Helvetica-Bold");
-
-doc.text("Component", 60, summaryTop + 48);
-doc.text("Qty", 285, summaryTop + 48);
-doc.text("Unit Price", 355, summaryTop + 48);
-doc.text("Total", 465, summaryTop + 48);
-
-// ROW
-
-const item = reqData.items?.[0];
-
-doc
-    .rect(40, summaryTop + 73, 500, 42)
-    .fill("#f8fbff");
-
-doc
-    .strokeColor("#dbeafe")
-    .lineWidth(1)
-    .rect(40, summaryTop + 73, 500, 42)
-    .stroke();
-
-doc
-    .fillColor("#111827")
-    .font("Helvetica")
-    .fontSize(11);
-
-doc.text(
-    item?.componentName || "-",
-    60,
-    summaryTop + 88,
-    {
-        width: 170,
-    }
-);
-
-doc.text(
-    String(item?.quantity || 0),
-    295,
-    summaryTop + 88
-);
-
-doc.text(
-    `Rs. ${(
-        reqData.subTotal /
-        (item?.quantity || 1)
-    ).toFixed(2)}`,
-    350,
-    summaryTop + 88
-);
-
-doc.text(
-    `Rs. ${Number(
-        reqData.subTotal || 0
-    ).toFixed(2)}`,
-    455,
-    summaryTop + 88
-);
-
-// ======================================================
-// NEW PAGE
-// ======================================================
-
-doc.addPage();
-
-// ======================================================
-// PRICING SUMMARY
-// ======================================================
-
-const pricingTop = 240;
-
-doc
-    .fillColor("#0f172a")
-    .fontSize(22)
-    .font("Helvetica-Bold")
-    .text(
-        "Pricing Summary",
-        40,
-        pricingTop
-    );
-
-doc
-    .rect(40, pricingTop + 40, 500, 40)
-    .fill("#0f4c81");
-
-doc
-    .fillColor("white")
-    .fontSize(12)
-    .font("Helvetica-Bold");
-
-doc.text("Sub Total", 70, pricingTop + 53);
-doc.text("SGST", 210, pricingTop + 53);
-doc.text("CGST", 320, pricingTop + 53);
-doc.text("Grand Total", 430, pricingTop + 53);
-
-doc
-    .rect(40, pricingTop + 80, 500, 55)
-    .fill("#eff6ff");
-
-doc
-    .strokeColor("#dbeafe")
-    .lineWidth(1)
-    .rect(40, pricingTop + 80, 500, 55)
-    .stroke();
-
-doc
-    .fillColor("#111827")
-    .font("Helvetica")
-    .fontSize(13);
-
-doc.text(
-    `Rs. ${Number(
-        reqData.subTotal || 0
-    ).toFixed(2)}`,
-    70,
-    pricingTop + 100
-);
-
-doc.text(
-    `Rs. ${Number(
-        reqData.sgstAmount || 0
-    ).toFixed(2)}`,
-    210,
-    pricingTop + 100
-);
-
-doc.text(
-    `Rs. ${Number(
-        reqData.cgstAmount || 0
-    ).toFixed(2)}`,
-    320,
-    pricingTop + 100
-);
-
-doc
-    .fillColor("#166534")
-    .font("Helvetica-Bold")
-    .fontSize(16)
-    .text(
-        `Rs. ${Number(
-            reqData.adminPrice || 0
-        ).toFixed(2)}`,
-        425,
-        pricingTop + 98
-    );
-
-// ======================================================
-// SUPPORT BOX
-// ======================================================
-
-const supportTop = 430;
-
-doc
-    .roundedRect(40, supportTop, 500, 90, 10)
-    .fill("#f8fafc");
-
-doc
-    .fillColor("#374151")
-    .font("Helvetica")
-    .fontSize(13)
-    .text(
-        "For bulk orders, technical verification, urgent dispatch or custom pricing support, please contact our sales team.",
-        65,
-        supportTop + 28,
-        {
-            width: 420,
-            lineGap: 4,
-        }
-    );
-
-// ======================================================
-// FOOTER
-// ======================================================
-
-const footerTop = 560;
-
-doc
-    .moveTo(40, footerTop)
-    .lineTo(540, footerTop)
-    .strokeColor("#cbd5e1")
-    .stroke();
-
-doc
-    .fillColor("#111827")
-    .fontSize(14)
-    .font("Helvetica-Bold")
-    .text(
-        "Regards,",
-        40,
-        footerTop + 20
-    );
-
-doc
-    .fillColor("#0f4c81")
-    .fontSize(20)
-    .font("Helvetica-Bold")
-    .text(
-        "Royal Trading Component",
-        40,
-        footerTop + 50
-    );
-
-doc
-    .fillColor("#374151")
-    .fontSize(13)
-    .font("Helvetica")
-    .text(
-        "sales@royaltradingcomponent.com",
-        40,
-        footerTop + 82
-    );
-
-doc.text(
-    "+91 88511 49032",
-    40,
-    footerTop + 102
-);
     // ======================================================
     // FOOTER
     // ======================================================
 
-    doc
-        .rect(0, 770, 650, 50)
-        .fill(dark);
+    const footerY = y;
 
+    // Top Border
     doc
-        .fillColor("white")
-        .fontSize(10)
-        .font("Helvetica")
+        .moveTo(40, footerY - 25)
+        .lineTo(555, footerY - 25)
+        .strokeColor("#dbeafe")
+        .lineWidth(1)
+        .stroke();
+
+    // Thank You
+    doc
+        .fillColor(primary)
+        .fontSize(20)
+        .font("Helvetica-Bold")
         .text(
-            "Thank you for choosing Royal Trading Co.",
-            0,
-            785,
+            "Thank You For Your Business!",
+            40,
+            footerY,
             {
+                width: 515,
                 align: "center",
             }
         );
 
+    // Company
+    doc
+        .fillColor(dark)
+        .fontSize(10)
+        .font("Helvetica")
+        .text(
+            "Royal Trading Co. | Industrial Electronic Components Supplier",
+            40,
+            footerY + 35,
+            {
+                width: 515,
+                align: "center",
+            }
+        );
+
+    // Contact
+    doc.text(
+        "royalstradingcomponent1@gmail.com | +91 88511 49032",
+        40,
+        footerY + 50,
+        {
+            width: 515,
+            align: "center",
+        }
+    );
+
+    // Generated Date
+    doc
+        .fillColor("#64748b")
+        .fontSize(8)
+        .text(
+            `Generated On : ${new Date().toLocaleDateString("en-IN")}`,
+            40,
+            footerY + 68,
+            {
+                width: 515,
+                align: "center",
+            }
+        );
     doc.end();
 
     return new Promise((resolve) => {
-
         doc.on("end", () => {
-
-            const pdfBuffer =
-                Buffer.concat(chunks);
+            const pdfBuffer = Buffer.concat(chunks);
 
             resolve(pdfBuffer);
         });

@@ -382,6 +382,11 @@ if (bomComponents.length > 0) {
         ) {
             continue;
         }
+console.log(
+  "COMPONENT CANDIDATES =>",
+  componentCandidates
+);
+        
 
         for (const comp of componentCandidates) {
 
@@ -426,6 +431,11 @@ final.push({
 });
         }
     }
+
+    console.log(
+  "FINAL COMPONENTS =>",
+  final
+);
 
     return final;
 }

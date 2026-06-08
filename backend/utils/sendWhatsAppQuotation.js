@@ -6,11 +6,15 @@ const client = twilio(
 );
 
 const sendWhatsAppQuotation = async ({
+  
   customerPhone,
   items,
   totalPrice,
   leadTime,
 }) => {
+
+  console.log("WHATSAPP FUNCTION STARTED");
+console.log("CUSTOMER PHONE =>", customerPhone);
   try {
 
     const item = items?.[0];
@@ -52,13 +56,23 @@ ${leadTime || "2-5 business days"}
 Please reply on WhatsApp for order confirmation.
 `;
 
-    let cleanPhone =
-      String(customerPhone || "")
-        .replace(/\D/g, "");
+   let cleanPhone = String(customerPhone || "")
+  .replace(/\D/g, "");
 
-    if (cleanPhone.length === 10) {
-      cleanPhone = "91" + cleanPhone;
-    }
+// 09334966286 => 9334966286
+if (cleanPhone.startsWith("0")) {
+  cleanPhone = cleanPhone.substring(1);
+}
+
+// 9334966286 => 919334966286
+if (cleanPhone.length === 10) {
+  cleanPhone = "91" + cleanPhone;
+}
+
+console.log("WHATSAPP NUMBER =>", cleanPhone);
+
+console.log("FROM =>", process.env.TWILIO_WHATSAPP_FROM);
+console.log("TO =>", `whatsapp:+${cleanPhone}`);
 
     await client.messages.create({
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const sharp = require("sharp");
 
 const authMiddleware = require("../middleware/authMiddleware");
 
@@ -57,7 +58,7 @@ router.post(
   "/image",
   protectAdmin,
   upload.single("image"),
-  (req, res) => {
+  async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({
@@ -66,14 +67,34 @@ router.post(
         });
       }
 
-      const imageUrl = `/uploads/blogs/${req.file.filename}`;
+      const originalPath = req.file.path;
+
+      const webpFilename =
+        path.parse(req.file.filename).name + ".webp";
+
+      const webpPath = path.join(
+        uploadDir,
+        webpFilename
+      );
+
+      await sharp(originalPath)
+        .webp({
+          quality: 75,
+          effort: 6,
+        })
+        .toFile(webpPath);
+
+      fs.unlinkSync(originalPath);
+
+      const imageUrl =
+        `/uploads/blogs/${webpFilename}`;
 
       res.status(201).json({
         success: true,
         message: "Image uploaded successfully",
         imageUrl,
-        file: req.file,
       });
+
     } catch (error) {
       console.error("Blog image upload error:", error);
       res.status(500).json({

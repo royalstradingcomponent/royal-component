@@ -252,7 +252,7 @@ function RequestCard({ req }) {
                 ) : null}
             </div>
 
-            <div className="grid gap-6 p-5 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="grid gap-6 p-5 xl:grid-cols-[60%_40%]">
                 <div>
                     <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">
                         Requested Components
@@ -314,8 +314,8 @@ function RequestCard({ req }) {
                         </div>
                     )}
 
-                    <div className="space-y-3">
-                        {items.map((item, index) => (
+                    <div className="mt-4 space-y-4">
+                       {items.map((item, index) => (
                             <div
                                 key={index}
                                 className="rounded-2xl border border-slate-100 bg-[#f8fbff] p-4"
@@ -329,7 +329,7 @@ function RequestCard({ req }) {
                                         (req.datasheetUrls?.length > 0 ? "📄 BOM Uploaded" : "N/A")}
                                 </h4>
 
-                                <div className="mt-3 grid gap-3 md:grid-cols-4">
+                                <div className="mt-3 grid grid-cols-2 lg:grid-cols-3 gap-3">
                                     <InfoBox
                                         label="MPN"
                                         value={
@@ -363,9 +363,17 @@ function RequestCard({ req }) {
                                                 : "Pending"
                                         }
                                     />
+                                    <InfoBox
+                                        label="GST Per Unit (18%)"
+                                        value={
+                                            item.unitPrice
+                                                ? `₹${(Number(item.unitPrice) * 0.18).toFixed(2)}`
+                                                : "Pending"
+                                        }
+                                    />
 
                                     <InfoBox
-                                        label="GST"
+                                        label="GST Amount (18%)"
                                         value={
                                             item.gstAmount
                                                 ? `₹${Number(item.gstAmount).toLocaleString("en-IN")}`
@@ -374,7 +382,18 @@ function RequestCard({ req }) {
                                     />
 
                                     <InfoBox
-                                        label="Line Total"
+                                        label="Amount Before GST"
+                                        value={
+                                            item.lineTotal
+                                                ? `₹${Number(
+                                                    (item.lineTotal || 0) - (item.gstAmount || 0),
+                                                ).toLocaleString("en-IN")}`
+                                                : "Pending"
+                                        }
+                                    />
+
+                                    <InfoBox
+                                        label="Final Amount"
                                         value={
                                             item.lineTotal
                                                 ? `₹${Number(item.lineTotal).toLocaleString("en-IN")}`
@@ -457,77 +476,97 @@ function RequestCard({ req }) {
                                               "
                                     >
                                         <div className="flex items-center justify-between">
+                                            <div>
+                                                <h4 className="text-xl font-black text-slate-900">
+                                                    {item.componentName}
+                                                </h4>
 
-                                            <h4 className="text-lg font-black text-slate-900">
-                                                {item.componentName}
-                                            </h4>
-
-                                            <span
-                                                className="rounded-full  bg-emerald-100  px-3 py-1 text-xs font-black text-emerald-700 ">
-
-                                                Available
-                                            </span>
-
-                                        </div>
-
-                                        <div className="mt-4 flex items-center justify-between">
-
-                                            <div className="flex items-center gap-2">
-
-                                                <Boxes size={16} className="text-blue-600" />
-
-                                                <span className="font-medium">
-                                                    Quantity
-                                                </span>
-
+                                                <p className="mt-1 text-xs font-semibold text-slate-500">
+                                                    {item.partNumber || "No Part Number"}
+                                                </p>
                                             </div>
 
-                                            <span className="font-black">
-                                                {item.quantity}
+                                            <span className="rounded-full  bg-emerald-100  px-3 py-1 text-xs font-black text-emerald-700 ">
+                                                Available
                                             </span>
-
                                         </div>
 
                                         <div className="mt-4 flex items-center justify-between">
+                                            <span className="font-medium text-slate-600">Brand</span>
 
+                                            <span className="font-black">{item.brand || "N/A"}</span>
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
+                                                <Boxes size={16} className="text-blue-600" />
 
-                                                <IndianRupee
-                                                    size={16}
-                                                    className="text-green-600"
-                                                />
+                                                <span className="font-medium">Quantity</span>
+                                            </div>
 
-                                                <span className="font-medium">
-                                                    Unit Price
-                                                </span>
+                                            <span className="font-black">{item.quantity}</span>
+                                        </div>
 
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <IndianRupee size={16} className="text-green-600" />
+
+                                                <span className="font-medium">Unit Price</span>
                                             </div>
 
                                             <span className="font-black text-green-700">
                                                 ₹{Number(item.unitPrice || 0).toLocaleString("en-IN")}
                                             </span>
-
                                         </div>
 
                                         <div className="mt-4 flex items-center justify-between">
-
                                             <div className="flex items-center gap-2">
+                                                <Receipt size={16} className="text-amber-600" />
 
-                                                <Receipt
-                                                    size={16}
-                                                    className="text-orange-600"
-                                                />
-
-                                                <span className="font-medium">
-                                                    GST
+                                                <span className="font-medium text-slate-600">
+                                                    GST Per Unit (18%)
                                                 </span>
+                                            </div>
 
+                                            <span className="font-black text-amber-700">
+                                                ₹{((Number(item.unitPrice || 0) * 18) / 100).toFixed(2)}
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Receipt size={16} className="text-orange-600" />
+
+                                                <span className="font-medium">GST (18%)</span>
                                             </div>
 
                                             <span className="font-black text-orange-700">
                                                 ₹{Number(item.gstAmount || 0).toLocaleString("en-IN")}
                                             </span>
+                                        </div>
 
+                                        <div
+                                            className="
+    mt-5
+    rounded-2xl
+    border
+    border-green-200
+    bg-green-50
+    p-4
+    "
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-green-800">
+                                                    Amount (Without GST)
+                                                </span>
+
+                                                <span className="text-xl font-black text-green-700">
+                                                    ₹
+                                                    {Number(
+                                                        (item.lineTotal || 0) - (item.gstAmount || 0),
+                                                    ).toLocaleString("en-IN")}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div
@@ -541,75 +580,66 @@ function RequestCard({ req }) {
     text-white
     "
                                         >
-
                                             <div className="flex items-center justify-between">
-
-                                                <span className="font-bold">
-                                                    Item Total
-                                                </span>
+                                                <span className="font-bold">Final Amount</span>
 
                                                 <span className="text-xl font-black">
                                                     ₹{Number(item.lineTotal || 0).toLocaleString("en-IN")}
                                                 </span>
-
                                             </div>
-
                                         </div>
                                     </div>
                                 ))}
 
-                                <div className="border-t pt-4">
-                                    <div className="flex justify-between font-bold">
-                                        <span>Sub Total</span>
-                                        <span>
+                                <div className="mt-6 grid grid-cols-3 gap-3">
+                                    <div className="rounded-2xl bg-white border border-slate-200 p-4 text-center  shadow-sm">
+                                        <p className="text-xs font-bold uppercase text-slate-500">
+                                            Sub Total
+                                        </p>
+
+                                        <p className="mt-2 text-2xl font-black text-slate-900">
                                             ₹{Number(req.subTotal || 0).toLocaleString("en-IN")}
-                                        </span>
-                                    </div>
-
-                                    <div className="mt-2 flex justify-between font-bold">
-                                        <span>SGST</span>
-                                        <span>
-                                            ₹{Number(req.sgstAmount || 0).toLocaleString("en-IN")}
-                                        </span>
-                                    </div>
-
-                                    <div className="mt-2 flex justify-between font-bold">
-                                        <span>CGST</span>
-                                        <span>
-                                            ₹{Number(req.cgstAmount || 0).toLocaleString("en-IN")}
-                                        </span>
+                                        </p>
                                     </div>
 
                                     <div
                                         className="
-    mt-6
-    rounded-3xl
-    bg-gradient-to-r
-    from-[#0f4c81]
-    to-[#2563eb]
-    p-5
-    text-white
-    "
+        rounded-2xl
+        bg-orange-50
+        border
+        border-orange-200
+        p-4
+        text-center
+        shadow-sm
+        "
                                     >
+                                        <p className="text-xs font-bold uppercase text-orange-600">
+                                            SGST
+                                        </p>
 
-                                        <div className="flex items-center justify-between">
+                                        <p className="mt-2 text-2xl font-black text-orange-700">
+                                            ₹{Number(req.sgstAmount || 0).toLocaleString("en-IN")}
+                                        </p>
+                                    </div>
 
-                                            <div>
+                                    <div
+                                        className="
+        rounded-2xl
+        bg-orange-50
+        border
+        border-orange-200
+        p-4
+        text-center
+        shadow-sm
+        "
+                                    >
+                                        <p className="text-xs font-bold uppercase text-orange-600">
+                                            CGST
+                                        </p>
 
-                                                <p className="text-sm opacity-80">
-                                                    Final Payable Amount
-                                                </p>
-
-                                                <p className="text-3xl font-black">
-                                                    ₹{Number(req.adminPrice || 0).toLocaleString("en-IN")}
-                                                </p>
-
-                                            </div>
-
-                                            <BadgeCheck size={42} />
-
-                                        </div>
-
+                                        <p className="mt-2 text-2xl font-black text-orange-700">
+                                            ₹{Number(req.cgstAmount || 0).toLocaleString("en-IN")}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -697,10 +727,88 @@ function RequestCard({ req }) {
 }
 
 function InfoBox({ label, value }) {
+    const colors = {
+        MPN: "bg-blue-50 border-blue-300",
+
+        Brand: "bg-purple-50 border-purple-300",
+
+        Quantity: "bg-cyan-50 border-cyan-300",
+
+        Status: "bg-emerald-50 border-emerald-300",
+
+        "Unit Price":
+            "bg-green-50 border-green-300",
+
+        "GST Per Unit (18%)":
+            "bg-amber-50 border-amber-300",
+
+        "GST Amount (18%)":
+            "bg-orange-50 border-orange-300",
+
+        "Amount Before GST":
+            "bg-teal-50 border-teal-300",
+
+        "Final Amount":
+            "bg-indigo-50 border-indigo-300",
+    };
+
+    const valueColors = {
+        MPN: "text-blue-700",
+        Brand: "text-purple-700",
+        Quantity: "text-cyan-700",
+        Status: "text-emerald-700",
+        "Unit Price": "text-green-700",
+        "GST Per Unit (18%)": "text-amber-700",
+        "GST Amount (18%)": "text-orange-700",
+        "Amount Before GST": "text-teal-700",
+        "Final Amount": "text-indigo-700",
+    };
+
     return (
-        <div className="rounded-xl bg-white p-3">
-            <p className="text-xs font-black uppercase text-slate-400">{label}</p>
-            <p className="mt-1 break-words text-sm font-bold text-slate-700">
+        <div
+            className={`
+    rounded-3xl
+    border
+    p-4
+    sm:p-5
+    min-h-[90px]
+    sm:min-h-[100px]
+    md:min-h-[110px]
+    shadow-md
+    flex
+    flex-col
+    justify-between
+    transition-all
+    duration-300
+    hover:shadow-lg
+    ${colors[label] || "bg-white border-slate-200"}
+  `}
+        >
+            <p
+                className="
+    text-[11px]
+    sm:text-xs
+    md:text-sm
+    font-black
+    uppercase
+    tracking-[2.5px]
+    text-[#1e293b]
+  "
+            >
+                {label}
+            </p>
+
+            <p
+                className={`
+    text-xs
+    sm:text-sm
+    md:text-base
+    font-semibold
+    break-words
+    leading-tight
+    ${valueColors[label] || "text-slate-900"}
+  `}
+            >
                 {value || "N/A"}
             </p>
         </div>
