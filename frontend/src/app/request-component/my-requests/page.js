@@ -49,7 +49,13 @@ export default function MyComponentRequestsPage() {
     const [search, setSearch] = useState("");
 
     useEffect(() => {
-        fetchAllRequests();
+        const storedUser = JSON.parse(
+            localStorage.getItem("user")
+        );
+
+        if (storedUser?.token) {
+            fetchAllRequests();
+        }
     }, []);
 
     const [requests, setRequests] = useState([]);
@@ -304,6 +310,7 @@ function RequestCard({ req }) {
                                         rel="noreferrer"
                                     >
                                         <img
+                                            loading="lazy"
                                             src={`${API_BASE}${img}`}
                                             alt=""
                                             className="h-24 w-24 rounded-xl border object-cover"
@@ -315,7 +322,7 @@ function RequestCard({ req }) {
                     )}
 
                     <div className="mt-4 space-y-4">
-                       {items.map((item, index) => (
+                        {items.map((item, index) => (
                             <div
                                 key={index}
                                 className="rounded-2xl border border-slate-100 bg-[#f8fbff] p-4"

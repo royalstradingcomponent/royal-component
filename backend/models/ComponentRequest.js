@@ -329,4 +329,17 @@ componentRequestSchema.index({
   customerEmail: "text",
 });
 
+componentRequestSchema.index({
+  user: 1,
+  createdAt: -1,
+});
+
+componentRequestSchema.index({
+  customerEmail: 1,
+});
+
+componentRequestSchema.index({
+  customerPhone: 1,
+});
+
 module.exports = mongoose.model("ComponentRequest", componentRequestSchema);

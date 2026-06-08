@@ -181,7 +181,9 @@ export default function RequestComponentPage() {
         return;
       }
 
-      toast.success("Requirement submitted successfully");
+      toast.success(
+        "Requirement submitted successfully. Redirecting to Track Quotation..."
+      );
 
       setTimeout(() => {
         router.push("/request-component/my-requests");
