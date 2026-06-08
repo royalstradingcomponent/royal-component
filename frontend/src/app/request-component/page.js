@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { API_BASE } from "@/lib/api";
@@ -15,6 +16,8 @@ const emptyItem = {
 };
 
 export default function RequestComponentPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(false);
 
   const [items, setItems] = useState([{ ...emptyItem }]);
@@ -87,19 +90,19 @@ export default function RequestComponentPage() {
 
     const hasPdf = datasheets.length > 0;
 
-   if (
-  !form.customerName?.trim() ||
-  !form.customerEmail?.trim() ||
-  !form.customerPhone?.trim() ||
-  !form.description?.trim() ||
-  !form.addressLine1?.trim() ||
-  !form.city?.trim() ||
-  !form.state?.trim() ||
-  !form.pinCode?.trim()
-) {
-  toast.error("Please fill all required fields");
-  return;
-}
+    if (
+      !form.customerName?.trim() ||
+      !form.customerEmail?.trim() ||
+      !form.customerPhone?.trim() ||
+      !form.description?.trim() ||
+      !form.addressLine1?.trim() ||
+      !form.city?.trim() ||
+      !form.state?.trim() ||
+      !form.pinCode?.trim()
+    ) {
+      toast.error("Please fill all required fields");
+      return;
+    }
 
     if (!hasPdf) {
 
@@ -179,6 +182,10 @@ export default function RequestComponentPage() {
       }
 
       toast.success("Requirement submitted successfully");
+
+      setTimeout(() => {
+        router.push("/request-component/my-requests");
+      }, 1500);
 
       setItems([{ ...emptyItem }]);
       setForm({
