@@ -3,9 +3,17 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
 
 export default function LandingPageView({ page }) {
   console.log("PAGE DATA =", page);
+
+  const imageUrl =
+  page.productImage || page.bannerImage
+    ? `${API_URL}${page.productImage || page.bannerImage}`
+    : "";
 
   if (!page) return null;
 
@@ -21,14 +29,14 @@ export default function LandingPageView({ page }) {
   <div className="overflow-hidden rounded-[32px] shadow-2xl">
 
     <img
-      src={page.productImage || page.bannerImage}
-      alt={page.title}
-      className="
-      w-full
-      h-auto
-      object-cover
-      "
-    />
+  src={imageUrl}
+  alt={page.title}
+  className="
+  w-full
+  h-auto
+  object-cover
+  "
+/>
 
   </div>
 
