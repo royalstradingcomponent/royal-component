@@ -29,23 +29,27 @@ export default function LandingPageForm({
 
   formData.append("image", file);
 
-  const res = await fetch(
-    "http://localhost:5000/api/landing-pages/upload?type=landing-pages",
-    {
-      method: "POST",
-      body: formData,
-    }
-  );
+  const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:5000";
 
-  const data = await res.json();
-
-  if (!data.success) {
-    throw new Error(
-      data.message || "Upload failed"
-    );
+const res = await fetch(
+  `${API_URL}/api/landing-pages/upload?type=landing-pages`,
+  {
+    method: "POST",
+    body: formData,
   }
+);
 
-  return `http://localhost:5000${data.imageUrl}`;
+const data = await res.json();
+
+if (!data.success) {
+  throw new Error(
+    data.message || "Upload failed"
+  );
+}
+
+return data.imageUrl;
 };
 
   const [loading, setLoading] = useState(false);
