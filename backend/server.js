@@ -165,6 +165,11 @@ app.use("/api/blog-categories", blogCategoryRoutes);
 app.use("/api/blog-upload", blogUploadRoutes);
 app.use("/api/blog-page-setting", blogPageSettingRoutes);
 
+app.use(
+  "/api/landing-pages",
+  require("./routes/landingPageRoutes")
+);
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,

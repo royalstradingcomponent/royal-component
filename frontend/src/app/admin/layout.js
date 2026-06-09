@@ -22,6 +22,7 @@ import {
   PanelBottom,
   Package,
   Settings,
+  LayoutTemplate,
   ShoppingCart,
   FileText,
   CreditCard,
@@ -62,7 +63,15 @@ const navItems = [
     title: "Blog Settings",
     href: "/admin/blog-settings",
     icon: Settings,
+  
   },
+
+  {
+  title: "Landing Pages",
+  href: "/admin/landing-pages",
+  icon: LayoutTemplate,
+},
+
   { title: "About Page", href: "/admin/about", icon: Building2 },
   { title: "Contact Page", href: "/admin/contact-page", icon: Contact },
   {

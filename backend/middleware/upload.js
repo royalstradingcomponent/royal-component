@@ -22,6 +22,10 @@ const storage = multer.diskStorage({
       folder = "uploads/documents";
     }
 
+    if (type === "landing-pages") {
+  folder = "uploads/landing-pages";
+}
+
     ensureDir(folder);
     cb(null, folder);
   },

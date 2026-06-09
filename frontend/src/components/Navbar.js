@@ -394,6 +394,18 @@ export default function Navbar() {
                 <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
               </Link>
 
+              <Link
+                href="/landing/arduino-uno-r3-kit"
+                className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold text-[#0f3d67] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+              >
+                <span className="flex items-center gap-2">
+                  <FileText size={16} />
+                  Arduino Kit
+                </span>
+
+                <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
+              </Link>
+
               {/* TOP 5 CATEGORIES AFTER ALL SEMICONDUCTORS */}
               {visibleCategories.map((item) => (
                 <Link
@@ -518,6 +530,19 @@ export default function Navbar() {
                     <span className="flex items-center gap-3">
                       <BookOpen size={17} />
                       Blogs
+                    </span>
+
+                    <ChevronRight size={17} />
+                  </Link>
+
+                  <Link
+                    href="/landing/arduino-uno-r3-kit"
+                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <span className="flex items-center gap-3">
+                      <FileText size={17} />
+                      Arduino Kit
                     </span>
 
                     <ChevronRight size={17} />
