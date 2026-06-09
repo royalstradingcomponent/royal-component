@@ -62,6 +62,7 @@ exports.createLandingPage = async (req, res) => {
       slug,
       bannerImage,
       productImage,
+      mobileBannerImage,
       description,
       linkedProduct,
       whatsappNumber,
@@ -108,6 +109,9 @@ exports.createLandingPage = async (req, res) => {
       slug: generatedSlug,
 
       bannerImage: bannerImage || "",
+
+      mobileBannerImage:
+  mobileBannerImage || "",
 
       productImage: productImage || "",
 
@@ -189,6 +193,7 @@ exports.updateLandingPage = async (req, res) => {
       slug,
       bannerImage,
       productImage,
+      mobileBannerImage,
       description,
       whatsappNumber,
       buyNowLink,
@@ -236,6 +241,10 @@ exports.updateLandingPage = async (req, res) => {
     if (bannerImage !== undefined)
       page.bannerImage =
         bannerImage;
+
+        if (mobileBannerImage !== undefined)
+  page.mobileBannerImage =
+    mobileBannerImage;
 
     if (productImage !== undefined)
       page.productImage =

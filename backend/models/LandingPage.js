@@ -21,6 +21,11 @@ const landingPageSchema = new mongoose.Schema(
       default: "",
     },
 
+    mobileBannerImage: {
+  type: String,
+  default: "",
+},
+
     productImage: {
       type: String,
       default: "",

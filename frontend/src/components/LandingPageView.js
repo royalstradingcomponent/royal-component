@@ -10,10 +10,15 @@ const API_URL =
 export default function LandingPageView({ page }) {
   console.log("PAGE DATA =", page);
 
-  const imageUrl =
-  page.productImage || page.bannerImage
-    ? `${API_URL}${page.productImage || page.bannerImage}`
+  const desktopBanner =
+  page.bannerImage
+    ? `${API_URL}${page.bannerImage}`
     : "";
+
+const mobileBanner =
+  page.mobileBannerImage
+    ? `${API_URL}${page.mobileBannerImage}`
+    : desktopBanner;
 
   if (!page) return null;
 
@@ -22,23 +27,57 @@ export default function LandingPageView({ page }) {
       <Navbar />  
       {/* HERO */}
 
-      <section className="max-w-7xl mx-auto px-4 py-10">
+      <section className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-10">
 
-        <div className="mb-12">
+<div className="mb-6 sm:mb-12">
 
-  <div className="overflow-hidden rounded-[32px] shadow-2xl">
+  <div className="mb-6 sm:mb-12">
 
+  {/* Desktop Banner */}
+  <div
+    className="
+    hidden
+    md:block
+    overflow-hidden
+    rounded-[32px]
+    shadow-2xl
+    w-full
+    "
+  >
     <img
-  src={imageUrl}
-  alt={page.title}
-  className="
-  w-full
-  h-auto
-  object-cover
-  "
-/>
-
+      src={desktopBanner}
+      alt={page.title}
+      className="
+      w-full
+      h-auto
+      object-contain
+      block
+      "
+    />
   </div>
+
+  {/* Mobile Banner */}
+<div
+  className="
+  md:hidden
+  overflow-hidden
+  rounded-[24px]
+  shadow-xl
+  "
+>
+  <img
+    src={mobileBanner}
+    alt={page.title}
+    className="
+    w-full
+    h-auto
+    block
+    object-contain
+    "
+  />
+</div>
+
+</div>
 
 </div>
         <div className="bg-white rounded-3xl shadow-xl p-8">

@@ -18,6 +18,9 @@ export default function LandingPageForm({
   const [bannerPreview, setBannerPreview] =
     useState("");
 
+    const [mobileBannerPreview, setMobileBannerPreview] =
+  useState("");
+
   const [productPreview, setProductPreview] =
     useState("");
 
@@ -59,6 +62,7 @@ return data.imageUrl;
     title: "",
     slug: "",
     bannerImage: "",
+    mobileBannerImage: "",
     productImage: "",
     description: "",
     whatsappNumber: "8851149032",
@@ -99,6 +103,10 @@ return data.imageUrl;
 
 setBannerPreview(
   res.page.bannerImage || ""
+);
+
+setMobileBannerPreview(
+  res.page.mobileBannerImage || ""
 );
 
 setProductPreview(
@@ -430,6 +438,120 @@ duration-300
               )}
 
           </div>
+
+          {/* Mobile Banner */}
+
+<div
+  className="
+  bg-gradient-to-br
+  from-white
+  to-slate-50
+  rounded-3xl
+  border
+  border-slate-200
+  shadow-xl
+  p-8
+  hover:shadow-2xl
+  transition-all
+  duration-300
+"
+>
+  <h3 className="text-lg font-bold mb-4">
+    Mobile Banner Image
+  </h3>
+
+  <input
+    type="text"
+    className="w-full border p-3 rounded-xl"
+    placeholder="Paste Mobile Banner URL"
+    value={formData.mobileBannerImage}
+    onChange={(e) => {
+      updateField(
+        "mobileBannerImage",
+        e.target.value
+      );
+
+      setMobileBannerPreview(
+        e.target.value
+      );
+    }}
+  />
+
+  <div className="mt-4">
+    <label
+      className="
+      mt-4
+      flex
+      items-center
+      justify-center
+      h-40
+      border-2
+      border-dashed
+      border-purple-300
+      rounded-2xl
+      cursor-pointer
+      bg-purple-50
+      hover:bg-purple-100
+      transition
+    "
+    >
+      <div className="text-center">
+        <div className="text-4xl mb-2">
+          📱
+        </div>
+
+        <p className="font-semibold">
+          Upload Mobile Banner
+        </p>
+
+        <p className="text-sm text-gray-500">
+          JPG PNG WEBP
+        </p>
+      </div>
+
+      <input
+        hidden
+        type="file"
+        accept="image/*"
+        onChange={async (e) => {
+          const file =
+            e.target.files?.[0];
+
+          if (!file) return;
+
+          const url =
+            await uploadImage(file);
+
+          updateField(
+            "mobileBannerImage",
+            url
+          );
+
+          setMobileBannerPreview(
+            url
+          );
+        }}
+      />
+    </label>
+  </div>
+
+  {(mobileBannerPreview ||
+    formData.mobileBannerImage) && (
+    <img
+      src={
+        mobileBannerPreview ||
+        formData.mobileBannerImage
+      }
+      className="
+      mt-4
+      h-48
+      w-full
+      object-cover
+      rounded-2xl
+      "
+    />
+  )}
+</div>
 
           {/* Product */}
 
