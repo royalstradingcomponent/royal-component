@@ -7,6 +7,27 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "http://localhost:5000";
 
+  <style jsx global>{`
+@keyframes glowButton {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 30px rgba(59,130,246,.8);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+}
+
+.glow-button {
+  animation: glowButton 1.5s infinite;
+}
+`}</style>
+
 export default function LandingPageView({ page }) {
   console.log("PAGE DATA =", page);
 
@@ -24,6 +45,8 @@ const mobileBanner =
 
   return (
     <div className="min-h-screen bg-[#f5fbff]">
+
+      
       <Navbar />  
       {/* HERO */}
 
@@ -78,6 +101,72 @@ const mobileBanner =
 </div>
 
 </div>
+
+</div>
+
+{/* Banner Buttons */}
+{/* Banner Buttons */}
+<div className="flex flex-col sm:flex-row gap-5 justify-center mb-10">
+
+  <Link
+    href={`/product/${page.linkedProduct}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="
+    flex-1
+    sm:flex-none
+    min-w-[240px]
+    text-center
+    bg-gradient-to-r
+    from-blue-600
+    via-indigo-600
+    to-purple-600
+    !text-white
+    px-12
+    py-5
+    rounded-3xl
+    font-extrabold
+    text-xl
+    shadow-2xl
+    animate-pulse
+    hover:scale-110
+    transition-all
+    duration-300
+    "
+    style={{ color: "#fff" }}
+  >
+    🛒 BUY NOW
+  </Link>
+
+  <a
+    href={`https://wa.me/${page.whatsappNumber}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="
+    flex-1
+    sm:flex-none
+    min-w-[240px]
+    text-center
+    bg-gradient-to-r
+    from-green-500
+    via-emerald-500
+    to-green-700
+    !text-white
+    px-12
+    py-5
+    rounded-3xl
+    font-extrabold
+    text-xl
+    shadow-2xl
+    animate-pulse
+    hover:scale-110
+    transition-all
+    duration-300
+    "
+    style={{ color: "#fff" }}
+  >
+    💬 WHATSAPP
+  </a>
 
 </div>
         <div className="bg-white rounded-3xl shadow-xl p-8">
