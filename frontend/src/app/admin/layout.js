@@ -99,11 +99,7 @@ const navItems = [
   },
   { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { title: "Payments", href: "/admin/payments", icon: CreditCard },
-  {
-    title: "Payment Settings",
-    href: "/admin/payment-settings",
-    icon: CreditCard,
-  },
+  
   { title: "Customers", href: "/admin/customers", icon: Users },
   { title: "Coupons", href: "/admin/coupons", icon: Gift },
   { title: "Support Chats", href: "/admin/chats", icon: MessageSquareText },

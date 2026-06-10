@@ -142,7 +142,7 @@ app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
-app.use("/api/payments", require("./routes/paymentRoutes"));
+
 app.use("/api/categories", categoryRoutes);
 app.use("/api/hero-slides", require("./routes/heroRoutes"));
 app.use("/api/home-sections", require("./routes/homeSectionRoutes"));

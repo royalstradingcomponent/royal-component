@@ -127,35 +127,44 @@ const orderSchema = new mongoose.Schema(
     payment: {
   method: {
     type: String,
-    enum: ["BANK_TRANSFER", "QUOTE_REQUEST", "ONLINE_PAYMENT", "COD"],
-    default: "BANK_TRANSFER",
+    enum: ["RAZORPAY"],
+    default: "RAZORPAY",
   },
 
+
   status: {
-    type: String,
-    enum: [
-      "Pending",
-      "Awaiting Verification",
-      "Paid",
-      "Failed",
-      "Refund Pending",
-      "Refund Processing",
-      "Refunded",
-    ],
-    default: "Pending",
-  },
+  type: String,
+  enum: [
+    "Pending",
+    "Paid",
+    "Failed",
+    "Refund Pending",
+    "Refund Processing",
+    "Refunded",
+  ],
+  default: "Pending",
+},
 
   paymentId: { type: String, default: "" },
   transactionId: { type: String, default: "" },
+
+  razorpayOrderId: {
+  type: String,
+  default: "",
+},
+
+razorpayPaymentId: {
+  type: String,
+  default: "",
+},
+
+razorpaySignature: {
+  type: String,
+  default: "",
+},
+
   amountPaid: { type: Number, default: 0 },
   paidAt: { type: Date, default: null },
-
-  proof: {
-    image: { type: String, default: "" },
-    utr: { type: String, default: "" },
-    note: { type: String, default: "" },
-    uploadedAt: { type: Date, default: null },
-  },
 
   verifiedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -225,10 +234,10 @@ const orderSchema = new mongoose.Schema(
   comment: { type: String, default: "" },
 
   method: {
-    type: String,
-    enum: ["ORIGINAL_PAYMENT", "UPI", "BANK_ACCOUNT", "CARD", "MANUAL"],
-    default: "ORIGINAL_PAYMENT",
-  },
+  type: String,
+  enum: ["RAZORPAY"],
+  default: "RAZORPAY",
+},
 
   upi: {
     upiId: { type: String, default: "" },

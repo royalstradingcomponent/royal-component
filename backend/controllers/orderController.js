@@ -2,6 +2,8 @@ const Order = require("../models/Order");
 const Cart = require("../models/cart");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const razorpay = require("../config/razorpay");
+const crypto = require("crypto");
 
 const logAdminActivity = require("../utils/logAdminActivity");
 
@@ -21,11 +23,8 @@ const generateOrderNumber = () => {
   return `RC-${date}-${random}`;
 };
 
-const mapPaymentMethod = (paymentMethod = "bank-transfer") => {
-  if (paymentMethod === "quote-request") return "QUOTE_REQUEST";
-  if (paymentMethod === "online-payment") return "ONLINE_PAYMENT";
-  if (paymentMethod === "cod") return "COD";
-  return "BANK_TRANSFER";
+const mapPaymentMethod = () => {
+  return "RAZORPAY";
 };
 
 const serializeOrder = (orderDoc) => {
@@ -55,7 +54,7 @@ exports.createOrder = async (req, res) => {
     const {
       buyer = {},
       shippingAddress = {},
-      paymentMethod = "bank-transfer",
+      paymentMethod = "razorpay",
       note = "",
     } = req.body;
 
@@ -233,7 +232,27 @@ exports.createOrder = async (req, res) => {
       note,
     });
 
-    for (const item of products) {
+    // Razorpay Order Create
+    if (mapPaymentMethod(paymentMethod) === "RAZORPAY") {
+      const razorpayOrder = await razorpay.orders.create({
+        amount: Math.round(totalAmount * 100),
+        currency: "INR",
+        receipt: order.orderNumber,
+      });
+
+      order.payment.razorpayOrderId = razorpayOrder.id;
+
+      await order.save();
+
+      return res.status(201).json({
+        success: true,
+        order: serializeOrder(order),
+        razorpayOrder,
+      });
+    }
+
+    for (const item of order.products) {
+
       const product = await Product.findById(item.productId);
 
       if (!product) continue;
@@ -342,13 +361,6 @@ exports.trackOrder = async (req, res) => {
       _id: req.params.id,
       userId: req.user._id,
     });
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
 
     return res.status(200).json({
       success: true,
@@ -1036,12 +1048,6 @@ exports.requestRefund = async (req, res) => {
       });
     }
 
-    if (order.payment?.method === "COD" && method !== "BANK_ACCOUNT") {
-      return res.status(400).json({
-        success: false,
-        message: "For COD orders, bank account details are required",
-      });
-    }
 
     if (method === "BANK_ACCOUNT") {
       if (!bank.accountHolderName || !bank.accountNumber || !bank.ifsc) {
@@ -1126,65 +1132,7 @@ exports.requestRefund = async (req, res) => {
   PUT /api/orders/admin/refund/:id
 ===================================================== */
 
-exports.submitPaymentProof = async (req, res) => {
-  try {
-    const { utr = "", note = "" } = req.body;
 
-    const order = await Order.findOne({
-      _id: req.params.id,
-      userId: req.user._id,
-    });
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    if (["Paid", "Refunded"].includes(order.payment.status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment proof cannot be updated after payment is completed",
-      });
-    }
-
-    order.payment.proof = {
-      image: req.file
-        ? `/${req.file.path.replace(/\\/g, "/")}`
-        : order.payment.proof?.image || "",
-
-      utr: String(utr || "").trim(),
-
-      note: String(note || "").trim(),
-
-      uploadedAt: new Date(),
-    };
-
-    order.payment.transactionId = String(utr || "").trim();
-
-    order.payment.status = "Awaiting Verification";
-
-    order.payment.paymentChanged = true;
-
-    order.payment.paymentChangedAt = new Date();
-
-    await order.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Payment proof submitted successfully",
-      order: serializeOrder(order),
-    });
-  } catch (error) {
-    console.error("SUBMIT PAYMENT PROOF ERROR:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Payment proof submit failed",
-    });
-  }
-};
 exports.adminUpdateRefund = async (req, res) => {
   try {
     const { status, adminNote = "", refundReferenceId = "", amount } = req.body;
@@ -1237,6 +1185,7 @@ exports.adminUpdateRefund = async (req, res) => {
     if (status === "Rejected") {
       order.refund.rejectedAt = new Date();
       order.payment.status = "Paid";
+
     }
 
     if (status === "Processing") {
@@ -2020,3 +1969,169 @@ exports.getRevenueAnalytics = async (req, res) => {
     });
   }
 };
+
+exports.createRazorpayOrder = async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid amount",
+      });
+    }
+
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100),
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    });
+
+    return res.json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Razorpay order creation failed",
+    });
+  }
+};
+
+exports.verifyRazorpayPayment = async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      orderId,
+    } = req.body;
+
+    const generatedSignature = crypto
+      .createHmac(
+        "sha256",
+        process.env.RAZORPAY_KEY_SECRET
+      )
+      .update(
+        razorpay_order_id +
+        "|" +
+        razorpay_payment_id
+      )
+      .digest("hex");
+
+    if (
+      generatedSignature !==
+      razorpay_signature
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed",
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: orderId,
+      userId: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.payment.status === "Paid") {
+      return res.json({
+        success: true,
+        message: "Payment already verified",
+      });
+    }
+
+
+    order.payment.status = "Paid";
+    order.payment.razorpayOrderId =
+      razorpay_order_id;
+
+    order.payment.razorpayPaymentId =
+      razorpay_payment_id;
+
+    order.payment.razorpaySignature =
+      razorpay_signature;
+
+    order.payment.method = "RAZORPAY";
+
+    order.payment.paymentId =
+      razorpay_payment_id;
+
+    order.payment.transactionId =
+      razorpay_payment_id;
+
+    order.payment.amountPaid =
+      order.pricing.totalAmount;
+
+    order.payment.paidAt =
+      new Date();
+
+    // STOCK UPDATE
+    for (const item of order.products) {
+      const product = await Product.findById(item.productId);
+
+      if (!product) continue;
+
+      product.stock = Math.max(
+        0,
+        Number(product.stock || 0) -
+        Number(item.quantity || 0)
+      );
+
+      product.soldStock =
+        Number(product.soldStock || 0) +
+        Number(item.quantity || 0);
+
+      if (product.stock <= 0) {
+        product.stockStatus = "out_of_stock";
+        product.isOutOfStock = true;
+      } else if (product.stock <= 5) {
+        product.stockStatus = "low_stock";
+        product.isOutOfStock = false;
+      } else {
+        product.stockStatus = "in_stock";
+        product.isOutOfStock = false;
+      }
+
+      await product.save({
+        validateBeforeSave: false,
+      });
+    }
+
+    // CLEAR CART
+    const cart = await Cart.findOne({
+      user: order.userId,
+    });
+
+    if (cart) {
+      cart.items = [];
+      await cart.save();
+    }
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message: "Payment successful",
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Verification failed",
+    });
+  }
+};
+
+

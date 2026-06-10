@@ -1082,6 +1082,26 @@ export default function AdminOrderDetailPage() {
                       Current Payment Status
                     </p>
 
+                    <div className="mt-4 rounded-xl border bg-white p-4">
+                      <p className="text-xs font-bold text-slate-500">
+                        Razorpay Order ID
+                      </p>
+
+                      <p className="mt-1 break-all font-bold text-[#102033]">
+                        {order?.payment?.razorpayOrderId || "-"}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border bg-white p-4">
+                      <p className="text-xs font-bold text-slate-500">
+                        Razorpay Payment ID
+                      </p>
+
+                      <p className="mt-1 break-all font-bold text-[#102033]">
+                        {order?.payment?.razorpayPaymentId || "-"}
+                      </p>
+                    </div>
+
                     <h3 className="mt-2 text-[20px] font-extrabold text-[#166534]">
                       {order?.payment?.status || "Pending"}
                     </h3>

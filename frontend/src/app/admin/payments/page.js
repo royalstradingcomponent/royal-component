@@ -179,7 +179,7 @@ export default function AdminPaymentsPage() {
                   <th className="px-4 py-4">Amount</th>
                   <th className="px-4 py-4">Payment Method</th>
                   <th className="px-4 py-4">Payment Status</th>
-                  <th className="px-4 py-4">UTR / Ref</th>
+                  <th className="px-4 py-4">Razorpay Payment</th>
                   <th className="px-4 py-4">Proof</th>
                   <th className="px-4 py-4">Action</th>
                 </tr>
@@ -188,7 +188,7 @@ export default function AdminPaymentsPage() {
               <tbody className="divide-y">
                 {filteredOrders.map((order) => {
                   const orderId = order._id || order.id;
-                  const proofImage = order.payment?.proof?.image;
+                  const proofImage = null;
                   const isSaving = savingId === orderId;
 
                   return (
@@ -230,13 +230,12 @@ export default function AdminPaymentsPage() {
 
                       <td className="px-4 py-5 align-top">
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-black ${
-                            order.payment?.status === "Paid"
+                          className={`rounded-full px-3 py-1 text-xs font-black ${order.payment?.status === "Paid"
                               ? "bg-green-50 text-green-700"
                               : order.payment?.status === "Failed"
-                              ? "bg-red-50 text-red-700"
-                              : "bg-yellow-50 text-yellow-700"
-                          }`}
+                                ? "bg-red-50 text-red-700"
+                                : "bg-yellow-50 text-yellow-700"
+                            }`}
                         >
                           {order.payment?.status || "Pending"}
                         </span>
@@ -244,15 +243,11 @@ export default function AdminPaymentsPage() {
 
                       <td className="px-4 py-5 align-top">
                         <p className="font-bold text-[#102033]">
-                          {order.payment?.proof?.utr ||
-                            order.payment?.transactionId ||
+                          {order.payment?.razorpayPaymentId ||
+                            order.payment?.paymentId ||
                             "-"}
                         </p>
-                        {order.payment?.proof?.note ? (
-                          <p className="mt-1 max-w-[220px] text-xs leading-5 text-slate-500">
-                            {order.payment.proof.note}
-                          </p>
-                        ) : null}
+                       
                       </td>
 
                       <td className="px-4 py-5 align-top">

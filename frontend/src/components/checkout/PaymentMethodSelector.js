@@ -2,22 +2,13 @@
 
 import { useEffect, useState } from "react";
 import {
-  Building2,
   CreditCard,
-  FileText,
   IndianRupee,
-  ShieldCheck,
-  Truck,
-  Copy,
-  Smartphone,
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
 const iconMap = {
-  "bank-transfer": Building2,
-  "quote-request": FileText,
-  "online-payment": CreditCard,
-  cod: Truck,
+  razorpay: CreditCard,
 };
 
 export default function PaymentMethodSelector({
@@ -26,7 +17,7 @@ export default function PaymentMethodSelector({
   totalAmount = 0,
 }) {
   const [methods, setMethods] = useState([]);
-  const [bankDetails, setBankDetails] = useState(null);
+  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,8 +33,12 @@ export default function PaymentMethodSelector({
         const data = await res.json();
 
         if (data?.success) {
-          setMethods(data.methods || []);
-          setBankDetails(data.bankDetails || null);
+          setMethods(
+            (data.methods || []).filter(
+              (item) => item.id === "razorpay"
+            )
+          );
+         
 
           const currentStillValid = (data.methods || []).some(
             (item) => item.id === value && item.enabled
@@ -104,8 +99,8 @@ export default function PaymentMethodSelector({
               disabled={!method.enabled}
               onClick={() => method.enabled && onChange(method.id)}
               className={`relative rounded-xl border p-4 text-left transition ${active
-                  ? "border-[#2454b5] bg-[#edf3ff] shadow-[0_0_0_3px_rgba(36,84,181,0.10)]"
-                  : "border-[#dbe5f0] bg-white hover:border-[#8bb7ee]"
+                ? "border-[#2454b5] bg-[#edf3ff] shadow-[0_0_0_3px_rgba(36,84,181,0.10)]"
+                : "border-[#dbe5f0] bg-white hover:border-[#8bb7ee]"
                 } ${!method.enabled ? "cursor-not-allowed opacity-50" : ""}`}
             >
               <div className="flex gap-3">
@@ -139,52 +134,23 @@ export default function PaymentMethodSelector({
         })}
       </div>
 
-      {value === "bank-transfer" && bankDetails ? (
-        <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
-          <div className="mb-2 flex items-center gap-2 font-bold text-[#102033]">
-            <ShieldCheck size={18} className="text-[#2454b5]" />
-            Pay to Royal Component bank account
-          </div>
-
-          <div className="grid gap-2 text-sm text-[#607287] md:grid-cols-2">
-
-            <p className="mt-3 rounded-xl border border-[#bae6fd] bg-white p-3 text-sm font-bold text-[#075985]">
-              Payment karne ke baad order details page par UTR / screenshot upload karein.
-              Admin verify karne ke baad payment status Paid ho jayega.
-            </p>
-            <p>Account Name: {bankDetails.accountName}</p>
-            <p>Bank: {bankDetails.bankName}</p>
-            <p>Account No: {bankDetails.accountNumber}</p>
-            <p>IFSC: {bankDetails.ifsc}</p>
-            <p>UPI: {bankDetails.upiId}</p>
-          </div>
-        </div>
-      ) : null}
-
-      {value === "quote-request" ? (
-        <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4 text-sm text-[#607287]">
-          Your order will be submitted as a quote request. Our team can verify stock,
-          bulk pricing and delivery timeline before payment.
-        </div>
-      ) : null}
-
-      {value === "online-payment" ? (
+     {value === "razorpay" ? (
   <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
     <div className="mb-3 flex items-center gap-2 font-bold text-[#102033]">
-      <Smartphone size={18} className="text-[#2454b5]" />
-      Manual UPI / Card Payment
+      <CreditCard size={18} className="text-[#2454b5]" />
+      Secure Razorpay Payment
     </div>
 
-    <div className="grid gap-2 text-sm text-[#607287] md:grid-cols-2">
-      <p>UPI Name: {bankDetails?.upiName || "Royal Component"}</p>
-      <p>UPI ID: {bankDetails?.upiId || "Add UPI ID"}</p>
-      <p>Card Payment: Share payment reference after payment</p>
-      <p>Status: Pending until admin verification</p>
+    <div className="grid gap-2 text-sm text-[#607287]">
+      <p>✔ UPI</p>
+      <p>✔ Credit Card</p>
+      <p>✔ Debit Card</p>
+      <p>✔ Net Banking</p>
+      <p>✔ Wallets</p>
     </div>
 
     <p className="mt-3 rounded-xl border border-[#bae6fd] bg-white p-3 text-sm font-bold text-[#075985]">
-      UPI/Card payment karne ke baad order details page par UTR / screenshot
-      upload karein. Admin verify karne ke baad payment status Paid ho jayega.
+      You will be redirected to Razorpay secure checkout for payment.
     </p>
   </div>
 ) : null}

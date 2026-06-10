@@ -16,15 +16,29 @@ const {
   updatePayment,
   requestRefund,
   adminUpdateRefund,
-  submitPaymentProof,
+  
   downloadOrderPdf,
   getOrdersCalendar,
   getRevenueAnalytics,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
 } = require("../controllers/orderController");
 
 const { protect, admin } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createOrder);
+
+router.post(
+  "/razorpay/create-order",
+  protect,
+  createRazorpayOrder
+);
+
+router.post(
+  "/razorpay/verify-payment",
+  protect,
+  verifyRazorpayPayment
+);
 router.get("/my-orders", protect, getMyOrders);
 router.get("/track/:id", protect, trackOrder);
 
@@ -38,12 +52,7 @@ router.put("/cancel/:id", protect, cancelOrder);
 router.put("/cancel-item/:orderId/:itemId", protect, cancelOrderItem);
 
 router.post("/refund/:id", protect, requestRefund);
-router.post(
-  "/payment-proof/:id",
-  protect,
-  upload.single("image"),
-  submitPaymentProof,
-);
+
 
 router.get("/admin/download-pdf/:id", downloadOrderPdf);
 

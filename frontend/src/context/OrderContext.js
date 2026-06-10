@@ -52,6 +52,54 @@ export function OrderProvider({ children }) {
     }
   }, []);
 
+  const createRazorpayOrder = useCallback(async (payload) => {
+    try {
+      setActionLoading(true);
+
+      const res = await axios.post(
+        `${API_BASE}/api/orders/razorpay/create-order`,
+        payload,
+        {
+          headers: authHeaders(),
+        }
+      );
+
+      return res.data;
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Razorpay order creation failed";
+
+      toast.error(message);
+      throw new Error(message);
+    } finally {
+      setActionLoading(false);
+    }
+  }, []);
+
+  const verifyRazorpayPayment = useCallback(async (payload) => {
+    try {
+      setActionLoading(true);
+
+      const res = await axios.post(
+        `${API_BASE}/api/orders/razorpay/verify-payment`,
+        payload,
+        {
+          headers: authHeaders(),
+        }
+      );
+
+      return res.data;
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Payment verification failed";
+
+      toast.error(message);
+      throw new Error(message);
+    } finally {
+      setActionLoading(false);
+    }
+  }, []);
+
   const fetchMyOrders = useCallback(async () => {
     try {
       setLoading(true);
@@ -173,6 +221,8 @@ export function OrderProvider({ children }) {
       loading,
       actionLoading,
       placeOrder,
+      createRazorpayOrder,
+      verifyRazorpayPayment,
       fetchMyOrders,
       fetchOrderById,
       trackOrder,
@@ -185,6 +235,8 @@ export function OrderProvider({ children }) {
       loading,
       actionLoading,
       placeOrder,
+      createRazorpayOrder,
+      verifyRazorpayPayment,
       fetchMyOrders,
       fetchOrderById,
       trackOrder,

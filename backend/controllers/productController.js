@@ -1430,6 +1430,7 @@ exports.adminUpdateRefund = async (req, res) => {
     if (status === "Rejected") {
       order.refund.rejectedAt = new Date();
       order.payment.status = "Paid";
+      
     }
 
     if (status === "Processing") {
