@@ -29,7 +29,7 @@ export default function FeaturedProducts() {
       const data = await res.json();
 
       const selected = (data.sections || []).find(
-        (item) => item.key === "featured-products"
+        (item) => item.key === "featured-products",
       );
 
       if (selected) {
@@ -58,9 +58,9 @@ export default function FeaturedProducts() {
 
         const res = await fetch(
           `${API_BASE}/api/products?category=${encodeURIComponent(
-            category
+            category,
           )}&limit=${limit}`,
-          { cache: "no-store" }
+          { cache: "no-store" },
         );
 
         const data = await res.json();
@@ -84,7 +84,12 @@ export default function FeaturedProducts() {
   if (section?.isActive === false) return null;
 
   return (
-    <section className="section-padding bg-white">
+    <section
+      className="section-padding"
+      style={{
+        background: "var(--theme-surface)",
+      }}
+    >
       <div className="container-royal">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
@@ -94,7 +99,14 @@ export default function FeaturedProducts() {
 
           <Link
             href={section.viewAllLink || "/products"}
-            className="hidden rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:from-[#1d4ed8] hover:to-[#6d28d9] md:inline-flex"
+            className="hidden rounded-full px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-300 md:inline-flex"
+            style={{
+              background: `linear-gradient(
+    90deg,
+    var(--theme-gradient-start),
+    var(--theme-gradient2-start)
+  )`,
+            }}
           >
             <span className="text-white">
               {section.viewAllText || "View All"}
@@ -125,7 +137,14 @@ export default function FeaturedProducts() {
             <div className="mt-8 flex justify-center md:hidden">
               <Link
                 href={section.viewAllLink || "/products"}
-                className="inline-flex rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:from-[#1d4ed8] hover:to-[#6d28d9]"
+                className="inline-flex rounded-full px-6 py-3 text-sm font-bold text-white shadow-lg transition-all duration-300"
+                style={{
+                  background: `linear-gradient(
+    90deg,
+    var(--theme-gradient-start),
+    var(--theme-gradient2-start)
+  )`,
+                }}
               >
                 <span className="text-white">
                   {section.viewAllText || "View All"}

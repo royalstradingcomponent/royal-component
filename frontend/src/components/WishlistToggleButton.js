@@ -41,15 +41,23 @@ export default function WishlistToggleButton({
         onClick={handleClick}
         disabled={loading}
         aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
-        className={`inline-flex items-center justify-center gap-2 rounded-full border transition disabled:opacity-60 ${
-          active
-            ? "border-[#ef4444] bg-[#fff1f2] text-[#ef4444]"
-            : "border-[#d8e2ec] bg-white text-[#56708a] hover:border-[#38bdf8] hover:text-[#0f6cbd]"
-        } ${
-          size === "lg"
-            ? "h-[48px] px-5 text-[15px] font-bold"
-            : "h-9 w-9"
+        className={`inline-flex items-center justify-center gap-2 rounded-full transition disabled:opacity-60 ${
+          size === "lg" ? "h-[48px] px-5 text-[15px] font-bold" : "h-9 w-9"
         } ${className}`}
+        style={
+          active
+            ? {
+                border: "1px solid var(--theme-wishlist-icon-color)",
+                background:
+                  "color-mix(in srgb, var(--theme-wishlist-icon-color) 12%, white)",
+                color: "var(--theme-wishlist-icon-color)",
+              }
+            : {
+                border: "1px solid var(--theme-card-border)",
+                background: "var(--theme-card-bg)",
+                color: "var(--theme-wishlist-icon-color)",
+              }
+        }
       >
         <Heart size={iconSize} className={active ? "fill-current" : ""} />
         {showText ? (

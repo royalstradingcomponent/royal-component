@@ -30,7 +30,14 @@ const benefits = [
 
 export default function TrustBadges() {
   return (
-    <section className="relative z-10 border-y border-[#d9e8f5] bg-white">
+    <section
+      className="relative z-10"
+      style={{
+        borderTop: "1px solid var(--theme-border)",
+        borderBottom: "1px solid var(--theme-border)",
+        background: "var(--theme-surface)",
+      }}
+    >
       <div className="container-royal grid gap-4 py-6 sm:grid-cols-2 lg:grid-cols-4">
         {benefits.map((item) => {
           const Icon = item.icon;
@@ -38,17 +45,39 @@ export default function TrustBadges() {
           return (
             <div
               key={item.title}
-              className="group rounded-[24px] border border-[#dbeafe] bg-[#f8fbff] p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#38bdf8] hover:shadow-xl"
+              className="group p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              style={{
+                borderRadius: "var(--theme-card-radius)",
+                border: "1px solid var(--theme-card-border)",
+                background: "var(--theme-card-bg)",
+                color: "var(--theme-card-text)",
+              }}
             >
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#dff3ff] text-[#0284c7] transition-all duration-300 group-hover:bg-[#0284c7] group-hover:text-white">
+              <div
+                className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:text-white"
+                style={{
+                  background: "var(--theme-menu-bg)",
+                  color: "var(--theme-icon-color)",
+                }}
+              >
                 <Icon size={23} />
               </div>
 
-              <h2 className="text-lg font-extrabold text-[#102033]">
+              <h2
+                className="text-lg font-extrabold"
+                style={{
+                  color: "var(--theme-heading)",
+                }}
+              >
                 {item.title}
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-[#52677d]">
+              <p
+                className="mt-2 text-sm leading-6"
+                style={{
+                  color: "var(--theme-body)",
+                }}
+              >
                 {item.text}
               </p>
             </div>

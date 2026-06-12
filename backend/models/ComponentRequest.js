@@ -39,6 +39,11 @@ const requestItemSchema = new mongoose.Schema(
       default: 0,
     },
 
+    gstPercent: {
+      type: Number,
+      default: 0,
+    },
+
     lineTotal: {
       type: Number,
       default: 0,
@@ -143,6 +148,17 @@ const componentRequestSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    igstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    gstType: {
+      type: String,
+      enum: ["CGST_SGST", "IGST"],
+      default: "CGST_SGST",
+    },
     adminLeadTime: { type: String, default: "" },
     adminNote: { type: String, default: "" },
 
@@ -240,6 +256,26 @@ const componentRequestSchema = new mongoose.Schema(
         gstPercent: {
           type: Number,
           default: 0,
+        },
+
+        igstAmount: {
+          type: Number,
+          default: 0,
+        },
+
+        cgstAmount: {
+          type: Number,
+          default: 0,
+        },
+
+        sgstAmount: {
+          type: Number,
+          default: 0,
+        },
+
+        gstType: {
+          type: String,
+          default: "CGST_SGST",
         },
 
         gstAmount: {

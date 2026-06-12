@@ -70,6 +70,32 @@ const supplierSourceSchema = new mongoose.Schema(
       default: 18,
     },
 
+    igstAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    gstType: {
+      type: String,
+      enum: ["CGST_SGST", "IGST"],
+      default: "CGST_SGST",
+    },
+
+    cgstPercent: {
+      type: Number,
+      default: 9,
+    },
+
+    sgstPercent: {
+      type: Number,
+      default: 9,
+    },
+
+    igstPercent: {
+      type: Number,
+      default: 0,
+    },
+
     profitPercent: {
       type: Number,
       default: 20,
@@ -112,6 +138,20 @@ const supplierSourceSchema = new mongoose.Schema(
       trim: true,
     },
 
+    usdPrice: {
+      type: Number,
+      default: 0,
+    },
+
+    usdRate: {
+      type: Number,
+      default: 0,
+    },
+
+    inrPurchasePrice: {
+      type: Number,
+      default: 0,
+    },
     moq: {
       type: Number,
       default: 1,

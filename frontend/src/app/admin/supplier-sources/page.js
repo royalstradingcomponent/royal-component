@@ -29,8 +29,12 @@ const emptyForm = {
   email: "",
   address: "",
   purchasePrice: "",
+  usdPrice: "",
+  usdRate: "",
+  inrPurchasePrice: "",
 
-  gstPercent: 18,
+  gstPercent: 0,
+  gstType: "CGST_SGST",
   profitPercent: 20,
   extraCharge: 0,
   currency: "INR",
@@ -168,7 +172,17 @@ export default function SupplierSourcesPage() {
     setEditingId("");
   };
 
-  const purchasePrice = Number(form.purchasePrice || 0);
+  const usdPrice = parseFloat(form.usdPrice) || 0;
+
+  const usdRate = parseFloat(form.usdRate) || 0;
+
+  const inrPurchasePrice =
+    usdPrice > 0 && usdRate > 0
+      ? usdPrice * usdRate
+      : Number(form.inrPurchasePrice || 0);
+
+  const purchasePrice =
+    inrPurchasePrice > 0 ? inrPurchasePrice : Number(form.purchasePrice || 0);
 
   const profitAmount = (purchasePrice * Number(form.profitPercent || 0)) / 100;
 
@@ -179,9 +193,11 @@ export default function SupplierSourcesPage() {
 
   const subtotal = sellingPrice;
 
-  const sgstAmount = gstAmount / 2;
+  const sgstAmount = form.gstType === "CGST_SGST" ? gstAmount / 2 : 0;
 
-  const cgstAmount = gstAmount / 2;
+  const cgstAmount = form.gstType === "CGST_SGST" ? gstAmount / 2 : 0;
+
+  const igstAmount = form.gstType === "IGST" ? gstAmount : 0;
 
   const grandTotal = sellingPrice + gstAmount;
 
@@ -239,11 +255,17 @@ export default function SupplierSourcesPage() {
 
       const formData = new FormData();
 
-      Object.keys(form).forEach((key) => {
-        if (key !== "supplierPdf" && key !== "supplierImages") {
-          formData.append(key, form[key]);
-        }
-      });
+Object.keys(form).forEach((key) => {
+  if (
+    key !== "supplierPdf" &&
+    key !== "supplierImages" &&
+    key !== "usdPrice" &&
+    key !== "usdRate" &&
+    key !== "inrPurchasePrice"
+  ) {
+    formData.append(key, form[key]);
+  }
+});
 
       if (form.supplierPdf) {
         formData.append("supplierPdf", form.supplierPdf);
@@ -257,7 +279,26 @@ export default function SupplierSourcesPage() {
 
       formData.append("cgstAmount", cgstAmount);
 
+      formData.append("igstAmount", igstAmount);
+
       formData.append("grandTotal", grandTotal);
+
+      formData.append(
+        "usdPrice",
+        Number.isFinite(usdPrice) ? usdPrice : 0
+      );
+
+      formData.append(
+        "usdRate",
+        Number.isFinite(usdRate) ? usdRate : 0
+      );
+
+      formData.append(
+        "inrPurchasePrice",
+        Number.isFinite(inrPurchasePrice)
+          ? inrPurchasePrice
+          : 0
+      );
 
       if (form.supplierImages?.length) {
         form.supplierImages.forEach((file) => {
@@ -288,6 +329,10 @@ export default function SupplierSourcesPage() {
   };
 
   const editSource = (source) => {
+
+    console.log("EDIT SOURCE DATA =", source);
+
+
     setEditingId(source._id);
     setForm({
       componentName: source.componentName || "",
@@ -300,8 +345,14 @@ export default function SupplierSourcesPage() {
       email: source.email || "",
       address: source.address || "",
       purchasePrice: source.purchasePrice || "",
+      usdPrice: source.usdPrice ?? "",
 
-      gstPercent: source.gstPercent || 18,
+      usdRate: source.usdRate ?? "",
+
+      inrPurchasePrice: source.inrPurchasePrice ?? "",
+
+      gstPercent: source.gstPercent ?? 0,
+      gstType: source.gstType || "CGST_SGST",
       profitPercent: source.profitPercent || 20,
       extraCharge: source.extraCharge || 0,
       currency: source.currency || "INR",
@@ -324,7 +375,6 @@ export default function SupplierSourcesPage() {
   };
 
   function safeText(value = "") {
-
     if (value === null || value === undefined) {
       return "";
     }
@@ -333,15 +383,11 @@ export default function SupplierSourcesPage() {
       return value.trim();
     }
 
-    if (
-      typeof value === "number" ||
-      typeof value === "boolean"
-    ) {
+    if (typeof value === "number" || typeof value === "boolean") {
       return String(value).trim();
     }
 
     if (Array.isArray(value)) {
-
       return value
         .map((v) => safeText(v))
         .join(" ")
@@ -349,7 +395,6 @@ export default function SupplierSourcesPage() {
     }
 
     if (typeof value === "object") {
-
       if (value.text) {
         return safeText(value.text);
       }
@@ -365,13 +410,9 @@ export default function SupplierSourcesPage() {
   }
 
   function cleanEmail(value = "") {
-
     const text = safeText(value);
 
-    const markdownMatch =
-      text.match(
-        /\[([^\]]+)\]\(mailto:[^)]+\)/i
-      );
+    const markdownMatch = text.match(/\[([^\]]+)\]\(mailto:[^)]+\)/i);
 
     if (markdownMatch) {
       return markdownMatch[1];
@@ -380,23 +421,11 @@ export default function SupplierSourcesPage() {
     return text;
   }
 
-  const importOffer = async (
-    importedText
-  ) => {
-    const finalText =
-      safeText(
-        importedText ||
-        configText ||
-        ""
-      );
+  const importOffer = async (importedText) => {
+    const finalText = safeText(importedText || configText || "");
 
-    if (
-      !String(finalText).trim()
-    ) {
-
-      toast.error(
-        "Paste supplier config"
-      );
+    if (!String(finalText).trim()) {
+      toast.error("Paste supplier config");
 
       return;
     }
@@ -411,9 +440,7 @@ export default function SupplierSourcesPage() {
       const itemLines = [];
 
       lines.forEach((line) => {
-        if (
-          /^[A-Z_]+=/i.test(line)
-        ) {
+        if (/^[A-Z_]+=/i.test(line)) {
           const [key, ...rest] = line.split("=");
 
           parsedData[key.trim()] = rest.join("=").trim();
@@ -440,51 +467,37 @@ export default function SupplierSourcesPage() {
         }
 
         if (cleanLine.includes("|")) {
-
-          const parts =
-            cleanLine
-              .split("|")
-              .map((v) => safeText(v));
+          const parts = cleanLine.split("|").map((v) => safeText(v));
 
           return [
             {
-              componentName:
-                parts[0]?.trim() || "",
+              componentName: parts[0]?.trim() || "",
 
-              partNumber:
-                parts[0]?.trim() || "",
+              partNumber: parts[0]?.trim() || "",
 
-              brand:
-                parts[1]?.trim() || "GENERIC",
+              brand: parts[1]?.trim() || "GENERIC",
 
-              adminNote:
-                parts[2]?.trim() || "",
+              adminNote: parts[2]?.trim() || "",
 
-              purchasePrice:
-                Number(parts[3] || 0),
-            }
+              purchasePrice: Number(parts[3] || 0),
+            },
           ];
         }
 
-        const splitItems =
-          cleanLine
-            .split(/[\s,]+/)
-            .map((v) => safeText(v))
-            .filter(Boolean);
+        const splitItems = cleanLine
+          .split(/[\s,]+/)
+          .map((v) => safeText(v))
+          .filter(Boolean);
 
         return splitItems
 
           .filter((name) => {
+            const upper = String(name || "")
+              .replace(/[^A-Z0-9\-\/]/gi, "")
+              .trim()
+              .toUpperCase();
 
-            const upper =
-              String(name || "")
-
-                .replace(/[^A-Z0-9\-\/]/gi, "")
-                .trim()
-                .toUpperCase();
-
-            if (!upper)
-              return false;
+            if (!upper) return false;
 
             if (
               upper.includes("EMAIL") ||
@@ -506,9 +519,7 @@ export default function SupplierSourcesPage() {
 
             partNumber: name,
 
-            brand:
-              parsedData.BRAND ||
-              "GENERIC",
+            brand: parsedData.BRAND || "GENERIC",
 
             adminNote: "",
 
@@ -517,13 +528,8 @@ export default function SupplierSourcesPage() {
       });
 
       const firstItem = allItems[0];
-      if (
-        !firstItem
-      ) {
-
-        toast.error(
-          "No valid components detected"
-        );
+      if (!firstItem) {
+        toast.error("No valid components detected");
 
         return;
       }
@@ -547,7 +553,9 @@ export default function SupplierSourcesPage() {
 
         purchasePrice: Number(firstItem.purchasePrice || 0),
 
-        gstPercent: Number(parsedData.GST || 18),
+        gstPercent: Number(parsedData.GST || 0),
+
+        gstType: parsedData.GST_TYPE === "IGST" ? "IGST" : "CGST_SGST",
 
         profitPercent: Number(parsedData.PROFIT || 20),
 
@@ -576,100 +584,49 @@ export default function SupplierSourcesPage() {
         supplierImages: [],
       });
 
-      const finalBulkItems =
-        allItems
-          .filter(Boolean)
-          .map((item) => ({
+      const finalBulkItems = allItems.filter(Boolean).map((item) => ({
+        componentName: safeText(item.componentName),
 
-            componentName:
-              safeText(
-                item.componentName
-              ),
+        partNumber: safeText(item.partNumber),
 
-            partNumber:
-              safeText(
-                item.partNumber
-              ),
+        brand: safeText(item.brand || "GENERIC"),
 
-            brand:
-              safeText(
-                item.brand || "GENERIC"
-              ),
+        adminNote: safeText(item.adminNote),
 
-            adminNote:
-              safeText(
-                item.adminNote
-              ),
+        purchasePrice: Number(item.purchasePrice || 0),
 
-            purchasePrice:
-              Number(
-                item.purchasePrice || 0
-              ),
+        supplierCompany: safeText(parsedData.SUPPLIER),
 
-            supplierCompany:
-              safeText(
-                parsedData.SUPPLIER
-              ),
+        contactPerson: safeText(parsedData.CONTACT_PERSON),
 
-            contactPerson:
-              safeText(
-                parsedData.CONTACT_PERSON
-              ),
+        phone: safeText(parsedData.PHONE),
 
-            phone:
-              safeText(
-                parsedData.PHONE
-              ),
+        whatsapp: safeText(parsedData.WHATSAPP),
 
-            whatsapp:
-              safeText(
-                parsedData.WHATSAPP
-              ),
+        email: cleanEmail(parsedData.EMAIL),
 
-            email:
-              cleanEmail(
-                parsedData.EMAIL
-              ),
+        address: safeText(parsedData.ADDRESS),
 
-            address:
-              safeText(
-                parsedData.ADDRESS
-              ),
+        gstPercent: Number(parsedData.GST || 0),
 
-            gstPercent:
-              Number(parsedData.GST || 18),
+        profitPercent: Number(parsedData.PROFIT || 20),
 
-            profitPercent:
-              Number(parsedData.PROFIT || 20),
+        extraCharge: Number(parsedData.EXTRA || 0),
 
-            extraCharge:
-              Number(parsedData.EXTRA || 0),
+        currency: "INR",
 
-            currency: "INR",
+        moq: Number(parsedData.MOQ || 1),
 
-            moq:
-              Number(parsedData.MOQ || 1),
+        leadTime: safeText(parsedData.LEAD_TIME),
 
-            leadTime:
-              safeText(
-                parsedData.LEAD_TIME
-              ),
+        availabilityStatus: safeText(parsedData.STATUS || "available"),
 
-            availabilityStatus:
-              safeText(
-                parsedData.STATUS || "available"
-              ),
+        qualityNote: safeText(parsedData.QUALITY_NOTE),
 
-            qualityNote:
-              safeText(
-                parsedData.QUALITY_NOTE
-              ),
+        isPreferred: parsedData.PREFERRED === "true",
 
-            isPreferred:
-              parsedData.PREFERRED === "true",
-
-            isActive: true,
-          }));
+        isActive: true,
+      }));
       setBulkItems(finalBulkItems);
 
       toast.success(`${finalBulkItems.length} components imported`);
@@ -769,42 +726,33 @@ export default function SupplierSourcesPage() {
         />
 
         <div className="mt-4">
-
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-
             <div className="mb-6">
-
               <h2 className="text-2xl font-black text-slate-900">
                 Smart Supplier Import
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Import PDF catalogs, quotations, WhatsApp screenshots,
-                flyers and scanned supplier documents.
+                Import PDF catalogs, quotations, WhatsApp screenshots, flyers
+                and scanned supplier documents.
               </p>
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2">
-
               {/* PDF IMPORT */}
 
               <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-
                 <div className="mb-4 flex items-center gap-3">
-
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-xl text-white">
                     📄
                   </div>
 
                   <div>
-
-                    <h3 className="font-black text-slate-900">
-                      PDF Import
-                    </h3>
+                    <h3 className="font-black text-slate-900">PDF Import</h3>
 
                     <p className="text-xs text-slate-500">
-                      Upload quotation PDF, catalog PDF,
-                      scanned PDF or supplier profile.
+                      Upload quotation PDF, catalog PDF, scanned PDF or supplier
+                      profile.
                     </p>
                   </div>
                 </div>
@@ -812,75 +760,52 @@ export default function SupplierSourcesPage() {
                 <input
                   type="file"
                   accept=".pdf"
-
                   onChange={async (e) => {
-
-                    const file =
-                      e.target.files?.[0];
+                    const file = e.target.files?.[0];
 
                     if (!file) return;
 
-                    const formData =
-                      new FormData();
+                    const formData = new FormData();
 
-                    formData.append(
-                      "pdf",
-                      file
-                    );
+                    formData.append("pdf", file);
 
                     try {
-
                       setPdfLoading(true);
 
-                      const res =
-                        await fetch(
-                          `${API_BASE}/api/supplier-sources/parse-pdf`,
-                          {
-                            method: "POST",
+                      const res = await fetch(
+                        `${API_BASE}/api/supplier-sources/parse-pdf`,
+                        {
+                          method: "POST",
 
-                            headers: {
-                              Authorization:
-                                `Bearer ${adminToken}`,
-                            },
+                          headers: {
+                            Authorization: `Bearer ${adminToken}`,
+                          },
 
-                            body: formData,
-                          }
-                        );
+                          body: formData,
+                        },
+                      );
 
-                      const data =
-                        await res.json();
+                      const data = await res.json();
 
                       if (!data.success) {
-
-                        toast.error(
-                          data.message
-                        );
+                        toast.error(data.message);
 
                         return;
                       }
 
-                      setConfigText(
-                        data.envText
-                      );
+                      setConfigText(data.envText);
 
                       toast.success(
-                        `${data.totalComponents || 0} components detected from PDF`
+                        `${data.totalComponents || 0} components detected from PDF`,
                       );
-
                     } catch (error) {
-
                       console.log(error);
 
-                      toast.error(
-                        "PDF parse failed"
-                      );
-
+                      toast.error("PDF parse failed");
                     } finally {
-
                       setPdfLoading(false);
                     }
                   }}
-
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4"
                 />
               </div>
@@ -888,124 +813,86 @@ export default function SupplierSourcesPage() {
               {/* IMAGE IMPORT */}
 
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-
                 <div className="mb-4 flex items-center gap-3">
-
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-xl text-white">
                     📸
                   </div>
 
                   <div>
-
                     <h3 className="font-black text-slate-900">
                       WhatsApp / Image Import
                     </h3>
 
                     <p className="text-xs text-slate-500">
-                      Upload WhatsApp screenshots,
-                      flyers, scanned catalogs or component images.
+                      Upload WhatsApp screenshots, flyers, scanned catalogs or
+                      component images.
                     </p>
                   </div>
                 </div>
 
                 <input
                   type="file"
-
                   accept="image/*"
-
                   multiple
-
                   onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
 
-                    const files =
-                      Array.from(
-                        e.target.files || []
-                      );
-
-                    if (!files.length)
-                      return;
+                    if (!files.length) return;
 
                     try {
-
                       setPdfLoading(true);
 
-                      const formData =
-                        new FormData();
+                      const formData = new FormData();
 
                       files.forEach((file) => {
-
-                        formData.append(
-                          "images",
-                          file
-                        );
+                        formData.append("images", file);
                       });
 
-                      const res =
-                        await fetch(
-                          `${API_BASE}/api/supplier-sources/parse-image`,
-                          {
-                            method: "POST",
+                      const res = await fetch(
+                        `${API_BASE}/api/supplier-sources/parse-image`,
+                        {
+                          method: "POST",
 
-                            headers: {
-                              Authorization:
-                                `Bearer ${adminToken}`,
-                            },
+                          headers: {
+                            Authorization: `Bearer ${adminToken}`,
+                          },
 
-                            body: formData,
-                          }
-                        );
+                          body: formData,
+                        },
+                      );
 
-                      const data =
-                        await res.json();
+                      const data = await res.json();
 
                       if (!data.success) {
-
-                        toast.error(
-                          data.message
-                        );
+                        toast.error(data.message);
 
                         return;
                       }
 
-                      setConfigText(
-                        data.envText
-                      );
+                      setConfigText(data.envText);
 
-                      await importOffer(
-                        data.envText
-                      );
+                      await importOffer(data.envText);
 
                       toast.success(
-                        `${data.totalComponents || 0} components detected from images`
+                        `${data.totalComponents || 0} components detected from images`,
                       );
-
                     } catch (error) {
-
                       console.log(error);
 
-                      toast.error(
-                        "Image OCR failed"
-                      );
-
+                      toast.error("Image OCR failed");
                     } finally {
-
                       setPdfLoading(false);
                     }
                   }}
-
                   className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4"
                 />
               </div>
             </div>
 
             <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-
-              <p className="text-sm font-semibold text-amber-800">
-                Supported:
-              </p>
+              <p className="text-sm font-semibold text-amber-800">Supported:</p>
 
               <div className="mt-2 flex flex-wrap gap-2">
-
                 {[
                   "Quotation PDF",
                   "Scanned Catalog",
@@ -1015,7 +902,6 @@ export default function SupplierSourcesPage() {
                   "BOM Sheet",
                   "Component List",
                 ].map((item) => (
-
                   <span
                     key={item}
                     className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-sm"
@@ -1028,14 +914,10 @@ export default function SupplierSourcesPage() {
 
             <button
               onClick={() => importOffer(configText)}
-
               disabled={pdfLoading}
-
               className="mt-6 rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
             >
-              {pdfLoading
-                ? "Processing..."
-                : "Apply Import"}
+              {pdfLoading ? "Processing..." : "Apply Import"}
             </button>
           </div>
         </div>
@@ -1162,21 +1044,62 @@ export default function SupplierSourcesPage() {
           />
 
           <Input
-            label="Purchase Price"
-            name="purchasePrice"
+            label="USD Price ($)"
+            name="usdPrice"
             type="number"
-            value={form.purchasePrice}
+            value={form.usdPrice || ""}
             onChange={handleChange}
-            placeholder="52"
           />
 
           <Input
-            label="GST %"
-            name="gstPercent"
+            label="USD Rate (₹)"
+            name="usdRate"
             type="number"
-            value={form.gstPercent}
+            value={form.usdRate || ""}
             onChange={handleChange}
           />
+
+          <Input
+            label="Converted INR Price"
+            name="inrPurchasePrice"
+            value={inrPurchasePrice}
+            readOnly
+          />
+          <div>
+            <label className="mb-2 block text-sm font-black text-slate-600">
+              GST %
+            </label>
+
+            <select
+              name="gstPercent"
+              value={form.gstPercent}
+              onChange={handleChange}
+              className="h-12 w-full rounded-xl border border-slate-200 px-3 font-bold outline-none focus:border-blue-500"
+            >
+              <option value={0}>0%</option>
+              <option value={5}>5%</option>
+              <option value={12}>12%</option>
+              <option value={18}>18%</option>
+              <option value={25}>25%</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-black text-slate-600">
+              GST Type
+            </label>
+
+            <select
+              name="gstType"
+              value={form.gstType}
+              onChange={handleChange}
+              className="h-12 w-full rounded-xl border border-slate-200 px-3 font-bold outline-none focus:border-blue-500"
+            >
+              <option value="CGST_SGST">CGST + SGST</option>
+
+              <option value="IGST">IGST</option>
+            </select>
+          </div>
 
           <Input
             label="Profit %"
@@ -1369,9 +1292,13 @@ export default function SupplierSourcesPage() {
                     <tr>
                       <th className="px-5 py-4">subtotal</th>
 
-                      <th className="px-5 py-4">sgst</th>
+                      <th className="px-5 py-4">
+                        {form.gstType === "IGST" ? "igst" : "sgst"}
+                      </th>
 
-                      <th className="px-5 py-4">cgst</th>
+                      <th className="px-5 py-4">
+                        {form.gstType === "IGST" ? "-" : "cgst"}
+                      </th>
 
                       <th className="px-5 py-4">grand total</th>
                     </tr>
@@ -1384,11 +1311,17 @@ export default function SupplierSourcesPage() {
                       </td>
 
                       <td className="px-5 py-5 text-center text-2xl font-black">
-                        ₹{sgstAmount.toFixed(2)}
+                        ₹
+                        {(form.gstType === "IGST"
+                          ? igstAmount
+                          : sgstAmount
+                        ).toFixed(2)}
                       </td>
 
                       <td className="px-5 py-5 text-center text-2xl font-black">
-                        ₹{cgstAmount.toFixed(2)}
+                        {form.gstType === "IGST"
+                          ? "-"
+                          : `₹${cgstAmount.toFixed(2)}`}
                       </td>
 
                       <td className="px-5 py-5 text-center text-3xl font-black text-green-700">
@@ -1537,6 +1470,12 @@ function SupplierCard({ source, onEdit, onDelete }) {
           <p className="text-3xl font-black">
             ₹ {Number(source.purchasePrice || 0).toLocaleString("en-IN")}
           </p>
+
+          {source.usdPrice > 0 && (
+            <p className="mt-1 text-sm font-bold text-blue-100">
+              $ {source.usdPrice}
+            </p>
+          )}
         </div>
       </div>
 
@@ -1560,6 +1499,10 @@ function SupplierCard({ source, onEdit, onDelete }) {
           <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">
             Purchase Info
           </h3>
+
+          <InfoBox label="USD Price" value={source.usdPrice} />
+          <InfoBox label="USD Rate" value={source.usdRate} />
+          <InfoBox label="INR Purchase" value={source.inrPurchasePrice} />
 
           <InfoBox label="MOQ" value={source.moq || 1} />
           <InfoBox label="Lead Time" value={source.leadTime || "N/A"} />
@@ -1613,9 +1556,7 @@ function SupplierCard({ source, onEdit, onDelete }) {
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-3 text-sm font-black text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:from-[#1d4ed8] hover:to-[#6d28d9]"
               >
                 <Phone size={17} className="text-white" />
-                <span className="text-white">
-                  Call Supplier
-                </span>
+                <span className="text-white">Call Supplier</span>
               </a>
             ) : null}
 
@@ -1628,9 +1569,7 @@ function SupplierCard({ source, onEdit, onDelete }) {
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#00a86b] px-5 py-3 font-black text-white shadow-md hover:bg-[#009960] transition"
               >
                 <MessageCircle size={17} className="text-white" />
-                <span className="text-white">
-                  WhatsApp
-                </span>
+                <span className="text-white">WhatsApp</span>
               </a>
             ) : null}
 
@@ -1640,9 +1579,7 @@ function SupplierCard({ source, onEdit, onDelete }) {
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-3 font-black text-white shadow-md hover:bg-sky-600 transition"
               >
                 <Mail size={17} className="text-white" />
-                <span className="text-white">
-                  Email
-                </span>
+                <span className="text-white">Email</span>
               </a>
             ) : null}
 

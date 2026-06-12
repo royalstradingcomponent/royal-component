@@ -84,7 +84,9 @@ exports.createComponentRequest = async (req, res) => {
 
         let cgstAmount = 0;
 
-        const GST_PERCENT = 18;
+        let igstAmount = 0;
+
+        let gstType = "CGST_SGST";
 
         let autoLeadTime = "2-5 business days";
 
@@ -296,7 +298,7 @@ exports.createComponentRequest = async (req, res) => {
             const gstAmount =
                 (lineSubTotal *
                     Number(
-                        supplier.gstPercent || 18
+                        supplier.gstPercent || 0
                     )) /
                 100;
 
@@ -304,19 +306,16 @@ exports.createComponentRequest = async (req, res) => {
                 lineSubTotal + gstAmount;
 
             item.unitPrice =
-                Number(
-                    unitPrice.toFixed(2)
-                );
+                Number(unitPrice.toFixed(2));
+
+            item.gstPercent =
+                Number(supplier.gstPercent || 0);
 
             item.gstAmount =
-                Number(
-                    gstAmount.toFixed(2)
-                );
+                Number(gstAmount.toFixed(2));
 
             item.lineTotal =
-                Number(
-                    lineTotal.toFixed(2)
-                );
+                Number(lineTotal.toFixed(2));
 
             subTotal += lineSubTotal;
 
@@ -355,6 +354,18 @@ exports.createComponentRequest = async (req, res) => {
 
                 gstAmount,
 
+                gstType:
+                    supplier.gstType || "CGST_SGST",
+
+                cgstAmount:
+                    supplier.cgstAmount || 0,
+
+                sgstAmount:
+                    supplier.sgstAmount || 0,
+
+                igstAmount:
+                    supplier.igstAmount || 0,
+
                 profitPercent:
                     supplier.profitPercent,
 
@@ -378,16 +389,38 @@ exports.createComponentRequest = async (req, res) => {
             });
         }
 
-        sgstAmount =
-            subTotal * 0.09;
+        const hasIgstSupplier =
+            matchedSupplierSources.some(
+                (item) =>
+                    item.gstType === "IGST"
+            );
 
-        cgstAmount =
-            subTotal * 0.09;
+        sgstAmount = matchedSupplierSources.reduce(
+            (total, item) => total + Number(item.sgstAmount || 0),
+            0
+        );
+
+        cgstAmount = matchedSupplierSources.reduce(
+            (total, item) => total + Number(item.cgstAmount || 0),
+            0
+        );
+
+        igstAmount = matchedSupplierSources.reduce(
+            (total, item) => total + Number(item.igstAmount || 0),
+            0
+        );
+
+        if (igstAmount > 0) {
+            gstType = "IGST";
+        } else {
+            gstType = "CGST_SGST";
+        }
 
         autoAdminPrice =
             subTotal +
             sgstAmount +
-            cgstAmount;
+            cgstAmount +
+            igstAmount;
 
         console.log(
             "MATCHED =>",
@@ -426,6 +459,12 @@ exports.createComponentRequest = async (req, res) => {
             sgstAmount: Number(sgstAmount.toFixed(2)),
 
             cgstAmount: Number(cgstAmount.toFixed(2)),
+
+            igstAmount:
+                Number(igstAmount.toFixed(2)),
+
+            gstType,
+
             adminLeadTime: autoLeadTime,
             customerMessage: autoCustomerMessage,
 
@@ -638,21 +677,58 @@ exports.updateComponentRequest = async (req, res) => {
         });
 
         if (adminPrice !== undefined) {
-            const subTotal = Number(adminPrice || 0);
 
-            const sgstAmount = Math.round(subTotal * 0.09);
+            const subTotal =
+                Number(adminPrice || 0);
 
-            const cgstAmount = Math.round(subTotal * 0.09);
+            const gstType =
+                request.gstType || "CGST_SGST";
 
-            const finalTotal = subTotal + sgstAmount + cgstAmount;
+            let sgstAmount = 0;
+            let cgstAmount = 0;
+            let igstAmount = 0;
 
-            request.subTotal = subTotal;
+            if (gstType === "IGST") {
 
-            request.sgstAmount = sgstAmount;
+                igstAmount =
+                    Number(
+                        req.body.igstAmount || 0
+                    );
 
-            request.cgstAmount = cgstAmount;
+            } else {
 
-            request.adminPrice = finalTotal;
+                sgstAmount =
+                    Number(
+                        req.body.sgstAmount || 0
+                    );
+
+                cgstAmount =
+                    Number(
+                        req.body.cgstAmount || 0
+                    );
+
+            }
+
+            const finalTotal =
+                subTotal +
+                sgstAmount +
+                cgstAmount +
+                igstAmount;
+
+            request.subTotal =
+                subTotal;
+
+            request.sgstAmount =
+                sgstAmount;
+
+            request.cgstAmount =
+                cgstAmount;
+
+            request.igstAmount =
+                igstAmount;
+
+            request.adminPrice =
+                Number(finalTotal.toFixed(2));
         }
 
         if (adminLeadTime !== undefined) {
@@ -696,15 +772,39 @@ exports.updateComponentRequest = async (req, res) => {
                 item.lineTotal =
                     Number(lineTotal.toFixed(2));
 
+                item.gstPercent =
+                    Number(supplier.gstPercent || 0);
+
                 subTotal += lineTotal;
 
             });
 
-            const sgstAmount =
-                Number((subTotal * 0.09).toFixed(2));
+            const gstType =
+                request.gstType || "CGST_SGST";
 
-            const cgstAmount =
-                Number((subTotal * 0.09).toFixed(2));
+            let sgstAmount = 0;
+            let cgstAmount = 0;
+            let igstAmount = 0;
+
+            if (gstType === "IGST") {
+
+                igstAmount =
+                    Number(
+                        req.body.igstAmount || 0
+                    );
+
+            } else {
+
+                sgstAmount =
+                    Number(
+                        req.body.sgstAmount || 0
+                    );
+
+                cgstAmount =
+                    Number(
+                        req.body.cgstAmount || 0
+                    );
+            }
 
             request.subTotal =
                 Number(subTotal.toFixed(2));
@@ -715,10 +815,17 @@ exports.updateComponentRequest = async (req, res) => {
             request.cgstAmount =
                 cgstAmount;
 
+            request.igstAmount =
+                igstAmount;
+
             request.adminPrice =
                 Number(
-                    (subTotal + sgstAmount + cgstAmount)
-                        .toFixed(2)
+                    (
+                        subTotal +
+                        sgstAmount +
+                        cgstAmount +
+                        igstAmount
+                    ).toFixed(2)
                 );
 
             let availableCount = 0;

@@ -195,9 +195,11 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
       >
         <button
           type="submit"
-          className={`absolute top-1/2 -translate-y-1/2 text-[#5f7d95] transition hover:text-[#0f6cbd] ${
-            mobile ? "left-4" : "left-5"
-          }`}
+          className={`absolute top-1/2 -translate-y-1/2 transition ${mobile ? "left-4" : "left-5"
+            }`}
+          style={{
+            color: "var(--theme-icon-color)",
+          }}
           aria-label="Search products"
         >
           <Search size={mobile ? 18 : 20} />
@@ -218,9 +220,14 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
           }
           className={
             mobile
-              ? "h-[50px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-12 pr-20 text-sm text-[#0f172a] outline-none placeholder:text-[#8aa5b9] focus:border-[#38bdf8]"
-              : "h-[58px] w-full rounded-full border border-[#cfe5f5] bg-[#f8fcff] py-3 pl-14 pr-24 text-[16px] text-[#0f172a] outline-none transition placeholder:text-[#8aa5b9] focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_4px_rgba(56,189,248,0.12)]"
+              ? "h-[50px] w-full rounded-full py-3 pl-12 pr-20 text-sm outline-none"
+              : "h-[58px] w-full rounded-full py-3 pl-14 pr-24 text-[16px] outline-none transition"
           }
+          style={{
+            border: "1px solid var(--theme-navbar-border)",
+            background: "var(--theme-menu-bg)",
+            color: "var(--theme-navbar-text)",
+          }}
         />
         <ImageSearchCamera mobile={mobile} onSearchDone={onSearchDone} />
 
@@ -231,7 +238,10 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
               setQuery("");
               setOpen(false);
             }}
-            className="absolute right-14 top-1/2 -translate-y-1/2 text-[#7a92a7] transition hover:text-[#0f172a]"
+            className="absolute right-14 top-1/2 -translate-y-1/2 transition"
+            style={{
+              color: "var(--theme-icon-color)",
+            }}
             aria-label="Clear search"
           >
             <X size={18} />
@@ -240,7 +250,14 @@ export default function SearchBar({ mobile = false, onSearchDone }) {
       </form>
 
       {hasDropdown ? (
-        <div className="absolute left-0 right-0 top-[calc(100%+10px)] z-[100] overflow-hidden rounded-[22px] border border-[#d7e7f4] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
+        <div
+          className="absolute left-0 right-0 top-[calc(100%+10px)] z-[100] overflow-hidden rounded-[22px]"
+          style={{
+            border: "1px solid var(--theme-navbar-border)",
+            background: "var(--theme-surface)",
+            boxShadow: "0 24px 60px rgba(15,23,42,0.16)",
+          }}
+        >
           {filteredCategories.length > 0 ? (
             <div className="border-b border-[#e8f1f8] bg-[#f8fcff] px-5 py-4">
               <p className="mb-3 text-xs font-extrabold uppercase tracking-[0.18em] text-[#0f6cbd]">

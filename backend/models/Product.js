@@ -219,6 +219,33 @@ const productSchema = new mongoose.Schema(
       index: true,
     },
 
+    gstPercent: {
+  type: Number,
+  enum: [0, 5, 12, 18, 28],
+  default: 18,
+},
+
+gstType: {
+  type: String,
+  enum: ["CGST_SGST", "IGST"],
+  default: "CGST_SGST",
+},
+
+cgstPercent: {
+  type: Number,
+  default: 9,
+},
+
+sgstPercent: {
+  type: Number,
+  default: 9,
+},
+
+igstPercent: {
+  type: Number,
+  default: 0,
+},
+
     reservedStock: {
       type: Number,
       min: 0,

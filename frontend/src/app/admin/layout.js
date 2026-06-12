@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Contact,
   Building2,
+  Palette,
   Gift,
   Home,
   BookOpen,
@@ -63,14 +64,14 @@ const navItems = [
     title: "Blog Settings",
     href: "/admin/blog-settings",
     icon: Settings,
-  
+
   },
 
   {
-  title: "Landing Pages",
-  href: "/admin/landing-pages",
-  icon: LayoutTemplate,
-},
+    title: "Landing Pages",
+    href: "/admin/landing-pages",
+    icon: LayoutTemplate,
+  },
 
   { title: "About Page", href: "/admin/about", icon: Building2 },
   { title: "Contact Page", href: "/admin/contact-page", icon: Contact },
@@ -99,12 +100,17 @@ const navItems = [
   },
   { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { title: "Payments", href: "/admin/payments", icon: CreditCard },
-  
+
   { title: "Customers", href: "/admin/customers", icon: Users },
   { title: "Coupons", href: "/admin/coupons", icon: Gift },
   { title: "Support Chats", href: "/admin/chats", icon: MessageSquareText },
   { title: "Reports", href: "/admin/reports", icon: BarChart3 },
   { title: "Settings", href: "/admin/settings", icon: Settings },
+  {
+    title: "Theme Manager",
+    href: "/admin/theme-manager",
+    icon: Palette,
+  },
   {
     title: "Login History",
     href: "/admin/login-history",
@@ -203,7 +209,7 @@ export default function AdminLayout({ children }) {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-           
+
             body: JSON.stringify({
               page: pathname,
               sessionId,
@@ -268,8 +274,8 @@ export default function AdminLayout({ children }) {
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`mb-1 flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition ${active
-                    ? "bg-[#2454b5] text-white"
-                    : "text-slate-300 hover:bg-white/10 hover:text-white"
+                  ? "bg-[#2454b5] text-white"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
               >
                 <span className="flex items-center gap-3">

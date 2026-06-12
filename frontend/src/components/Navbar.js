@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useTheme } from "@/context/ThemeContext";
 import {
   Menu,
   ShoppingCart,
@@ -21,7 +22,6 @@ import {
   LayoutDashboard,
   BookOpen,
   FileText,
-
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import LoginModal from "@/app/authPage/LoginModel";
@@ -45,8 +45,16 @@ const fallbackCategories = [
 
 const accountMenuItems = [
   { label: "My Orders", href: "/checkout/order", icon: Package },
-  { label: "Request Component", href: "/request-component", icon: PackageSearch },
-  { label: "Track Request", href: "/request-component/my-requests", icon: PackageSearch },
+  {
+    label: "Request Component",
+    href: "/request-component",
+    icon: PackageSearch,
+  },
+  {
+    label: "Track Request",
+    href: "/request-component/my-requests",
+    icon: PackageSearch,
+  },
   { label: "Buy Again", href: "/checkout/order", icon: RotateCcw },
   { label: "My Account", href: "/account", icon: LayoutDashboard },
   { label: "Wishlist", href: "/wishlist", icon: Heart },
@@ -65,7 +73,7 @@ function getCategoryHref(item) {
   if (item?.href) return item.href;
 
   return `/products?category=semiconductors&subCategory=${encodeURIComponent(
-    item?.slug || ""
+    item?.slug || "",
   )}`;
 }
 
@@ -78,6 +86,7 @@ export default function Navbar() {
   const [isSemiconductorMenuOpen, setIsSemiconductorMenuOpen] = useState(false);
 
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const { cartSummary, cartItems } = useCart();
   const { wishlistItems } = useWishlist();
 
@@ -92,12 +101,12 @@ export default function Navbar() {
     Number(cartSummary?.itemCount || 0) ||
     (cartItems || []).reduce(
       (total, item) => total + Number(item.quantity || item.qty || 1),
-      0
+      0,
     );
 
   const userName = useMemo(() => {
     return String(
-      user?.name || user?.fullName || user?.email || "My Account"
+      user?.name || user?.fullName || user?.email || "My Account",
     ).trim();
   }, [user]);
 
@@ -128,14 +137,14 @@ export default function Navbar() {
           .sort(
             (a, b) =>
               Number(a.navbarOrder || 0) - Number(b.navbarOrder || 0) ||
-              Number(a.order || 0) - Number(b.order || 0)
+              Number(a.order || 0) - Number(b.order || 0),
           )
           .map((cat) => ({
             _id: cat._id,
             name: cat.name,
             slug: cat.slug,
             href: `/products?category=semiconductors&subCategory=${encodeURIComponent(
-              cat.slug
+              cat.slug,
             )}`,
           }))
           .filter((cat) => cat.name && cat.slug);
@@ -173,8 +182,25 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-[#d6e8f5] bg-white shadow-[0_6px_24px_rgba(15,23,42,0.06)]">
-        <div className="bg-gradient-to-r from-[#0f6cbd] via-[#1792e8] to-[#38bdf8] px-4 py-2 text-center text-xs font-semibold tracking-wide text-white sm:text-sm">
+      <header
+        className="sticky top-0 z-50"
+        style={{
+          background: "var(--theme-navbar-bg)",
+          borderBottom: "1px solid var(--theme-navbar-border)",
+          boxShadow: "0 6px 24px var(--theme-navbar-shadow)",
+        }}
+      >
+        <div
+          className="px-4 py-2 text-center text-xs font-semibold tracking-wide text-white sm:text-sm"
+          style={{
+            background: `linear-gradient(
+    90deg,
+    var(--theme-topbar-start),
+    var(--theme-topbar-middle),
+    var(--theme-topbar-end)
+  )`,
+          }}
+        >
           Trusted Industrial Components • Fast Procurement • Bulk Order Support
         </div>
 
@@ -182,7 +208,11 @@ export default function Navbar() {
           <div className="flex items-center justify-between gap-3 py-4 lg:py-5">
             <div className="flex min-w-0 items-center gap-3">
               <button
-                className="rounded-md p-2 text-[#0f3d67] transition hover:bg-[#eaf6ff] lg:hidden"
+                className="rounded-md p-2 transition lg:hidden"
+                style={{
+                  color: "var(--theme-navbar-text)",
+                  background: "transparent",
+                }}
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open menu"
                 type="button"
@@ -213,7 +243,12 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsLoginOpen(true)}
-                  className="hidden h-[46px] items-center gap-2 rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff] sm:flex"
+                  className="hidden h-[46px] items-center gap-2 rounded-full px-4 text-sm font-semibold sm:flex"
+                  style={{
+                    background: "var(--theme-navbar-bg)",
+                    color: "var(--theme-navbar-text)",
+                    border: "1px solid var(--theme-navbar-border)",
+                  }}
                 >
                   <User size={18} />
                   Sign in
@@ -223,7 +258,12 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-                    className="flex h-[46px] items-center gap-2 rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff]"
+                    className="flex h-[46px] items-center gap-2 rounded-full px-4 text-sm font-semibold transition"
+                    style={{
+                      border: "1px solid var(--theme-navbar-border)",
+                      background: "var(--theme-navbar-bg)",
+                      color: "var(--theme-navbar-text)",
+                    }}
                   >
                     <User size={18} />
                     <span>{shortUserName}</span>
@@ -235,13 +275,37 @@ export default function Navbar() {
                   </button>
 
                   {isAccountMenuOpen ? (
-                    <div className="absolute right-0 top-[58px] z-[80] w-[320px] overflow-hidden rounded-[22px] border border-[#d7e7f4] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.16)]">
-                      <div className="border-b border-[#e8f1f8] bg-gradient-to-r from-[#f8fcff] to-[#eef7ff] px-6 py-5">
-                        <p className="text-[16px] font-bold text-[#0f172a]">
+                    <div
+                      className="absolute right-0 top-[58px] z-[80] w-[320px] overflow-hidden rounded-[22px]"
+                      style={{
+                        border: "1px solid var(--theme-card-border)",
+                        background: "var(--theme-card-bg)",
+                        boxShadow: "0 24px 60px var(--theme-account-menu-shadow)",
+                      }}
+                    >
+                      <div
+                        className="px-6 py-5"
+                        style={{
+                          borderBottom: "1px solid var(--theme-card-border)",
+                          background: "var(--theme-background-alt)",
+                        }}
+                      >
+                        <p
+                          className="text-[16px] font-bold"
+                          style={{
+                            color: "var(--theme-heading)",
+                          }}
+                        >
+                          {" "}
                           Hi, {userName}
                         </p>
                         {userEmail ? (
-                          <p className="mt-1 text-sm text-[#5f7d95]">
+                          <p
+                            className="mt-1 text-sm"
+                            style={{
+                              color: "var(--theme-muted)",
+                            }}
+                          >
                             {userEmail}
                           </p>
                         ) : null}
@@ -256,7 +320,10 @@ export default function Navbar() {
                               key={item.label}
                               href={item.href}
                               onClick={() => setIsAccountMenuOpen(false)}
-                              className="flex items-center gap-3 px-6 py-3 text-[15px] font-medium text-[#23435b] transition hover:bg-[#f3f9ff] hover:text-[#0f6cbd]"
+                              className="flex items-center gap-3 px-6 py-3 text-[15px] font-medium transition"
+                              style={{
+                                color: "var(--theme-card-text)",
+                              }}
                             >
                               <Icon size={18} />
                               <span>{item.label}</span>
@@ -265,12 +332,20 @@ export default function Navbar() {
                         })}
                       </div>
 
-                      <div className="border-t border-[#e8f1f8] px-4 py-3">
+                      <div
+                        className="px-4 py-3"
+                        style={{
+                          borderTop: "1px solid var(--theme-card-border)",
+                        }}
+                      >
                         <button
                           type="button"
                           onClick={handleLogout}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] font-semibold text-[#d14c5e] transition hover:bg-[#fff3f5]"
-                        >
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] font-semibold transition"
+                          style={{
+                            color: "var(--theme-navbar-logout-text)",
+                            background: "transparent",
+                          }} >
                           <LogOut size={18} />
                           Logout
                         </button>
@@ -282,7 +357,12 @@ export default function Navbar() {
 
               <Link
                 href="/request-component"
-                className="hidden h-[46px] items-center gap-2 rounded-full border border-[#b9e6fb] bg-[#eaf7ff] px-5 text-sm font-extrabold text-[#0f6cbd] shadow-sm transition hover:border-[#38bdf8] hover:bg-[#dff2ff] md:flex"
+                className="hidden h-[46px] items-center gap-2 rounded-full px-5 text-sm font-extrabold shadow-sm transition md:flex"
+                style={{
+                  border: "1px solid var(--theme-navbar-border)",
+                  background: "var(--theme-menu-bg)",
+                  color: "var(--theme-icon-color)",
+                }}
               >
                 <PackageSearch size={18} />
                 Request BOM
@@ -290,20 +370,40 @@ export default function Navbar() {
 
               <Link
                 href="/request-component/my-requests"
-                className="hidden h-[46px] items-center gap-2 rounded-full border border-[#b9e6fb] bg-[#eaf7ff] px-5 text-sm font-extrabold text-[#0f6cbd] shadow-sm transition hover:border-[#38bdf8] hover:bg-[#dff2ff] md:flex"
+                className="hidden h-[46px] items-center gap-2 rounded-full px-5 text-sm font-extrabold shadow-sm transition md:flex"
+                style={{
+                  border: "1px solid var(--theme-navbar-border)",
+                  background: "var(--theme-menu-bg)",
+                  color: "var(--theme-icon-color)",
+                }}
               >
-                <PackageSearch size={18} />
-                Track Request
+                <span className="flex items-center gap-3">
+                  <PackageSearch size={17} />
+                  Track Request
+                </span>
+
+                <ChevronRight size={17} />
               </Link>
 
               <Link
                 href="/wishlist"
-                className="relative flex h-[46px] items-center justify-center rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff]"
+                className="relative flex h-[46px] items-center justify-center rounded-full px-4 text-sm font-semibold"
+                style={{
+                  border: "1px solid var(--theme-navbar-border)",
+                  background: "var(--theme-navbar-bg)",
+                  color: "var(--theme-navbar-text)",
+                }}
               >
                 <span className="relative inline-flex">
                   <Heart size={18} />
                   {wishlistCount > 0 ? (
-                    <span className="absolute -right-3 -top-3 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[10px] font-bold text-white shadow">
+                    <span
+                      className="absolute -right-3 -top-3 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold shadow"
+                      style={{
+                        background: "var(--theme-sale-badge-bg)",
+                        color: "var(--theme-sale-badge-text)",
+                      }}
+                    >
                       {wishlistCount}
                     </span>
                   ) : null}
@@ -312,12 +412,23 @@ export default function Navbar() {
 
               <Link
                 href="/checkout/cart"
-                className="relative flex h-[46px] items-center gap-2 rounded-full border border-[#cfe5f5] bg-white px-4 text-sm font-semibold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#f2fbff]"
+                className="relative flex h-[46px] items-center gap-2 rounded-full px-4 text-sm font-semibold"
+                style={{
+                  border: "1px solid var(--theme-navbar-border)",
+                  background: "var(--theme-navbar-bg)",
+                  color: "var(--theme-navbar-text)",
+                }}
               >
                 <span className="relative inline-flex">
                   <ShoppingCart size={18} />
                   {cartCount > 0 ? (
-                    <span className="absolute -right-3 -top-3 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[10px] font-bold leading-none text-white shadow">
+                    <span
+                      className="absolute -right-3 -top-3 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none shadow"
+                      style={{
+                        background: "var(--theme-sale-badge-bg)",
+                        color: "var(--theme-sale-badge-text)",
+                      }}
+                    >
                       {cartCount}
                     </span>
                   ) : null}
@@ -327,7 +438,12 @@ export default function Navbar() {
             </div>
           </div>
 
-          <nav className="hidden border-t border-[#e6f1f8] py-3 lg:block">
+          <nav
+            className="hidden py-3 lg:block"
+            style={{
+              borderTop: "1px solid var(--theme-navbar-border)",
+            }}
+          >
             <div className="flex items-center gap-2 whitespace-nowrap xl:gap-3">
               {/* ALL SEMICONDUCTORS - FIRST */}
               <div
@@ -337,44 +453,84 @@ export default function Navbar() {
               >
                 <Link
                   href="/products?category=semiconductors"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#0f6cbd]/25 bg-[#eaf7ff] px-5 py-2.5 text-[15px] font-extrabold text-[#0f3d67] transition hover:border-[#38bdf8] hover:bg-[#dff2ff]"
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[15px] font-extrabold"
+                  style={{
+                    border: "1px solid var(--theme-navbar-border)",
+                    background: "var(--theme-menu-bg)",
+                    color: "var(--theme-navbar-text)",
+                  }}
                 >
                   All Semiconductors
                   <ChevronDown size={16} />
                 </Link>
 
                 <div
-                  className={`absolute left-0 top-full z-[90] mt-3 w-[980px] max-w-[calc(100vw-48px)] rounded-[24px] border border-[#d7e7f4] bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] transition-all duration-200 ${isSemiconductorMenuOpen
-                    ? "visible opacity-100"
-                    : "invisible opacity-0"
-                    }`}
-                >                  <div className="mb-4 flex items-center justify-between border-b border-[#e8f1f8] pb-3">
+                  className={`absolute left-0 top-full z-[90] mt-3 w-[980px] max-w-[calc(100vw-48px)] rounded-[24px] p-5 transition-all duration-200
+                   ${isSemiconductorMenuOpen ? "visible opacity-100" : "invisible opacity-0"}`}
+                  style={{
+                    border: "1px solid var(--theme-card-border)",
+                    background: "var(--theme-card-bg)",
+                    boxShadow: "0 24px 70px var(--theme-mega-menu-shadow)",
+                  }}
+                >
+                  {" "}
+                  <div
+                    className="mb-4 flex items-center justify-between pb-3"
+                    style={{
+                      borderBottom: "1px solid var(--theme-card-border)",
+                    }}
+                  >
+                    {" "}
                     <div>
-                      <h3 className="text-lg font-extrabold text-[#0f172a]">
+                      <h3
+                        className="text-lg font-extrabold"
+                        style={{
+                          color: "var(--theme-heading)",
+                        }}
+                      >
                         All Semiconductor Categories
                       </h3>
-                      <p className="text-sm text-[#5f7d95]">
-                        Browse ICs, modules, controllers, sensors and electronic components.
+                      <p
+                        className="text-sm"
+                        style={{
+                          color: "var(--theme-muted)",
+                        }}
+                      >
+                        Browse ICs, modules, controllers, sensors and electronic
+                        components.
                       </p>
                     </div>
-
                     <Link
                       href="/products?category=semiconductors"
-                      className="rounded-full bg-gradient-to-r from-[#2563eb] to-[#7c3aed] px-5 py-2 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:from-[#1d4ed8] hover:to-[#6d28d9]"
+                      className="rounded-full px-5 py-2 text-sm font-bold shadow-lg transition-all duration-300"
+                      style={{
+                        background: `linear-gradient(
+                             90deg,
+                        var(--theme-gradient2-start),
+                        var(--theme-gradient2-end)
+                         )`,
+                        color: "#fff",
+                      }}
                     >
                       View All
                     </Link>
                   </div>
-
                   <div className="grid max-h-[420px] grid-cols-3 gap-2 overflow-y-auto pr-1 xl:grid-cols-4">
                     {allSemiconductorCategories.map((item) => (
                       <Link
                         key={item._id || item.slug}
                         href={getCategoryHref(item)}
                         onClick={() => setIsSemiconductorMenuOpen(false)}
-                        className="flex min-h-[48px] items-center justify-between rounded-xl border border-[#e6f1f8] bg-[#f8fcff] px-4 py-3 text-sm font-bold text-[#23435b] transition hover:border-[#38bdf8] hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+                        className="flex min-h-[48px] items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition"
+                        style={{
+                          border: "1px solid var(--theme-card-border)",
+                          background: "var(--theme-background-alt)",
+                          color: "var(--theme-card-text)",
+                        }}
                       >
-                        <span className="whitespace-normal leading-snug">{item.name}</span>
+                        <span className="whitespace-normal leading-snug">
+                          {item.name}
+                        </span>
                         <ChevronRight size={16} className="shrink-0" />
                       </Link>
                     ))}
@@ -384,26 +540,39 @@ export default function Navbar() {
 
               <Link
                 href="/blog"
-                className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold text-[#0f3d67] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+                className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold transition-all duration-200"
+                style={{
+                  color: "var(--theme-navbar-text)",
+                }}
               >
                 <span className="flex items-center gap-2">
                   <BookOpen size={16} />
                   Blogs
                 </span>
 
-                <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
+                <span
+                  className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full transition-transform duration-200 group-hover:scale-x-100"
+                  style={{
+                    background: "var(--theme-primary)",
+                  }}
+                />
               </Link>
 
               <Link
                 href="/landing/arduino-uno-r3-kit"
-                className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold text-[#0f3d67] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+                className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold transition-all duration-200"
+                style={{
+                  color: "var(--theme-navbar-text)",
+                }}
               >
                 <span className="flex items-center gap-2">
                   <FileText size={16} />
                   Arduino Kit
                 </span>
 
-                <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
+                <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full
+                 bg-[#38bdf8] 
+                 transition-transform duration-200 group-hover:scale-x-100" />
               </Link>
 
               {/* TOP 5 CATEGORIES AFTER ALL SEMICONDUCTORS */}
@@ -411,10 +580,18 @@ export default function Navbar() {
                 <Link
                   key={item._id || item.slug}
                   href={getCategoryHref(item)}
-                  className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-semibold text-[#33546d] transition-all duration-200 hover:bg-[#eaf7ff] hover:text-[#0f6cbd]"
+                  className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-semibold transition-all duration-200"
+                  style={{
+                    color: "var(--theme-navbar-text)",
+                  }}
                 >
                   <span>{item.name}</span>
-                  <span className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full bg-[#38bdf8] transition-transform duration-200 group-hover:scale-x-100" />
+                  <span
+                    className="absolute inset-x-4 bottom-[4px] h-[2px] scale-x-0 rounded-full transition-transform duration-200 group-hover:scale-x-100"
+                    style={{
+                      background: "var(--theme-navbar-hover-color)",
+                    }}
+                  />
                 </Link>
               ))}
             </div>
@@ -423,20 +600,42 @@ export default function Navbar() {
 
         {mobileOpen ? (
           <div
-            className="fixed inset-0 z-[60] bg-[#0f172a]/40 backdrop-blur-[2px] lg:hidden"
+            className="fixed inset-0 z-[60] backdrop-blur-[2px] lg:hidden"
+            style={{
+              background: "var(--theme-mobile-overlay-bg)",
+            }}
             onClick={() => setMobileOpen(false)}
           >
             <div
-              className="h-full w-[86%] max-w-[360px] overflow-y-auto bg-white shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              className="h-full w-[86%] max-w-[360px] overflow-y-auto shadow-2xl"
+              style={{
+                background: "var(--theme-card-bg)",
+              }}
             >
-              <div className="border-b border-[#e6f1f8] bg-gradient-to-r from-[#eaf7ff] to-[#f8fcff] px-4 py-4">
+              <div
+                className="px-4 py-4"
+                style={{
+                  borderBottom: "1px solid var(--theme-card-border)",
+                  background: "var(--theme-background-alt)",
+                }}
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-lg font-extrabold text-[#0f172a]">
+                    <p
+                      className="text-lg font-extrabold"
+                      style={{
+                        color: "var(--theme-heading)",
+                      }}
+                    >
                       Menu
                     </p>
-                    <p className="mt-1 text-xs text-[#6b879b]">
+                    <p
+                      className="mt-1 text-xs"
+                      style={{
+                        color: "var(--theme-muted)",
+                      }}
+                    >
+                      {" "}
                       Browse categories and account options
                     </p>
                   </div>
@@ -445,7 +644,10 @@ export default function Navbar() {
                     onClick={() => setMobileOpen(false)}
                     aria-label="Close menu"
                     type="button"
-                    className="rounded-md p-2 text-[#0f3d67] transition hover:bg-[#dff2ff]"
+                    className="rounded-md p-2 transition"
+                    style={{
+                      color: "var(--theme-navbar-text)",
+                    }}
                   >
                     <X size={22} />
                   </button>
@@ -460,7 +662,12 @@ export default function Navbar() {
                 {!user?.token ? (
                   <button
                     type="button"
-                    className="mb-5 flex w-full items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-left text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                    className="mb-5 flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-semibold"
+                    style={{
+                      border: "1px solid var(--theme-card-border)",
+                      background: "var(--theme-card-bg)",
+                      color: "var(--theme-card-text)",
+                    }}
                     onClick={() => {
                       setMobileOpen(false);
                       setIsLoginOpen(true);
@@ -473,13 +680,36 @@ export default function Navbar() {
                     <ChevronRight size={17} />
                   </button>
                 ) : (
-                  <div className="mb-5 overflow-hidden rounded-[18px] border border-[#dbe8f5] bg-white">
-                    <div className="border-b border-[#e8f1f8] bg-gradient-to-r from-[#f8fcff] to-[#eef7ff] px-4 py-4">
-                      <p className="text-[17px] font-bold text-[#0f172a]">
+                  <div
+                    className="mb-5 overflow-hidden rounded-[18px]"
+                    style={{
+                      border: "1px solid var(--theme-card-border)",
+                      background: "var(--theme-card-bg)",
+                    }}
+                  >
+                    <div
+                      className="px-4 py-4"
+                      style={{
+                        borderBottom: "1px solid var(--theme-card-border)",
+                        background: "var(--theme-background-alt)",
+                      }}
+                    >
+                      {" "}
+                      <p
+                        className="text-[17px] font-bold"
+                        style={{
+                          color: "var(--theme-heading)",
+                        }}
+                      >
                         Hi, {userName}
                       </p>
                       {userEmail ? (
-                        <p className="mt-1 text-sm text-[#5f7d95]">
+                        <p
+                          className="mt-1 text-sm"
+                          style={{
+                            color: "var(--theme-muted)",
+                          }}
+                        >
                           {userEmail}
                         </p>
                       ) : null}
@@ -493,7 +723,10 @@ export default function Navbar() {
                           <Link
                             key={item.label}
                             href={item.href}
-                            className="flex items-center justify-between px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                            className="flex items-center justify-between px-4 py-3 text-sm font-semibold"
+                            style={{
+                              color: "var(--theme-card-text)",
+                            }}
                             onClick={() => setMobileOpen(false)}
                           >
                             <span className="flex items-center gap-3">
@@ -507,7 +740,10 @@ export default function Navbar() {
 
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[#d14c5e] transition hover:bg-[#fff3f5]"
+                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold transition"
+                        style={{
+                          color: "var(--theme-navbar-logout-text)",
+                        }}
                         onClick={handleLogout}
                       >
                         <span className="flex items-center gap-3">
@@ -521,11 +757,12 @@ export default function Navbar() {
                 )}
 
                 <div className="space-y-2">
-
                   <Link
                     href="/blog"
-                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
-                    onClick={() => setMobileOpen(false)}
+                    className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold transition-all duration-200"
+                    style={{
+                      color: "var(--theme-navbar-text)",
+                    }}
                   >
                     <span className="flex items-center gap-3">
                       <BookOpen size={17} />
@@ -537,8 +774,10 @@ export default function Navbar() {
 
                   <Link
                     href="/landing/arduino-uno-r3-kit"
-                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
-                    onClick={() => setMobileOpen(false)}
+                    className="group relative inline-flex shrink-0 items-center rounded-full px-4 py-2.5 text-[15px] font-extrabold transition-all duration-200"
+                    style={{
+                      color: "var(--theme-navbar-text)",
+                    }}
                   >
                     <span className="flex items-center gap-3">
                       <FileText size={17} />
@@ -551,7 +790,12 @@ export default function Navbar() {
                     <Link
                       key={item._id || item.slug}
                       href={getCategoryHref(item)}
-                      className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                      className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition"
+                      style={{
+                        border: "1px solid var(--theme-card-border)",
+                        background: "var(--theme-card-bg)",
+                        color: "var(--theme-card-text)",
+                      }}
                       onClick={() => setMobileOpen(false)}
                     >
                       <span>{item.name}</span>
@@ -561,7 +805,12 @@ export default function Navbar() {
 
                   <Link
                     href="/request-component"
-                    className="flex items-center justify-between rounded-xl border border-[#b9e6fb] bg-[#eaf7ff] px-4 py-3 text-sm font-extrabold text-[#0f6cbd] transition hover:border-[#38bdf8] hover:bg-[#dff2ff]"
+                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-extrabold transition"
+                    style={{
+                      border: "1px solid var(--theme-navbar-border)",
+                      background: "var(--theme-menu-bg)",
+                      color: "var(--theme-icon-color)",
+                    }}
                     onClick={() => setMobileOpen(false)}
                   >
                     <span className="flex items-center gap-3">
@@ -573,19 +822,30 @@ export default function Navbar() {
 
                   <Link
                     href="/request-component/my-requests"
-                    className="flex items-center justify-between rounded-xl border border-[#b9e6fb] bg-[#eaf7ff] px-4 py-3 text-sm font-extrabold text-[#0f6cbd] transition hover:border-[#38bdf8] hover:bg-[#dff2ff]"
+                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-extrabold transition"
+                    style={{
+                      border: "1px solid var(--theme-navbar-border)",
+                      background: "var(--theme-menu-bg)",
+                      color: "var(--theme-icon-color)",
+                    }}
                     onClick={() => setMobileOpen(false)}
                   >
                     <span className="flex items-center gap-3">
                       <PackageSearch size={17} />
                       Track Request
                     </span>
+
                     <ChevronRight size={17} />
                   </Link>
 
                   <Link
                     href="/wishlist"
-                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition"
+                    style={{
+                      border: "1px solid var(--theme-card-border)",
+                      background: "var(--theme-card-bg)",
+                      color: "var(--theme-card-text)",
+                    }}
                     onClick={() => setMobileOpen(false)}
                   >
                     <span>
@@ -596,7 +856,12 @@ export default function Navbar() {
 
                   <Link
                     href="/checkout/cart"
-                    className="flex items-center justify-between rounded-xl border border-[#e6f1f8] bg-white px-4 py-3 text-sm font-semibold text-[#23435b] transition hover:border-[#b9e6fb] hover:bg-[#f2fbff] hover:text-[#0f6cbd]"
+                    className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition"
+                    style={{
+                      border: "1px solid var(--theme-card-border)",
+                      background: "var(--theme-card-bg)",
+                      color: "var(--theme-card-text)",
+                    }}
                     onClick={() => setMobileOpen(false)}
                   >
                     <span>Cart {cartCount > 0 ? `(${cartCount})` : ""}</span>

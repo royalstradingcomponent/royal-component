@@ -371,16 +371,15 @@ function RequestCard({ req }) {
                                         }
                                     />
                                     <InfoBox
-                                        label="GST Per Unit (18%)"
-                                        value={
-                                            item.unitPrice
-                                                ? `₹${(Number(item.unitPrice) * 0.18).toFixed(2)}`
-                                                : "Pending"
-                                        }
+                                        label={`GST Per Unit (${item.gstPercent ?? 0}%)`}
+                                        value={`₹${(
+                                            Number(item.gstAmount || 0) /
+                                            Number(item.quantity || 1)
+                                        ).toFixed(2)}`}
                                     />
 
                                     <InfoBox
-                                        label="GST Amount (18%)"
+                                        label={`GST Amount (${item.gstPercent ?? 0}%)`}
                                         value={
                                             item.gstAmount
                                                 ? `₹${Number(item.gstAmount).toLocaleString("en-IN")}`
@@ -531,12 +530,16 @@ function RequestCard({ req }) {
                                                 <Receipt size={16} className="text-amber-600" />
 
                                                 <span className="font-medium text-slate-600">
-                                                    GST Per Unit (18%)
+                                                    GST Per Unit ({item.gstPercent ?? 0}%)
                                                 </span>
                                             </div>
 
                                             <span className="font-black text-amber-700">
-                                                ₹{((Number(item.unitPrice || 0) * 18) / 100).toFixed(2)}
+                                                ₹{(
+                                                    (Number(item.unitPrice || 0) *
+                                                        Number(item.gstPercent || 0)) /
+                                                    100
+                                                ).toFixed(2)}
                                             </span>
                                         </div>
 
@@ -544,7 +547,9 @@ function RequestCard({ req }) {
                                             <div className="flex items-center gap-2">
                                                 <Receipt size={16} className="text-orange-600" />
 
-                                                <span className="font-medium">GST (18%)</span>
+                                                <span className="font-medium">
+                                                    GST ({item.gstPercent || 0}%)
+                                                </span>
                                             </div>
 
                                             <span className="font-black text-orange-700">
@@ -736,27 +741,17 @@ function RequestCard({ req }) {
 function InfoBox({ label, value }) {
     const colors = {
         MPN: "bg-blue-50 border-blue-300",
-
         Brand: "bg-purple-50 border-purple-300",
-
         Quantity: "bg-cyan-50 border-cyan-300",
-
         Status: "bg-emerald-50 border-emerald-300",
+        "Unit Price": "bg-green-50 border-green-300",
 
-        "Unit Price":
-            "bg-green-50 border-green-300",
+        "GST Per Unit": "bg-amber-50 border-amber-300",
 
-        "GST Per Unit (18%)":
-            "bg-amber-50 border-amber-300",
+        "GST Amount": "bg-orange-50 border-orange-300",
 
-        "GST Amount (18%)":
-            "bg-orange-50 border-orange-300",
-
-        "Amount Before GST":
-            "bg-teal-50 border-teal-300",
-
-        "Final Amount":
-            "bg-indigo-50 border-indigo-300",
+        "Amount Before GST": "bg-teal-50 border-teal-300",
+        "Final Amount": "bg-indigo-50 border-indigo-300",
     };
 
     const valueColors = {
@@ -765,8 +760,11 @@ function InfoBox({ label, value }) {
         Quantity: "text-cyan-700",
         Status: "text-emerald-700",
         "Unit Price": "text-green-700",
-        "GST Per Unit (18%)": "text-amber-700",
-        "GST Amount (18%)": "text-orange-700",
+
+        "GST Per Unit": "text-amber-700",
+
+        "GST Amount": "text-orange-700",
+
         "Amount Before GST": "text-teal-700",
         "Final Amount": "text-indigo-700",
     };

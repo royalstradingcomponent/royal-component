@@ -47,8 +47,16 @@ export default function SupplierHistory({ request }) {
           const quantity =
             request?.items?.[0]?.quantity || 1;
 
+          const usdPrice =
+            Number(form.usdPrice || 0);
+
+          const usdRate =
+            Number(form.usdRate || 85);
+
           const purchasePrice =
-            supplier.purchasePrice || 0;
+            usdPrice > 0
+              ? usdPrice * usdRate
+              : Number(form.purchasePrice || 0);
 
           const purchaseTotal =
             purchasePrice * quantity;
@@ -194,8 +202,8 @@ export default function SupplierHistory({ request }) {
                   value={
                     supplier.lastPurchaseDate
                       ? new Date(
-                          supplier.lastPurchaseDate
-                        ).toLocaleDateString()
+                        supplier.lastPurchaseDate
+                      ).toLocaleDateString()
                       : "N/A"
                   }
                 />
@@ -283,15 +291,14 @@ function Card({
   return (
 
     <div
-      className={`rounded-2xl border p-5 ${
-        blue
+      className={`rounded-2xl border p-5 ${blue
           ? "border-blue-100 bg-blue-50"
           : green
-          ? "border-green-100 bg-green-50"
-          : orange
-          ? "border-orange-100 bg-orange-50"
-          : "border-slate-200 bg-white"
-      }`}
+            ? "border-green-100 bg-green-50"
+            : orange
+              ? "border-orange-100 bg-orange-50"
+              : "border-slate-200 bg-white"
+        }`}
     >
 
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -299,15 +306,14 @@ function Card({
       </p>
 
       <h3
-        className={`mt-3 text-2xl font-black break-all ${
-          blue
+        className={`mt-3 text-2xl font-black break-all ${blue
             ? "text-blue-600"
             : green
-            ? "text-green-600"
-            : orange
-            ? "text-orange-600"
-            : "text-slate-900"
-        }`}
+              ? "text-green-600"
+              : orange
+                ? "text-orange-600"
+                : "text-slate-900"
+          }`}
       >
         {value}
       </h3>

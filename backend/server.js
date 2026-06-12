@@ -67,10 +67,8 @@ app.use(
     },
 
     crossOriginEmbedderPolicy: false,
-  })
+  }),
 );
-
-
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -101,13 +99,13 @@ app.use(
   express.urlencoded({
     extended: true,
     limit: "25mb",
-  })
+  }),
 );
 
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
     console.log(
-      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`,
     );
 
     next();
@@ -152,10 +150,7 @@ app.use("/api/policies", require("./routes/policyRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/component-requests", require("./routes/componentRequestRoutes"));
 
-app.use(
-  "/api/purchase-history",
-  require("./routes/purchaseHistoryRoutes")
-);
+app.use("/api/purchase-history", require("./routes/purchaseHistoryRoutes"));
 app.use("/api/supplier-sources", require("./routes/supplierSourceRoutes"));
 app.use("/api/contact-page", contactPageRoutes);
 app.use("/api/seo-loader", seoLoaderRoutes);
@@ -164,11 +159,9 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/blog-categories", blogCategoryRoutes);
 app.use("/api/blog-upload", blogUploadRoutes);
 app.use("/api/blog-page-setting", blogPageSettingRoutes);
+app.use("/api/theme", require("./routes/themeRoutes"));
 
-app.use(
-  "/api/landing-pages",
-  require("./routes/landingPageRoutes")
-);
+app.use("/api/landing-pages", require("./routes/landingPageRoutes"));
 
 app.use((req, res) => {
   res.status(404).json({

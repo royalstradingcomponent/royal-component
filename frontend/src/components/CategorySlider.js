@@ -39,7 +39,7 @@ export default function CategorySlider() {
 
   const visibleCategories = useMemo(() => {
     return HOME_SEMICONDUCTOR_SLUGS.map((slug) =>
-      categories.find((cat) => cat?.slug === slug && cat?.isActive !== false)
+      categories.find((cat) => cat?.slug === slug && cat?.isActive !== false),
     ).filter(Boolean);
   }, [categories]);
 
@@ -80,13 +80,22 @@ export default function CategorySlider() {
 
   if (loading) {
     return (
-      <section className="w-full bg-[#f5fbff] py-16">
+      <section
+        className="w-full py-16"
+        style={{
+          background: "var(--theme-section-bg)",
+        }}
+      >
         <div className="w-full px-4 sm:px-6 lg:px-10">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-[380px] animate-pulse rounded-[28px] bg-white shadow-sm"
+                className="h-[380px] animate-pulse shadow-sm"
+                style={{
+                  borderRadius: "var(--theme-card-radius)",
+                  background: "var(--theme-card-bg)",
+                }}
               />
             ))}
           </div>
@@ -98,19 +107,39 @@ export default function CategorySlider() {
   if (!visibleCategories.length) return null;
 
   return (
-    <section className="relative w-full overflow-hidden bg-[#f5fbff] py-16">
+    <section
+      className="relative w-full overflow-hidden py-16"
+      style={{
+        background: "var(--theme-section-bg)",
+      }}
+    >
       <div className="w-full px-4 sm:px-6 lg:px-10">
         <div className="mb-10 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#b9defa] bg-white px-5 py-2 text-sm font-bold text-[#006bb6] shadow-sm">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-sm"
+            style={{
+              border: "1px solid var(--theme-navbar-border)",
+              background: "var(--theme-card-bg)",
+              color: "var(--theme-primary)",
+            }}>
             <Layers3 size={17} />
             Explore Product Families
           </div>
 
-          <h2 className="text-4xl font-black tracking-tight text-[#0d1b33] md:text-5xl">
+          <h2
+            className="text-4xl font-black tracking-tight md:text-5xl"
+            style={{
+              color: "var(--theme-heading)",
+            }}
+          >
             Component Categories
           </h2>
 
-          <p className="mx-auto mt-4 max-w-3xl text-lg leading-8 text-[#46627f]">
+          <p
+            className="mx-auto mt-4 max-w-3xl text-lg leading-8"
+            style={{
+              color: "var(--theme-body)",
+            }}
+          >
             Explore industrial, electrical and electronic categories for
             procurement, repair, automation and embedded projects.
           </p>
@@ -118,8 +147,12 @@ export default function CategorySlider() {
           <div className="mt-7">
             <Link
               href="/category/semiconductors"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#8dccf7] bg-[#d8efff] px-8 py-3 text-[16px] font-black text-[#003b63] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#bfe5ff] hover:shadow-md"
-            >
+              className="inline-flex items-center justify-center gap-2 rounded-full px-8 py-3 text-[16px] font-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              style={{
+                border: "1px solid var(--theme-navbar-border)",
+                background: "var(--theme-menu-bg)",
+                color: "var(--theme-heading)",
+              }} >
               <Grid3X3 size={18} />
               Explore All Categories
               <ChevronRight size={18} />
@@ -131,8 +164,12 @@ export default function CategorySlider() {
           <button
             type="button"
             onClick={() => scrollSlider("left")}
-            className="absolute left-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#b9defa] bg-white text-[#006bb6] shadow-lg transition hover:bg-[#eaf6ff] lg:flex"
-          >
+            className="absolute left-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full shadow-lg transition lg:flex"
+            style={{
+              border: "1px solid var(--theme-navbar-border)",
+              background: "var(--theme-card-bg)",
+              color: "var(--theme-primary)",
+            }}>
             <ChevronLeft size={24} />
           </button>
 
@@ -145,25 +182,53 @@ export default function CategorySlider() {
                 <Link
                   key={cat._id || slug}
                   href={href}
-                  className="group flex h-full flex-col rounded-[24px] border border-[#d7ebfb] bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:border-[#38a9f4] hover:shadow-xl"
+                  className="group flex h-full flex-col p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                  style={{
+                    borderRadius: "var(--theme-card-radius)",
+                    border: "1px solid var(--theme-card-border)",
+                    background: "var(--theme-product-card-bg)",
+                  }}
                 >
-                  <div className="mb-5 flex h-[140px] items-center justify-center rounded-[18px] border border-[#e0f0fb] bg-[#f5fbff]">
-                    <img
+                  <div
+                    className="mb-5 flex h-[140px] items-center justify-center rounded-[18px]"
+                    style={{
+                      border: "1px solid var(--theme-card-border)",
+                      background: "var(--theme-background-alt)",
+                    }}
+                  >                    <img
                       src={getImageUrl(cat.image)}
                       alt={cat.name}
                       className="h-[110px] object-contain"
                     />
                   </div>
 
-                  <h3 className="text-[18px] font-black text-[#006bb6] leading-tight">
+                  <h3
+                    className="text-[18px] font-black leading-tight"
+                    style={{
+                      color: "var(--theme-primary)",
+                    }}
+                  >
                     {cat.name}
                   </h3>
 
-                  <p className="mt-2 text-[13px] text-[#46627f] line-clamp-2">
+                  <p
+                    className="mt-2 text-[13px] line-clamp-2"
+                    style={{
+                      color: "var(--theme-body)",
+                    }}
+                  >
                     {cat.description}
                   </p>
 
-                  <span className="mt-auto mb-1 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#7c3aed] to-[#2563eb] px-6 py-3 text-sm font-extrabold text-white shadow-lg">
+                  <span
+                    className="mt-auto mb-1 inline-flex w-full items-center justify-center rounded-full px-6 py-3 text-sm font-extrabold text-white shadow-lg"
+                    style={{
+                      background: `linear-gradient(90deg,
+                     var(--theme-gradient2-start),
+                      var(--theme-gradient2-end)
+                           )`,
+                    }}
+                  >
                     View Category →
                   </span>
                 </Link>
@@ -174,7 +239,12 @@ export default function CategorySlider() {
           <button
             type="button"
             onClick={() => scrollSlider("right")}
-            className="absolute right-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-[#b9defa] bg-white text-[#006bb6] shadow-lg transition hover:bg-[#eaf6ff] lg:flex"
+            className="absolute right-2 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full shadow-lg transition lg:flex"
+            style={{
+              border: "1px solid var(--theme-navbar-border)",
+              background: "var(--theme-card-bg)",
+              color: "var(--theme-primary)",
+            }}
           >
             <ChevronRight size={24} />
           </button>

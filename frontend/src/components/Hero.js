@@ -80,8 +80,8 @@ export default function Hero() {
     if (!slides.length) return;
 
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6500);
+  setCurrentSlide((prev) => (prev + 1) % slides.length);
+}, 12000);
 
     return () => clearInterval(timer);
   }, [slides]);
@@ -123,11 +123,11 @@ export default function Hero() {
               if (itemIndex >= fullItem.length) {
                 clearInterval(itemTimer);
               }
-            }, 28);
+            }, 80);
           }
-        }, 28);
+        }, 80);
       }
-    }, 28);
+    }, 80);
 
     return () => {
       clearInterval(title1Timer);
@@ -141,7 +141,7 @@ export default function Hero() {
       {slides.map((slide, index) => (
         <div
           key={slide._id || slide.image || index}
-          className={`absolute inset-0 bg-cover bg-[78%_center] transition-opacity duration-700 sm:bg-[72%_center] md:bg-center ${currentSlide === index ? "opacity-100" : "opacity-0"
+          className={`absolute inset-0 bg-cover bg-[78%_center] transition-opacity duration-[2000ms] sm:bg-[72%_center] md:bg-center ${currentSlide === index ? "opacity-100" : "opacity-0"
             }`}
           style={{
             backgroundImage: `url('${getImageUrl(slide.image)}')`,
@@ -162,19 +162,37 @@ export default function Hero() {
           </div>
 
           <h1 className="max-w-3xl text-[34px] font-extrabold leading-[1.08] tracking-[-0.035em] sm:text-[44px] md:text-[50px] lg:text-[56px]">
-            <span className="bg-gradient-to-r from-[#06152f] via-[#0f5f99] to-[#1296db] bg-clip-text text-transparent">
-              {typedTitle1}
+<span
+  className="bg-clip-text text-transparent"
+  style={{
+    backgroundImage:
+      "linear-gradient(90deg,#06152f,#0f5f99,#1296db)",
+  }}
+>
+                {typedTitle1}
             </span>
             <br />
-            <span className="bg-gradient-to-r from-[#1296db] via-[#0f5f99] to-[#06152f] bg-clip-text text-transparent">
-              {typedTitle2}
+<span
+  className="bg-clip-text text-transparent"
+  style={{
+    backgroundImage:
+      "linear-gradient(90deg,#1296db,#0f5f99,#06152f)",
+  }}
+>
+                {typedTitle2}
             </span>
           </h1>
 
           <div className="mt-4 text-[18px] font-extrabold sm:text-[22px] md:text-[24px]">
             <span className="text-[#0f172a]">We supply </span>
-            <span className="inline-block bg-gradient-to-r from-[#1d4ed8] to-[#38bdf8] bg-clip-text text-transparent">
-              {typedItem}
+<span
+  className="inline-block bg-clip-text text-transparent"
+  style={{
+    backgroundImage:
+      "linear-gradient(90deg,#1d4ed8,#38bdf8)",
+  }}
+>
+                {typedItem}
             </span>
           </div>
 

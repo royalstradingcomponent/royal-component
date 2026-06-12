@@ -31,6 +31,11 @@ exports.createSupplierSource = async (req, res) => {
   try {
     const payload = req.body || {};
 
+    console.log("CREATE PAYLOAD =", payload);
+
+    console.log("GST TYPE =", payload.gstType);
+    console.log("TYPE OF GST =", typeof payload.gstType);
+
     const supplierPdf = req.files?.supplierPdf?.[0]
       ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
       : "";
@@ -58,6 +63,11 @@ exports.createSupplierSource = async (req, res) => {
       email: payload.email || "",
       address: payload.address || "",
       purchasePrice: Number(payload.purchasePrice || 0),
+      usdPrice: Number(payload.usdPrice || 0),
+
+      usdRate: Number(payload.usdRate || 0),
+
+      inrPurchasePrice: Number(payload.inrPurchasePrice || 0),
 
       sellingPrice: Number(payload.sellingPrice || 0),
 
@@ -69,7 +79,19 @@ exports.createSupplierSource = async (req, res) => {
 
       grandTotal: Number(payload.grandTotal || 0),
 
-      gstPercent: Number(payload.gstPercent || 18),
+      igstAmount: Number(payload.igstAmount || 0),
+
+      gstType: Array.isArray(payload.gstType)
+        ? payload.gstType[0]
+        : payload.gstType || "CGST_SGST",
+
+      cgstPercent: Number(payload.cgstPercent || 9),
+
+      sgstPercent: Number(payload.sgstPercent || 9),
+
+      igstPercent: Number(payload.igstPercent || 0),
+
+      gstPercent: Number(payload.gstPercent || 0),
       profitPercent: Number(payload.profitPercent || 20),
       extraCharge: Number(payload.extraCharge || 0),
       currency: payload.currency || "INR",
@@ -167,7 +189,7 @@ exports.getSupplierSources = async (req, res) => {
 exports.getSupplierSourceById = async (req, res) => {
   try {
     const source = await SupplierSource.findById(req.params.id);
-
+    console.log("DB SOURCE =", source);
     if (!source) {
       return res.status(404).json({
         success: false,
@@ -191,6 +213,13 @@ exports.getSupplierSourceById = async (req, res) => {
 
 exports.updateSupplierSource = async (req, res) => {
   try {
+    const payload = req.body || {};
+
+    console.log("UPDATE PAYLOAD =", payload);
+    console.log("USD =", payload.usdPrice);
+    console.log("RATE =", payload.usdRate);
+    console.log("INR =", payload.inrPurchasePrice);
+
     const source = await SupplierSource.findById(req.params.id);
 
     if (!source) {
@@ -200,7 +229,14 @@ exports.updateSupplierSource = async (req, res) => {
       });
     }
 
-    const payload = req.body || {};
+    
+
+    console.log("GST TYPE =", payload.gstType);
+    console.log("TYPE OF GST =", typeof payload.gstType);
+
+    if (Array.isArray(payload.gstType)) {
+      payload.gstType = payload.gstType[0];
+    }
 
     const supplierPdf = req.files?.supplierPdf?.[0]
       ? `/uploads/supplier-files/${req.files.supplierPdf[0].filename}`
@@ -208,8 +244,8 @@ exports.updateSupplierSource = async (req, res) => {
 
     const supplierImages = req.files?.supplierImages?.length
       ? req.files.supplierImages.map(
-        (file) => `/uploads/supplier-files/${file.filename}`,
-      )
+          (file) => `/uploads/supplier-files/${file.filename}`,
+        )
       : source.supplierImages;
 
     const fields = [
@@ -234,9 +270,25 @@ exports.updateSupplierSource = async (req, res) => {
       }
     });
 
-    source.purchasePrice = Number(payload.purchasePrice || 0);
+    const purchasePriceValue = Number(payload.inrPurchasePrice);
 
-    source.gstPercent = Number(payload.gstPercent || 18);
+    source.purchasePrice = Number.isFinite(purchasePriceValue)
+      ? purchasePriceValue
+      : Number(payload.purchasePrice || 0);
+
+    source.usdPrice = isNaN(Number(payload.usdPrice))
+      ? 0
+      : Number(payload.usdPrice);
+
+    source.usdRate = isNaN(Number(payload.usdRate))
+      ? 0
+      : Number(payload.usdRate);
+
+    source.inrPurchasePrice = isNaN(Number(payload.inrPurchasePrice))
+      ? 0
+      : Number(payload.inrPurchasePrice);
+
+    source.gstPercent = Number(payload.gstPercent || 0);
 
     source.profitPercent = Number(payload.profitPercent || 20);
 
@@ -251,6 +303,16 @@ exports.updateSupplierSource = async (req, res) => {
     source.cgstAmount = Number(payload.cgstAmount || 0);
 
     source.grandTotal = Number(payload.grandTotal || 0);
+
+    source.igstAmount = Number(payload.igstAmount || 0);
+
+    source.gstType = Array.isArray(payload.gstType)
+      ? payload.gstType[0]
+      : payload.gstType || "CGST_SGST";
+
+    ((source.cgstPercent = Number(payload.cgstPercent || 0)),
+      (source.sgstPercent = Number(payload.sgstPercent || 0)),
+      (source.igstPercent = Number(payload.igstPercent || 0)));
 
     if (payload.moq !== undefined) {
       const moq = Number(payload.moq);
@@ -483,6 +545,14 @@ exports.importOfferText = async (req, res) => {
 
           purchasePrice: Number(purchasePrice || 0),
 
+          usdPrice: 0,
+
+          usdRate: 0,
+
+          inrPurchasePrice: 0,
+
+          gstPercent,
+
           gstPercent,
           profitPercent,
           extraCharge,
@@ -533,7 +603,22 @@ exports.bulkImportSupplierSources = async (req, res) => {
       const sellingPrice =
         purchasePrice + profitAmount + Number(item.extraCharge || 0);
 
-      const gstAmount = (sellingPrice * Number(item.gstPercent || 0)) / 100;
+      const gstPercent = Number(item.gstPercent || 0);
+
+      const gstType = item.gstType || "CGST_SGST";
+
+      const gstAmount = (sellingPrice * gstPercent) / 100;
+
+      let cgstAmount = 0;
+      let sgstAmount = 0;
+      let igstAmount = 0;
+
+      if (gstType === "IGST") {
+        igstAmount = gstAmount;
+      } else {
+        cgstAmount = gstAmount / 2;
+        sgstAmount = gstAmount / 2;
+      }
 
       return {
         componentName: item.componentName || "",
@@ -556,7 +641,7 @@ exports.bulkImportSupplierSources = async (req, res) => {
 
         purchasePrice,
 
-        gstPercent: Number(item.gstPercent || 18),
+        gstPercent,
 
         profitPercent: Number(item.profitPercent || 20),
 
@@ -566,9 +651,19 @@ exports.bulkImportSupplierSources = async (req, res) => {
 
         subtotal: sellingPrice,
 
-        sgstAmount: gstAmount / 2,
+        gstType,
 
-        cgstAmount: gstAmount / 2,
+        cgstPercent: Number(item.cgstPercent || 0),
+
+        sgstPercent: Number(item.sgstPercent || 0),
+
+        igstPercent: Number(item.igstPercent || 0),
+
+        sgstAmount,
+
+        cgstAmount,
+
+        igstAmount,
 
         grandTotal: sellingPrice + gstAmount,
 
@@ -667,41 +762,24 @@ ${item.componentName}|${item.brand}|${item.package}|${item.price}
   }
 };
 
-exports.parseSupplierImage =
-  async (req, res) => {
+exports.parseSupplierImage = async (req, res) => {
+  try {
+    const images = req.files?.images || [];
 
-    try {
+    if (!images.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Images required",
+      });
+    }
 
-      const images =
-        req.files?.images || [];
+    const imagePaths = images.map((img) => img.path);
 
-      if (!images.length) {
+    const result = await parseImageOCR(imagePaths);
 
-        return res
-          .status(400)
-          .json({
-            success: false,
-            message:
-              "Images required",
-          });
-      }
+    const { companyDetails, components } = result;
 
-      const imagePaths =
-        images.map(
-          (img) => img.path
-        );
-
-      const result =
-        await parseImageOCR(
-          imagePaths
-        );
-
-      const {
-        companyDetails,
-        components,
-      } = result;
-
-      let envText = `
+    let envText = `
 SUPPLIER=${companyDetails.supplier}
 CONTACT_PERSON=${companyDetails.contactPerson}
 PHONE=${companyDetails.phone}
@@ -712,30 +790,23 @@ GST=${companyDetails.gst}
 PROFIT=${companyDetails.profit}
 `;
 
-      components.forEach(
-        (item) => {
-
-          envText += `
+    components.forEach((item) => {
+      envText += `
 ${String(item.componentName || "").trim()}|${String(item.brand || "GENERIC").trim()}|${String(item.package || "NA").trim()}|${Number(item.price || 0)}
 `;
-        }
-      );
+    });
 
-      res.json({
-        success: true,
-        envText,
-        totalComponents:
-          components.length,
-      });
+    res.json({
+      success: true,
+      envText,
+      totalComponents: components.length,
+    });
+  } catch (error) {
+    console.log(error);
 
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        success: false,
-        message:
-          "Image OCR failed",
-      });
-    }
-  };
+    res.status(500).json({
+      success: false,
+      message: "Image OCR failed",
+    });
+  }
+};

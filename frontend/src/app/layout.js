@@ -9,6 +9,7 @@ import { Toaster } from "sonner";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ChatProvider } from "@/context/ChatContext";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 export const metadata = {
   metadataBase: new URL("https://www.royalsmd.com"),
@@ -160,6 +161,7 @@ export default function RootLayout({ children }) {
 
   
         <GoogleOAuthProvider clientId={googleClientId}>
+          <ThemeProvider>
           <AuthProvider>
             <WishlistProvider>
               <CartProvider>
@@ -176,6 +178,7 @@ export default function RootLayout({ children }) {
               </CartProvider>
             </WishlistProvider>
           </AuthProvider>
+          </ThemeProvider>
         </GoogleOAuthProvider>
         <GoogleAnalytics gaId="G-8JQQ1462E2" />
       </body>

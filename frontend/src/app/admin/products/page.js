@@ -50,14 +50,14 @@ export default function AdminProductsPage() {
       );
 
       setInventoryStats({
-  inStock: data.inStockProducts || 0,
+        inStock: data.inStockProducts || 0,
 
-  lowStock: data.lowStockProducts || 0,
+        lowStock: data.lowStockProducts || 0,
 
-  outOfStock: data.outOfStockProducts || 0,
+        outOfStock: data.outOfStockProducts || 0,
 
-  inventoryValue: data.totalInventoryValue || 0,
-});
+        inventoryValue: data.totalInventoryValue || 0,
+      });
 
     } catch (error) {
       toast.error(error.message || "Products load failed");
@@ -172,10 +172,12 @@ export default function AdminProductsPage() {
 
         <Link
           href="/admin/products/add"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-4 py-3 text-sm font-bold text-white hover:bg-[#1d469b]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-4 py-3 text-sm font-bold !text-white hover:bg-[#1d469b]"
         >
-          <Plus size={18} />
-          Add Product
+          <Plus size={18} className="!text-white" />
+          <span className="!text-white">
+            Add Product
+          </span>
         </Link>
       </div>
 

@@ -50,18 +50,18 @@
     return (
       <div
         onClick={onClick}
-        className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
+        className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl cursor-pointer"
       >
         <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-blue-50 transition-all group-hover:scale-110"></div>
 
         <div className="relative flex items-start justify-between">
 
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-slate-500">
+           <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
               {title}
             </p>
 
-            <h3 className="mt-4 text-4xl font-black text-[#102033]">
+           <h3 className="mt-2 text-[22px] xl:text-[28px] font-extrabold leading-tight text-[#102033] break-words">
 
               {typeof value === "number" ? (
                 <CountUp
@@ -240,7 +240,7 @@
           </div>
 
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
             title="Total Requests"
             value={quotationStats.totalRequests || 0}

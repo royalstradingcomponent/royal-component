@@ -190,26 +190,26 @@ const generateQuotationPdf = async (reqData, res = null) => {
 
     const PAGE_BOTTOM = 700;
 
-const redrawTableHeader = () => {
-    let hx = 40;
+    const redrawTableHeader = () => {
+        let hx = 40;
 
-    headers.forEach((header, index) => {
-        doc.rect(hx, y, colWidths[index], 30)
-            .fillAndStroke("#0f4c81", "#0f4c81");
+        headers.forEach((header, index) => {
+            doc.rect(hx, y, colWidths[index], 30)
+                .fillAndStroke("#0f4c81", "#0f4c81");
 
-        doc.fillColor("white")
-            .fontSize(9)
-            .font("Helvetica-Bold")
-            .text(header, hx + 4, y + 10, {
-                width: colWidths[index] - 8,
-                align: "center",
-            });
+            doc.fillColor("white")
+                .fontSize(9)
+                .font("Helvetica-Bold")
+                .text(header, hx + 4, y + 10, {
+                    width: colWidths[index] - 8,
+                    align: "center",
+                });
 
-        hx += colWidths[index];
-    });
+            hx += colWidths[index];
+        });
 
-    y += 30;
-};
+        y += 30;
+    };
 
     headers.forEach((header, index) => {
         doc.rect(x, y, colWidths[index], 30).fillAndStroke("#0f4c81", "#0f4c81");
@@ -231,10 +231,10 @@ const redrawTableHeader = () => {
     (reqData.items || []).forEach((item, index) => {
 
         if (y > PAGE_BOTTOM) {
-    doc.addPage();
-    y = 50;
-    redrawTableHeader();
-}
+            doc.addPage();
+            y = 50;
+            redrawTableHeader();
+        }
 
         const qty = Number(item.quantity || 0);
 
@@ -283,121 +283,126 @@ const redrawTableHeader = () => {
     });
 
     if (y + 250 > PAGE_BOTTOM) {
-    doc.addPage();
-    y = 50;
-}
+        doc.addPage();
+        y = 50;
+    }
 
 
-// ==========================================
-// QUOTATION SUMMARY CARD
-// ==========================================
+    // ==========================================
+    // QUOTATION SUMMARY CARD
+    // ==========================================
 
-const quotationCardY = y;
+    const quotationCardY = y;
 
-doc
-  .roundedRect(40, quotationCardY, 515, 170, 15)
-  .fillAndStroke("#f8fbff", border);
+    doc
+        .roundedRect(40, quotationCardY, 515, 170, 15)
+        .fillAndStroke("#f8fbff", border);
 
-doc
-  .fillColor(dark)
-  .fontSize(24)
-  .font("Helvetica-Bold")
-  .text("Quotation Summary", 60, quotationCardY + 25);
+    doc
+        .fillColor(dark)
+        .fontSize(24)
+        .font("Helvetica-Bold")
+        .text("Quotation Summary", 60, quotationCardY + 25);
 
-const qTableY = quotationCardY + 75;
+    const qTableY = quotationCardY + 75;
 
-doc
-  .roundedRect(55, qTableY, 485, 45, 10)
-  .fill("#2563eb");
+    doc
+        .roundedRect(55, qTableY, 485, 45, 10)
+        .fill("#2563eb");
 
-const qHeaders = [
-  "TOTAL ITEMS",
-  "TOTAL QTY",
-  "TOTAL GST",
-  "TOTAL VALUE"
-];
+    const qHeaders = [
+        "TOTAL ITEMS",
+        "TOTAL QTY",
+        "TOTAL GST",
+        "TOTAL VALUE"
+    ];
 
-const qColW = 485 / 4;
+    const qColW = 485 / 4;
 
-qHeaders.forEach((head, i) => {
-  doc
-    .fillColor("white")
-    .fontSize(11)
-    .font("Helvetica-Bold")
-    .text(
-      head,
-      55 + (i * qColW),
-      qTableY + 15,
-      {
-        width: qColW,
-        align: "center",
-      }
+    qHeaders.forEach((head, i) => {
+        doc
+            .fillColor("white")
+            .fontSize(11)
+            .font("Helvetica-Bold")
+            .text(
+                head,
+                55 + (i * qColW),
+                qTableY + 15,
+                {
+                    width: qColW,
+                    align: "center",
+                }
+            );
+    });
+
+    doc
+        .fillColor(dark)
+        .fontSize(16)
+        .font("Helvetica-Bold");
+
+    const totalItems = (reqData.items || []).length;
+
+    const totalQty = (reqData.items || []).reduce(
+        (sum, item) => sum + Number(item.quantity || 0),
+        0
     );
-});
 
-doc
-  .fillColor(dark)
-  .fontSize(16)
-  .font("Helvetica-Bold");
+    const totalGST = (reqData.items || []).reduce(
+        (sum, item) => sum + Number(item.gstAmount || 0),
+        0
+    );
 
-const totalItems = (reqData.items || []).length;
+    const totalTax =
+  Number(reqData.sgstAmount || 0) +
+  Number(reqData.cgstAmount || 0) +
+  Number(reqData.igstAmount || 0);
 
-const totalQty = (reqData.items || []).reduce(
-  (sum, item) => sum + Number(item.quantity || 0),
-  0
-);
+    doc
+        .fillColor(dark)
+        .fontSize(18)
+        .font("Helvetica-Bold");
 
-const totalGST = (reqData.items || []).reduce(
-  (sum, item) => sum + Number(item.gstAmount || 0),
-  0
-);
+    doc.text(
+        String(totalItems),
+        55,
+        qTableY + 70,
+        {
+            width: qColW,
+            align: "center"
+        }
+    );
 
-doc
-  .fillColor(dark)
-  .fontSize(18)
-  .font("Helvetica-Bold");
+    doc.text(
+        String(totalQty),
+        55 + qColW,
+        qTableY + 70,
+        {
+            width: qColW,
+            align: "center"
+        }
+    );
 
-doc.text(
-  String(totalItems),
-  55,
-  qTableY + 70,
-  {
-    width: qColW,
-    align: "center"
-  }
-);
+    doc.text(
+        `${totalTax.toFixed(2)}`,
+        55 + qColW * 2,
+        qTableY + 70,
+        {
+            width: qColW,
+            align: "center"
+        }
+    );
 
-doc.text(
-  String(totalQty),
-  55 + qColW,
-  qTableY + 70,
-  {
-    width: qColW,
-    align: "center"
-  }
-);
+    doc.text(
+        `${Number(reqData.adminPrice || 0).toFixed(2)}`,
+        55 + qColW * 3,
+        qTableY + 70,
+        {
+            width: qColW,
+            align: "center"
+        }
+    );
 
-doc.text(
-  `${totalGST.toFixed(2)}`,
-  55 + qColW * 2,
-  qTableY + 70,
-  {
-    width: qColW,
-    align: "center"
-  }
-);
-
-doc.text(
-  `${Number(reqData.adminPrice || 0).toFixed(2)}`,
-  55 + qColW * 3,
-  qTableY + 70,
-  {
-    width: qColW,
-    align: "center"
-  }
-);
-
-y = quotationCardY + 190;
+    y = quotationCardY + 190;
     // ======================================================
     // QUOTATION SUMMARY (MATCH WEBSITE DESIGN)
     // ======================================================
@@ -429,7 +434,10 @@ y = quotationCardY + 190;
         .fill(primary);
 
     // Header Titles
-    const heads = ["SUBTOTAL", "SGST", "CGST", "GRAND TOTAL"];
+    const heads =
+        reqData.gstType === "IGST"
+            ? ["SUBTOTAL", "IGST", "GST TYPE", "GRAND TOTAL"]
+            : ["SUBTOTAL", "SGST", "CGST", "GRAND TOTAL"];
 
     heads.forEach((head, i) => {
         doc
@@ -450,12 +458,20 @@ y = quotationCardY + 190;
     // Values Row
     const valueY = tableY + 85;
 
-    const values = [
+    const values =
+  reqData.gstType === "IGST"
+    ? [
+        `${Number(reqData.subTotal || 0).toFixed(2)}`,
+        `${Number(reqData.igstAmount || 0).toFixed(2)}`,
+        "IGST 18%",
+        `${Number(reqData.adminPrice || 0).toFixed(2)}`,
+      ]
+    : [
         `${Number(reqData.subTotal || 0).toFixed(2)}`,
         `${Number(reqData.sgstAmount || 0).toFixed(2)}`,
         `${Number(reqData.cgstAmount || 0).toFixed(2)}`,
-        `${Number(reqData.adminPrice || 0).toFixed(2)}`
-    ];
+        `${Number(reqData.adminPrice || 0).toFixed(2)}`,
+      ];
 
     values.forEach((val, i) => {
         doc
@@ -472,8 +488,8 @@ y = quotationCardY + 190;
                 }
             );
     });
-   
-   doc
+
+    doc
   .fillColor(primary)
   .fontSize(12)
   .font("Helvetica-Bold")
@@ -483,12 +499,21 @@ y = quotationCardY + 190;
     valueY + 40
   );
 
+doc
+  .fillColor(primary)
+  .fontSize(12)
+  .font("Helvetica-Bold")
+  .text(
+    `GST Type : ${reqData.gstType || "CGST_SGST"}`,
+    summaryCardX + 20,
+    valueY + 60
+  );
     y = summaryCardY + summaryCardH + 40;
 
     if (y + 120 > PAGE_BOTTOM) {
-    doc.addPage();
-    y = 50;
-}
+        doc.addPage();
+        y = 50;
+    }
 
     // ======================================================
     // FOOTER
