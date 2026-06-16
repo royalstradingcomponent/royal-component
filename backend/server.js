@@ -17,6 +17,7 @@ const blogRoutes = require("./routes/blogRoutes");
 const blogCategoryRoutes = require("./routes/blogCategoryRoutes");
 const blogUploadRoutes = require("./routes/blogUploadRoutes");
 const blogPageSettingRoutes = require("./routes/blogPageSettingRoutes");
+const homeDecorInfoRoutes = require("./routes/homeDecorInfoRoutes");
 
 dotenv.config();
 
@@ -160,8 +161,11 @@ app.use("/api/blog-categories", blogCategoryRoutes);
 app.use("/api/blog-upload", blogUploadRoutes);
 app.use("/api/blog-page-setting", blogPageSettingRoutes);
 app.use("/api/theme", require("./routes/themeRoutes"));
-
+app.use("/api/home-decor-info", homeDecorInfoRoutes);
+app.use("/api/promo-banners", require("./routes/promoBannerRoutes"));
+app.use("/api/homepage-builder", require("./routes/homepageBuilderRoutes"));
 app.use("/api/landing-pages", require("./routes/landingPageRoutes"));
+app.use("/api/upload", require("./routes/uploadRoutes"));
 
 app.use((req, res) => {
   res.status(404).json({

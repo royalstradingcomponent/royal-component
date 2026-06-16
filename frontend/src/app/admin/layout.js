@@ -92,6 +92,23 @@ const navItems = [
     icon: ImagePlus,
   },
 
+  {
+  title: "Home Decor Section",
+  href: "/admin/home-decor-section",
+  icon: LayoutPanelTop,
+},
+{
+  title: "Promo Banners",
+  href: "/admin/promo-banners",
+  icon: ImagePlus,
+},
+
+{
+  title: "Homepage Builder",
+  href: "/admin/homepage-builder",
+  icon: LayoutPanelTop,
+},
+
   { title: "Inventory", href: "/admin/inventory", icon: Boxes },
   {
     title: "Out Of Stock",

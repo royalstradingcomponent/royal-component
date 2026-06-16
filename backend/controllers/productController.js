@@ -1626,3 +1626,25 @@ exports.checkProductMatch = async (req, res) => {
     });
   }
 };
+
+exports.getProductBySku = async (req, res) => {
+  try {
+    const product = await Product.findOne({
+      sku: req.params.sku,
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

@@ -6,7 +6,10 @@ import FeaturedProducts from "@/components/FeaturedProducts";
 import ServiceLinks from "@/components/ServiceLinks";
 import BrandStrip from "@/components/BrandStrip";
 import Footer from "@/components/Footer";
-
+import PromoBannerSection from "@/components/PromoBannerSection";
+import { getPromoBanners } from "@/lib/promoBannerApi";
+import HomeDecorInfo from "@/components/home/HomeDecorInfo";
+import HomepageBuilderRenderer from "@/components/HomepageBuilderRenderer"; 
 import TrustBadges from "@/components/home/TrustBadges";
 import SeoIntroSection from "@/components/home/SeoIntroSection";
 import BulkOrderCTA from "@/components/home/BulkOrderCTA";
@@ -154,7 +157,23 @@ const faqSchema = {
   ],
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+
+  const afterHero =
+  await getPromoBanners("afterHero");
+
+const afterCategories =
+  await getPromoBanners("afterCategories");
+
+const afterProducts =
+  await getPromoBanners("afterProducts");
+
+const beforeFooter =
+  await getPromoBanners("beforeFooter");
+
+const afterTrendingProducts =
+  await getPromoBanners("afterTrendingProducts");
+
   return (
     <div className="min-h-screen bg-[#f7f9fc]">
       <script
@@ -185,9 +204,28 @@ export default function HomePage() {
         Electronic Components Supplier India | Semiconductor & IC Supplier Delhi | Royal Trading Component
       </h1>
       <TrustBadges />
-      <CategorySlider />
+      <PromoBannerSection
+        banners={afterHero}
+      />
+<CategorySlider />
+
+      <PromoBannerSection
+        banners={afterCategories}
+      />
+
+
+      <HomeDecorInfo />
+
+      <HomepageBuilderRenderer />
       <ProcurementInfoBanner />
       <FeaturedProducts />
+      <PromoBannerSection
+        banners={afterTrendingProducts}
+      />
+
+      <PromoBannerSection
+        banners={afterProducts}
+      />
       <SeoIntroSection />
       <BulkOrderCTA />
       <IndustriesServed />
@@ -419,6 +457,9 @@ export default function HomePage() {
 
         </div>
       </section>
+      <PromoBannerSection
+  banners={beforeFooter}
+/>
       <Footer />
     </div>
   );

@@ -107,14 +107,9 @@ export default function CategorySlider() {
   if (!visibleCategories.length) return null;
 
   return (
-    <section
-      className="relative w-full overflow-hidden py-16"
-      style={{
-        background: "var(--theme-section-bg)",
-      }}
-    >
+  <section className="w-full py-0">
       <div className="w-full px-4 sm:px-6 lg:px-10">
-        <div className="mb-10 text-center">
+       <div className="mb-4 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-bold shadow-sm"
             style={{
               border: "1px solid var(--theme-navbar-border)",
@@ -144,7 +139,7 @@ export default function CategorySlider() {
             procurement, repair, automation and embedded projects.
           </p>
 
-          <div className="mt-7">
+          <div className="mt-4">
             <Link
               href="/category/semiconductors"
               className="inline-flex items-center justify-center gap-2 rounded-full px-8 py-3 text-[16px] font-black shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"

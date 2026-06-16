@@ -10,6 +10,7 @@ const {
   getProductFilterMeta,
   getProductById,
   getProductBySlug,
+  getProductBySku,
   getSimilarProducts,
   createProduct,
   bulkCreateProducts,
@@ -29,7 +30,7 @@ router.get("/similar/:id", getSimilarProducts);
 router.post("/search-by-image", upload.single("image"), searchProductsByImage);
 router.post("/check-match", upload.single("image"), checkProductMatch);
 router.get("/:id", getProductById);
-
+router.get("/sku/:sku", getProductBySku);
 // Admin routes
 router.post("/", createProduct);
 router.post("/bulk", bulkCreateProducts);

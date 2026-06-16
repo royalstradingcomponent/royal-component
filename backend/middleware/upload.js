@@ -19,7 +19,24 @@ const storage = multer.diskStorage({
     }
 
     if (type === "documents") {
-      folder = "uploads/documents";
+  folder = "uploads/documents";
+}
+
+if (type === "home-decor") {
+  folder = "uploads/home-decor";
+}
+
+if (type === "promo-banner") {
+  folder = "uploads/promo-banners";
+}
+
+if (type === "homepage-builder") {
+  folder = "uploads/homepage-builder";
+}
+
+if (type === "landing-pages") {
+  folder = "uploads/landing-pages";
+
     }
 
     if (type === "landing-pages") {
