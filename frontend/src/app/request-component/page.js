@@ -19,6 +19,7 @@ export default function RequestComponentPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
+  const [showTrackButton, setShowTrackButton] = useState(false);
 
   const [items, setItems] = useState([{ ...emptyItem }]);
 
@@ -182,12 +183,10 @@ export default function RequestComponentPage() {
       }
 
       toast.success(
-        "Requirement submitted successfully. Redirecting to Track Quotation..."
+        "Requirement submitted successfully. Click Track Request to view status."
       );
 
-      setTimeout(() => {
-        router.push("/request-component/my-requests");
-      }, 1500);
+      setShowTrackButton(true);
 
       setItems([{ ...emptyItem }]);
       setForm({
@@ -561,6 +560,20 @@ export default function RequestComponentPage() {
                 {loading ? "Submitting..." : "Submit Requirement"}
               </button>
             </div>
+
+            {showTrackButton && (
+              <div className="md:col-span-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push("/request-component/my-requests")
+                  }
+                  className="rounded-xl bg-green-600 px-6 py-3 font-bold text-white"
+                >
+                  Track Request
+                </button>
+              </div>
+            )}
           </div>
         </form>
       </main>
