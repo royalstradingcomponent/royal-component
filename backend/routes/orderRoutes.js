@@ -16,8 +16,9 @@ const {
   updatePayment,
   requestRefund,
   adminUpdateRefund,
-  
+
   downloadOrderPdf,
+  downloadTaxInvoice,
   getOrdersCalendar,
   getRevenueAnalytics,
   createRazorpayOrder,
@@ -28,17 +29,9 @@ const { protect, admin } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createOrder);
 
-router.post(
-  "/razorpay/create-order",
-  protect,
-  createRazorpayOrder
-);
+router.post("/razorpay/create-order", protect, createRazorpayOrder);
 
-router.post(
-  "/razorpay/verify-payment",
-  protect,
-  verifyRazorpayPayment
-);
+router.post("/razorpay/verify-payment", protect, verifyRazorpayPayment);
 router.get("/my-orders", protect, getMyOrders);
 router.get("/track/:id", protect, trackOrder);
 
@@ -53,8 +46,11 @@ router.put("/cancel-item/:orderId/:itemId", protect, cancelOrderItem);
 
 router.post("/refund/:id", protect, requestRefund);
 
-
 router.get("/admin/download-pdf/:id", downloadOrderPdf);
+router.get(
+  "/admin/download-tax-invoice/:id",
+  downloadTaxInvoice,
+);
 
 router.put("/update-address/:id", protect, updateOrderAddress);
 router.put("/update-phone/:id", protect, updateOrderPhone);

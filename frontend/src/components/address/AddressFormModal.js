@@ -8,6 +8,7 @@ const emptyForm = {
   fullName: "",
   phone: "",
   altPhone: "",
+  gstNumber: "",
   pincode: "",
   city: "",
   state: "",
@@ -41,6 +42,7 @@ export default function AddressFormModal({
         fullName: editingAddress.fullName || "",
         phone: editingAddress.phone || "",
         altPhone: editingAddress.altPhone || "",
+        gstNumber: editingAddress.gstNumber || "",
         pincode: editingAddress.pincode || "",
         city: editingAddress.city || "",
         state: editingAddress.state || "",
@@ -160,6 +162,7 @@ export default function AddressFormModal({
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),
       altPhone: form.altPhone.trim(),
+      gstNumber: form.gstNumber.trim(),
       pincode: form.pincode.trim(),
       city: form.city.trim(),
       state: form.state.trim(),
@@ -255,6 +258,22 @@ export default function AddressFormModal({
                 maxLength={10}
                 className="h-12 w-full rounded-lg border border-[#cbd5e1] px-4 outline-none focus:border-[#2454b5]"
                 placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-[#334155]">
+                GST Number
+              </label>
+
+              <input
+                type="text"
+                name="gstNumber"
+                value={form.gstNumber}
+                onChange={handleChange}
+                maxLength={15}
+                className="h-12 w-full rounded-lg border border-[#cbd5e1] px-4 uppercase outline-none focus:border-[#2454b5]"
+                placeholder="22AAAAA0000A1Z5"
               />
             </div>
 

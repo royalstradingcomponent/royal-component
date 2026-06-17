@@ -2134,4 +2134,429 @@ exports.verifyRazorpayPayment = async (req, res) => {
   }
 };
 
+const numberToWords = (num) => {
+  const a = [
+    "",
+    "One",
+    "Two",
+    "Three",
+    "Four",
+    "Five",
+    "Six",
+    "Seven",
+    "Eight",
+    "Nine",
+    "Ten",
+    "Eleven",
+    "Twelve",
+    "Thirteen",
+    "Fourteen",
+    "Fifteen",
+    "Sixteen",
+    "Seventeen",
+    "Eighteen",
+    "Nineteen",
+  ];
 
+  const b = [
+    "",
+    "",
+    "Twenty",
+    "Thirty",
+    "Forty",
+    "Fifty",
+    "Sixty",
+    "Seventy",
+    "Eighty",
+    "Ninety",
+  ];
+
+  if (num < 20) return a[num];
+
+  if (num < 100)
+    return b[Math.floor(num / 10)] + " " + a[num % 10];
+
+  if (num < 1000)
+    return (
+      a[Math.floor(num / 100)] +
+      " Hundred " +
+      numberToWords(num % 100)
+    );
+
+  if (num < 100000)
+    return (
+      numberToWords(Math.floor(num / 1000)) +
+      " Thousand " +
+      numberToWords(num % 1000)
+    );
+
+  if (num < 10000000)
+    return (
+      numberToWords(Math.floor(num / 100000)) +
+      " Lakh " +
+      numberToWords(num % 100000)
+    );
+
+  return "";
+};
+
+  exports.downloadTaxInvoice = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    const COMPANY = {
+      name: "Royal Trading Co",
+      address: "6/280 Dakshinpuri Ambedkar Nagar Sector-5",
+      gst: "07BFNPR5556M1ZK",
+      state: "Delhi",
+      stateCode: "07",
+      bankName: "ICICI Bank",
+      accountNo: "629205501369",
+      ifsc: "ICIC0003358",
+    };
+
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 20,
+    });
+
+    const filename = `Tax-Invoice-${order.orderNumber}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`
+    );
+
+    doc.pipe(res);
+
+    const total = Number(order.pricing?.totalAmount || 0);
+    const taxable = Number(order.pricing?.subtotal || 0);
+    const gst = Number(order.pricing?.tax || 0);
+
+    const PRIMARY = "#2454b5";
+
+    // =====================================
+    // HEADER
+    // =====================================
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(24)
+      .fillColor(PRIMARY)
+      .text("TAX INVOICE", 0, 25, {
+        align: "center",
+      });
+
+    
+
+    // =====================================
+    // SELLER BOX
+    // =====================================
+
+    doc.rect(30, 80, 260, 150).stroke();
+
+    doc
+      .fillColor("black")
+      .font("Helvetica-Bold")
+      .fontSize(15)
+      .text(COMPANY.name, 40, 95);
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(COMPANY.address, 40, 120, {
+        width: 220,
+      });
+
+    doc.text(`GSTIN : ${COMPANY.gst}`, 40, 160);
+    doc.text(`State : ${COMPANY.state}`, 40, 180);
+    doc.text(`State Code : ${COMPANY.stateCode}`, 40, 200);
+
+    // =====================================
+    // INVOICE BOX
+    // =====================================
+
+    doc.rect(290, 80, 275, 150).stroke();
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .text(
+        `Invoice No : ${
+          order.invoiceNumber || order.orderNumber
+        }`,
+        305,
+        100
+      );
+
+    doc.text(
+      `Date : ${new Date(
+        order.createdAt
+      ).toLocaleDateString("en-IN")}`,
+      305,
+      125
+    );
+
+    doc.text(
+      `Payment Status : ${
+        order.payment?.status || "-"
+      }`,
+      305,
+      150
+    );
+
+    doc.text(
+      `Order Status : ${
+        order.orderStatus || "-"
+      }`,
+      305,
+      175
+    );
+
+    // =====================================
+    // BUYER BOX
+    // =====================================
+
+    doc.rect(30, 250, 535, 110).stroke();
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(13)
+      .text("BUYER DETAILS", 40, 265);
+
+    doc
+      .font("Helvetica")
+      .fontSize(10)
+      .text(order.userInfo?.name || "", 40, 290);
+
+    doc.text(
+      order.userInfo?.companyName || "",
+      40,
+      308
+    );
+
+    doc.text(
+      order.userInfo?.addressLine1 || "",
+      40,
+      326
+    );
+
+    doc.text(
+      `${order.userInfo?.city || ""}, ${
+        order.userInfo?.state || ""
+      } - ${order.userInfo?.pincode || ""}`,
+      40,
+      344
+    );
+
+    doc.text(
+      `GST : ${
+        order.userInfo?.gstNumber || "-"
+      }`,
+      320,
+      290
+    );
+
+    // =====================================
+    // TABLE HEADER
+    // =====================================
+
+    let tableY = 390;
+
+    doc.rect(30, tableY, 535, 30).stroke();
+
+    doc.moveTo(70, tableY).lineTo(70, tableY + 30).stroke();
+    doc.moveTo(300, tableY).lineTo(300, tableY + 30).stroke();
+    doc.moveTo(360, tableY).lineTo(360, tableY + 30).stroke();
+    doc.moveTo(420, tableY).lineTo(420, tableY + 30).stroke();
+    doc.moveTo(490, tableY).lineTo(490, tableY + 30).stroke();
+
+    doc.font("Helvetica-Bold");
+
+    doc.text("No", 40, tableY + 8);
+    doc.text("Description", 90, tableY + 8);
+    doc.text("HSN", 315, tableY + 8);
+    doc.text("Qty", 375, tableY + 8);
+    doc.text("Rate", 435, tableY + 8);
+    doc.text("Amount", 500, tableY + 8);
+
+    // =====================================
+    // PRODUCTS
+    // =====================================
+
+    let rowY = tableY + 30;
+
+    order.products.forEach((item, index) => {
+      doc.rect(30, rowY, 535, 35).stroke();
+
+      doc.moveTo(70, rowY).lineTo(70, rowY + 35).stroke();
+      doc.moveTo(300, rowY).lineTo(300, rowY + 35).stroke();
+      doc.moveTo(360, rowY).lineTo(360, rowY + 35).stroke();
+      doc.moveTo(420, rowY).lineTo(420, rowY + 35).stroke();
+      doc.moveTo(490, rowY).lineTo(490, rowY + 35).stroke();
+
+      doc.font("Helvetica");
+
+      doc.text(String(index + 1), 40, rowY + 10);
+
+      doc.text(
+        item.name || "",
+        80,
+        rowY + 10,
+        {
+          width: 210,
+        }
+      );
+
+      doc.text(
+        item.hsnCode || "8504",
+        315,
+        rowY + 10
+      );
+
+      doc.text(
+        String(item.quantity || 0),
+        375,
+        rowY + 10
+      );
+
+      doc.text(
+        Number(item.price || 0).toFixed(2),
+        430,
+        rowY + 10
+      );
+
+      doc.text(
+        Number(item.lineSubtotal || 0).toFixed(2),
+        495,
+        rowY + 10
+      );
+
+      rowY += 35;
+    });
+
+    // =====================================
+    // GST SUMMARY
+    // =====================================
+
+    doc.rect(330, rowY + 20, 235, 90).stroke();
+
+    doc.font("Helvetica");
+
+    doc.text(
+      `Taxable Value : ${taxable.toFixed(2)}`,
+      340,
+      rowY + 35
+    );
+
+    doc.text(
+      `IGST (18%) : ${gst.toFixed(2)}`,
+      340,
+      rowY + 58
+    );
+
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        `Grand Total : ${total.toFixed(2)}`,
+        340,
+        rowY + 81
+      );
+
+    // =====================================
+    // AMOUNT IN WORDS
+    // =====================================
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .text(
+        `Amount In Words : INR ${numberToWords(
+          Math.floor(total)
+        )} Only`,
+        30,
+        rowY + 140
+      );
+
+    // =====================================
+    // BANK DETAILS BOX
+    // =====================================
+
+    doc.rect(30, rowY + 175, 260, 90).stroke();
+
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        "Bank Details",
+        40,
+        rowY + 190
+      );
+
+    doc
+      .font("Helvetica")
+      .text(
+        `Bank : ${COMPANY.bankName}`,
+        40,
+        rowY + 212
+      );
+
+    doc.text(
+      `Account No : ${COMPANY.accountNo}`,
+      40,
+      rowY + 230
+    );
+
+    doc.text(
+      `IFSC : ${COMPANY.ifsc}`,
+      40,
+      rowY + 248
+    );
+
+    // =====================================
+    // SIGNATURE BOX
+    // =====================================
+
+    doc.rect(305, rowY + 175, 260, 90).stroke();
+
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        "Authorised Signatory",
+        380,
+        rowY + 245
+      );
+
+    // =====================================
+    // FOOTER
+    // =====================================
+
+    doc
+      .fontSize(9)
+      .font("Helvetica")
+      .text(
+        "This is a computer generated invoice",
+        0,
+        790,
+        {
+          align: "center",
+        }
+      );
+
+    doc.end();
+  } catch (error) {
+    console.log("Tax Invoice Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Invoice generation failed",
+    });
+  }
+};

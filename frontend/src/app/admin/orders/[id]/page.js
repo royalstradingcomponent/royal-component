@@ -285,6 +285,19 @@ export default function AdminOrderDetailPage() {
           <FileText size={18} />
           Download PDF
         </button>
+
+        <button
+          onClick={() => {
+            window.open(
+              `${API_BASE}/api/orders/admin/download-tax-invoice/${id}`,
+              "_blank"
+            );
+          }}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-sm font-bold text-white hover:bg-green-700"
+        >
+          <FileText size={18} />
+          Download GST Invoice
+        </button>
       </div>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">

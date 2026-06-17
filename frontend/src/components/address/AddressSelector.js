@@ -128,11 +128,10 @@ export default function AddressSelector() {
               <div
                 key={id}
                 onClick={() => setSelectedAddressId(id)}
-                className={`cursor-pointer rounded-xl border p-4 transition ${
-                  selected
+                className={`cursor-pointer rounded-xl border p-4 transition ${selected
                     ? "border-[#2454b5] bg-[#edf3ff]"
                     : "border-[#dbe5f0] bg-white hover:border-[#8bb7ee]"
-                }`}
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <input
@@ -173,6 +172,12 @@ export default function AddressSelector() {
                       Mobile: {addr.phone}
                       {addr.altPhone ? ` / ${addr.altPhone}` : ""}
                     </p>
+
+                    {addr.gstNumber && (
+                      <p className="mt-1 text-sm font-semibold text-[#2454b5]">
+                        GST: {addr.gstNumber}
+                      </p>
+                    )}
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button

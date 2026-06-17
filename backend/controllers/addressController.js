@@ -16,21 +16,22 @@ exports.addAddress = async (req, res) => {
     }
 
     const {
-      fullName,
-      phone,
-      altPhone,
-      pincode,
-      city,
-      state,
-      addressLine,
-      landmark,
-      addressType,
-      isDefault,
-      latitude,
-      longitude,
-      mapAddress,
-      locationVerified,
-    } = req.body;
+  fullName,
+  phone,
+  altPhone,
+  gstNumber,
+  pincode,
+  city,
+  state,
+  addressLine,
+  landmark,
+  addressType,
+  isDefault,
+  latitude,
+  longitude,
+  mapAddress,
+  locationVerified,
+} = req.body;
 
     const missingFields = [];
 
@@ -83,6 +84,7 @@ exports.addAddress = async (req, res) => {
       fullName: fullName.trim(),
       phone: String(phone).trim(),
       altPhone: altPhone ? String(altPhone).trim() : "",
+      gstNumber: gstNumber ? String(gstNumber).trim().toUpperCase() : "",
       pincode: String(pincode).trim(),
       city: city.trim(),
       state: state.trim(),
@@ -176,6 +178,7 @@ exports.updateAddress = async (req, res) => {
   "fullName",
   "phone",
   "altPhone",
+  "gstNumber",
   "pincode",
   "city",
   "state",
