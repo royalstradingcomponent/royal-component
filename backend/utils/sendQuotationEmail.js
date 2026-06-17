@@ -1,56 +1,22 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false,
-
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
-
-// 👇 YE YAHI ADD KARO
-console.log("SMTP CONFIG =>", {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    user: process.env.SMTP_USER,
-    from: process.env.SMTP_FROM,
-});
-
-transporter.verify((error, success) => {
-
-    if (error) {
-
-        console.error(
-            "SMTP VERIFY ERROR =>",
-            error
-        );
-
-    } else {
-
-        console.log(
-            "SMTP SERVER READY"
-        );
-
-    }
-
-});
+const resend = new Resend(
+  process.env.RESEND_API_KEY
+);
 
 const sendQuotationEmail = async ({
-    customerEmail,
-    customerName,
-    items,
-    totalPrice,
-    leadTime,
-    quotationNumber,
-    pdfBuffer,
+  customerEmail,
+  customerName,
+  items,
+  totalPrice,
+  leadTime,
+  quotationNumber,
+  pdfBuffer,
 }) => {
-
+  try {
     const itemHtml = items
-        .map(
-            (item) => `
+      .map(
+        (item) => `
         <tr>
             <td style="padding:10px;border:1px solid #ddd;">
                 ${item.componentName}
@@ -69,18 +35,15 @@ const sendQuotationEmail = async ({
             </td>
         </tr>
     `
-        )
-        .join("");
+      )
+      .join("");
 
-    await transporter.sendMail({
-        from: process.env.SMTP_FROM,
+    const result = await resend.emails.send({
+      from: process.env.OTP_FROM_EMAIL,
+      to: customerEmail,
+      subject: "Quotation Ready - Royal Trading Co",
 
-        to: customerEmail,
-
-        subject:
-            "Quotation Ready - Royal Trading Co",
-
-        html: `
+      html: `
         <div style="font-family:Arial;padding:20px;">
 
             <h2 style="color:#0f4c81;">
@@ -92,37 +55,37 @@ const sendQuotationEmail = async ({
             </p>
 
             <div
-    style="
-        background:#f4f7fb;
-        padding:20px;
-        border-radius:10px;
-        margin-top:20px;
-        line-height:1.8;
-        font-size:16px;
-        color:#1e293b;
-    "
->
+                style="
+                    background:#f4f7fb;
+                    padding:20px;
+                    border-radius:10px;
+                    margin-top:20px;
+                    line-height:1.8;
+                    font-size:16px;
+                    color:#1e293b;
+                "
+            >
 
-    <strong style="font-size:18px;color:#0f4c81;">
-        Great news!
-    </strong>
+                <strong style="font-size:18px;color:#0f4c81;">
+                    Great news!
+                </strong>
 
-    Your required components are currently
-    available in stock and ready for dispatch.
+                Your required components are currently
+                available in stock and ready for dispatch.
 
-    <br /><br />
+                <br /><br />
 
-    We have prepared your quotation with
-    best pricing, fast delivery timeline
-    and procurement support.
+                We have prepared your quotation with
+                best pricing, fast delivery timeline
+                and procurement support.
 
-    <br /><br />
+                <br /><br />
 
-    For bulk discount, technical confirmation
-    or immediate order processing, please
-    call or WhatsApp our sales team.
+                For bulk discount, technical confirmation
+                or immediate order processing, please
+                call or WhatsApp our sales team.
 
-</div>
+            </div>
 
             <table
                 style="
@@ -157,26 +120,26 @@ const sendQuotationEmail = async ({
             </table>
 
             <h3 style="margin-top:25px;color:#0f4c81;">
-    Final Quotation
-</h3>
+                Final Quotation
+            </h3>
 
-<p style="font-size:16px;">
-    Unit Price:
-    ₹${(
-                Number(totalPrice) /
-                Number(items[0]?.quantity || 1)
-            ).toFixed(2)}
-</p>
+            <p style="font-size:16px;">
+                Unit Price:
+                ₹${(
+                  Number(totalPrice) /
+                  Number(items[0]?.quantity || 1)
+                ).toFixed(2)}
+            </p>
 
-<p style="font-size:16px;">
-    Quantity:
-    ${items[0]?.quantity || 1}
-</p>
+            <p style="font-size:16px;">
+                Quantity:
+                ${items[0]?.quantity || 1}
+            </p>
 
-<h2 style="color:#0f4c81;">
-    Total Amount:
-    ₹${Number(totalPrice).toLocaleString("en-IN")}
-</h2>
+            <h2 style="color:#0f4c81;">
+                Total Amount:
+                ₹${Number(totalPrice).toLocaleString("en-IN")}
+            </h2>
 
             <p>
                 Lead Time:
@@ -199,16 +162,29 @@ const sendQuotationEmail = async ({
             </p>
 
         </div>
-        `,
-        attachments: pdfBuffer
-    ? [
-          {
+      `,
+
+      attachments: pdfBuffer
+        ? [
+            {
               filename: `${quotationNumber}.pdf`,
               content: pdfBuffer,
-          },
-      ]
-    : [],
+            },
+          ]
+        : undefined,
     });
+
+    console.log("RESEND EMAIL SENT =>", result);
+
+    return result;
+  } catch (error) {
+    console.error(
+      "RESEND EMAIL ERROR =>",
+      error
+    );
+
+    throw error;
+  }
 };
 
 module.exports = sendQuotationEmail;
