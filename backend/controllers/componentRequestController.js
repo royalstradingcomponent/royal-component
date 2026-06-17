@@ -506,6 +506,24 @@ if (requestStatus === "available") {
             emailError
         );
 
+        console.error(emailError);
+
+    console.error(
+        "MESSAGE =>",
+        emailError.message
+    );
+
+    console.error(
+        "RESPONSE =>",
+        emailError.response
+    );
+
+    console.error(
+        "RESPONSE CODE =>",
+        emailError.responseCode
+    );
+
+
     }
 }
 

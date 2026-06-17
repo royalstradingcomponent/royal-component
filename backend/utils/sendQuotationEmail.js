@@ -11,6 +11,33 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// 👇 YE YAHI ADD KARO
+console.log("SMTP CONFIG =>", {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    user: process.env.SMTP_USER,
+    from: process.env.SMTP_FROM,
+});
+
+transporter.verify((error, success) => {
+
+    if (error) {
+
+        console.error(
+            "SMTP VERIFY ERROR =>",
+            error
+        );
+
+    } else {
+
+        console.log(
+            "SMTP SERVER READY"
+        );
+
+    }
+
+});
+
 const sendQuotationEmail = async ({
     customerEmail,
     customerName,
