@@ -482,33 +482,32 @@ exports.createComponentRequest = async (req, res) => {
 
         console.timeEnd("DB_SAVE");
 
-        if (requestStatus === "available") {
+if (requestStatus === "available") {
 
-            console.log("REQUEST STATUS =>", requestStatus);
+    try {
 
-            const pdfBuffer = await generateQuotationPdf(request);
+        const pdfBuffer =
+            await generateQuotationPdf(request);
 
-            await sendQuotationEmail({
-                customerEmail,
-                customerName,
-                items: parsedItems,
-                totalPrice: autoAdminPrice,
-                leadTime: autoLeadTime,
-                quotationNumber: request.quotationNumber,
-                pdfBuffer,
-            });
+        await sendQuotationEmail({
+            customerEmail,
+            customerName,
+            items: parsedItems,
+            totalPrice: autoAdminPrice,
+            leadTime: autoLeadTime,
+            quotationNumber: request.quotationNumber,
+            pdfBuffer,
+        });
 
-            // console.log("CALLING WHATSAPP FUNCTION");
+    } catch (emailError) {
 
-            // await sendWhatsAppQuotation({
-            //     customerPhone,
-            //     items: parsedItems,
-            //     totalPrice: autoAdminPrice,
-            //     leadTime: autoLeadTime,
-            // });
+        console.log(
+            "EMAIL ERROR =>",
+            emailError
+        );
 
-            // console.log("WHATSAPP FUNCTION FINISHED");
-        }
+    }
+}
 
         res.status(201).json({
             success: true,
@@ -516,12 +515,18 @@ exports.createComponentRequest = async (req, res) => {
             request,
         });
     } catch (error) {
-        console.error("Create component request error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Server error while submitting request",
-        });
-    }
+
+    console.error(
+        "CREATE REQUEST FULL ERROR =>",
+        error
+    );
+
+    return res.status(500).json({
+        success: false,
+        message: error.message,
+        stack: error.stack,
+    });
+}
 };
 
 // ADMIN: get all requests
