@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, Plus, Pencil, Trash2, CheckCircle2, Search } from "lucide-react";
+import {
+  MapPin,
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  Search,
+} from "lucide-react";
 import { useAddress } from "@/context/AddressContext";
 import AddressFormModal from "./AddressFormModal";
 
@@ -43,7 +50,7 @@ export default function AddressSelector() {
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-        .includes(q)
+        .includes(q),
     );
   }, [addresses, search]);
 
@@ -70,7 +77,8 @@ export default function AddressSelector() {
               Delivery Address
             </h2>
             <p className="mt-1 text-sm text-[#607287]">
-              Select saved address or add a new address for this wholesale order.
+              Select saved address or add a new address for this wholesale
+              order.
             </p>
           </div>
         </div>
@@ -88,7 +96,10 @@ export default function AddressSelector() {
       {addresses.length > 0 ? (
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 text-[#94a3b8]" size={18} />
+            <Search
+              className="absolute left-3 top-3 text-[#94a3b8]"
+              size={18}
+            />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -128,10 +139,11 @@ export default function AddressSelector() {
               <div
                 key={id}
                 onClick={() => setSelectedAddressId(id)}
-                className={`cursor-pointer rounded-xl border p-4 transition ${selected
+                className={`cursor-pointer rounded-xl border p-4 transition ${
+                  selected
                     ? "border-[#2454b5] bg-[#edf3ff]"
                     : "border-[#dbe5f0] bg-white hover:border-[#8bb7ee]"
-                  }`}
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <input
@@ -172,6 +184,12 @@ export default function AddressSelector() {
                       Mobile: {addr.phone}
                       {addr.altPhone ? ` / ${addr.altPhone}` : ""}
                     </p>
+
+                    {addr.companyName && (
+                      <p className="mt-1 text-sm font-semibold text-[#102033]">
+                        Company: {addr.companyName}
+                      </p>
+                    )}
 
                     {addr.gstNumber && (
                       <p className="mt-1 text-sm font-semibold text-[#2454b5]">
@@ -227,9 +245,15 @@ export default function AddressSelector() {
 
       {selectedAddress ? (
         <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
-          <p className="text-sm font-bold text-[#2454b5]">Selected delivery address</p>
+          <p className="text-sm font-bold text-[#2454b5]">
+            Selected delivery address
+          </p>
           <p className="mt-1 text-sm text-[#334155]">
-            {selectedAddress.fullName}, {selectedAddress.phone} —{" "}
+            {selectedAddress.fullName}
+            {selectedAddress.companyName
+              ? ` (${selectedAddress.companyName})`
+              : ""}
+            , {selectedAddress.phone}
             {selectedAddress.addressLine}, {selectedAddress.city},{" "}
             {selectedAddress.state} - {selectedAddress.pincode}
           </p>

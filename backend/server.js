@@ -19,6 +19,9 @@ const blogUploadRoutes = require("./routes/blogUploadRoutes");
 const blogPageSettingRoutes = require("./routes/blogPageSettingRoutes");
 const homeDecorInfoRoutes = require("./routes/homeDecorInfoRoutes");
 
+// CRM
+const crmRoutes = require("./modules/crm/routes/crmRoutes");
+
 dotenv.config();
 
 const app = express();
@@ -166,6 +169,10 @@ app.use("/api/promo-banners", require("./routes/promoBannerRoutes"));
 app.use("/api/homepage-builder", require("./routes/homepageBuilderRoutes"));
 app.use("/api/landing-pages", require("./routes/landingPageRoutes"));
 app.use("/api/upload", require("./routes/uploadRoutes"));
+
+// CRM
+
+app.use("/api/crm", crmRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

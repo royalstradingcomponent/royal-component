@@ -8,6 +8,7 @@ const emptyForm = {
   fullName: "",
   phone: "",
   altPhone: "",
+  companyName: "",
   gstNumber: "",
   pincode: "",
   city: "",
@@ -42,6 +43,7 @@ export default function AddressFormModal({
         fullName: editingAddress.fullName || "",
         phone: editingAddress.phone || "",
         altPhone: editingAddress.altPhone || "",
+        companyName: editingAddress.companyName || "",
         gstNumber: editingAddress.gstNumber || "",
         pincode: editingAddress.pincode || "",
         city: editingAddress.city || "",
@@ -162,6 +164,7 @@ export default function AddressFormModal({
       fullName: form.fullName.trim(),
       phone: form.phone.trim(),
       altPhone: form.altPhone.trim(),
+      companyName: form.companyName.trim(),
       gstNumber: form.gstNumber.trim(),
       pincode: form.pincode.trim(),
       city: form.city.trim(),
@@ -258,6 +261,21 @@ export default function AddressFormModal({
                 maxLength={10}
                 className="h-12 w-full rounded-lg border border-[#cbd5e1] px-4 outline-none focus:border-[#2454b5]"
                 placeholder="Optional"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-[#334155]">
+                Company Name
+              </label>
+
+              <input
+                type="text"
+                name="companyName"
+                value={form.companyName}
+                onChange={handleChange}
+                className="h-12 w-full rounded-lg border border-[#cbd5e1] px-4 outline-none focus:border-[#2454b5]"
+                placeholder="ABC Electronics Pvt Ltd"
               />
             </div>
 
