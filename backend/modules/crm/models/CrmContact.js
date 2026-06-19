@@ -25,16 +25,56 @@ const crmContactSchema = new mongoose.Schema(
       default: "",
     },
 
+    profileImage: {
+      type: String,
+      default: "",
+    },
+
     tags: [
       {
         type: String,
       },
     ],
 
+    notes: {
+      type: String,
+      default: "",
+    },
+
     source: {
       type: String,
+      enum: [
+        "website",
+        "whatsapp",
+        "manual",
+        "facebook",
+        "instagram",
+      ],
       default: "website",
     },
+
+    status: {
+      type: String,
+      enum: [
+        "new",
+        "lead",
+        "customer",
+        "inactive",
+      ],
+      default: "new",
+    },
+
+    assignedAgent: {
+      type: String,
+      default: "",
+    },
+
+    customFields: [
+      {
+        key: String,
+        value: String,
+      },
+    ],
 
     isBlocked: {
       type: Boolean,
@@ -44,6 +84,35 @@ const crmContactSchema = new mongoose.Schema(
     lastMessageAt: {
       type: Date,
     },
+
+    leadScore: {
+  type: Number,
+  default: 50,
+},
+
+customerValue: {
+  type: Number,
+  default: 0,
+},
+
+lastActivity: {
+  type: String,
+  default: "Contact Created",
+},
+
+activities: [
+  {
+    title: String,
+
+    description: String,
+
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
+
   },
   {
     timestamps: true,

@@ -1,77 +1,48 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CreditCard,
-  IndianRupee,
-} from "lucide-react";
-import { API_BASE } from "@/lib/api";
+import { CreditCard, IndianRupee } from "lucide-react";
 
 const iconMap = {
   razorpay: CreditCard,
 };
 
+
 export default function PaymentMethodSelector({
   value,
   onChange,
-  totalAmount = 0,
 }) {
   const [methods, setMethods] = useState([]);
-  
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchMethods = async () => {
-      try {
-        setLoading(true);
+    setMethods([
+      {
+        id: "razorpay",
+        label: "Razorpay",
+        enabled: true,
+        recommended: true,
+        description: "UPI, Cards, Net Banking, Wallets",
+      },
+    ]);
 
-        const res = await fetch(
-          `${API_BASE}/api/payments/methods?amount=${Number(totalAmount || 0)}`,
-          { cache: "no-store" }
-        );
+    if (!value) {
+      onChange("razorpay");
+    }
 
-        const data = await res.json();
-
-        if (data?.success) {
-          setMethods(
-            (data.methods || []).filter(
-              (item) => item.id === "razorpay"
-            )
-          );
-         
-
-          const currentStillValid = (data.methods || []).some(
-            (item) => item.id === value && item.enabled
-          );
-
-          if (!currentStillValid) {
-            const recommended =
-              data.methods?.find((item) => item.recommended && item.enabled) ||
-              data.methods?.find((item) => item.enabled);
-
-            if (recommended?.id) onChange(recommended.id);
-          }
-        }
-      } catch (error) {
-        console.error("Payment methods fetch error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMethods();
-  }, [totalAmount]);
+    setLoading(false);
+  }, []);
 
   if (loading) {
     return (
-      <section className="rounded-[14px] border border-[#dbe5f0] bg-white p-5 md:p-6">
-        <p className="text-[#607287]">Loading payment options...</p>
+      <section className="rounded-[14px] border border-[#dbe5f0] bg-white p-5">
+        Loading...
       </section>
     );
   }
 
   return (
-    <section className="rounded-[14px] border border-[#dbe5f0] bg-white p-5 shadow-[0_8px_24px_rgba(15,23,42,0.04)] md:p-6">
+    <section className="rounded-[14px] border border-[#dbe5f0] bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-start gap-3">
         <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
           <IndianRupee size={22} />
@@ -81,79 +52,180 @@ export default function PaymentMethodSelector({
           <h2 className="text-[24px] font-bold text-[#102033]">
             Payment Method
           </h2>
+
           <p className="text-sm text-[#607287]">
             Choose a payment option suitable for industrial procurement.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {methods.map((method) => {
-          const Icon = iconMap[method.id] || CreditCard;
-          const active = value === method.id;
+      <div className="overflow-hidden rounded-[28px] border border-[#dbe5f0] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+  <div className="grid md:grid-cols-[320px_1fr]">
 
-          return (
-            <button
-              key={method.id}
-              type="button"
-              disabled={!method.enabled}
-              onClick={() => method.enabled && onChange(method.id)}
-              className={`relative rounded-xl border p-4 text-left transition ${active
-                ? "border-[#2454b5] bg-[#edf3ff] shadow-[0_0_0_3px_rgba(36,84,181,0.10)]"
-                : "border-[#dbe5f0] bg-white hover:border-[#8bb7ee]"
-                } ${!method.enabled ? "cursor-not-allowed opacity-50" : ""}`}
-            >
-              <div className="flex gap-3">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${active ? "bg-[#2454b5] text-white" : "bg-[#eaf3ff] text-[#2454b5]"
-                    }`}
-                >
-                  <Icon size={19} />
-                </div>
+    {/* LEFT PAYMENT MENU */}
+    <div className="border-r border-slate-200 bg-slate-50">
+      {methods.map((method) => {
+        const Icon = iconMap[method.id] || CreditCard;
+        const active = value === method.id;
 
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-extrabold text-[#102033]">
-                      {method.label}
-                    </p>
+        return (
+          <button
+            key={method.id}
+            type="button"
+            onClick={() => onChange(method.id)}
+            className={`flex w-full items-center gap-4 border-b px-5 py-5 text-left transition
+              ${
+               active
+? "border-l-4 border-l-[#2454b5] bg-gradient-to-r from-[#eef4ff] via-white to-white shadow-md"
+                  : "hover:bg-white"
+              }`}
+          >
+            <Icon
+              size={20}
+              className={
+                active ? "text-[#2874f0]" : "text-slate-500"
+              }
+            />
 
-                    {method.recommended ? (
-                      <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-extrabold text-green-700">
-                        RECOMMENDED
-                      </span>
-                    ) : null}
-                  </div>
+            <div>
+              <p className="font-semibold text-slate-900">
+                {method.label}
+              </p>
 
-                  <p className="mt-1 text-sm leading-5 text-[#607287]">
-                    {method.description}
-                  </p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-     {value === "razorpay" ? (
-  <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
-    <div className="mb-3 flex items-center gap-2 font-bold text-[#102033]">
-      <CreditCard size={18} className="text-[#2454b5]" />
-      Secure Razorpay Payment
+              <p className="text-xs text-slate-500">
+                {method.description}
+              </p>
+            </div>
+          </button>
+        );
+      })}
     </div>
 
-    <div className="grid gap-2 text-sm text-[#607287]">
-      <p>✔ UPI</p>
-      <p>✔ Credit Card</p>
-      <p>✔ Debit Card</p>
-      <p>✔ Net Banking</p>
-      <p>✔ Wallets</p>
-    </div>
+    {/* RIGHT DETAILS PANEL */}
+    <div className="p-6">
 
-    <p className="mt-3 rounded-xl border border-[#bae6fd] bg-white p-3 text-sm font-bold text-[#075985]">
-      You will be redirected to Razorpay secure checkout for payment.
+      {value === "razorpay" && (
+        <>
+          <h3 className="text-xl font-bold text-slate-900">
+            Razorpay Secure Checkout
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Pay securely using UPI, Cards, Net Banking and Wallets.
+          </p>
+
+        <div className="mt-6 grid gap-5 sm:grid-cols-2">
+
+  {/* UPI */}
+
+  <div className="group relative overflow-hidden rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-blue-50 p-5 shadow-[0_10px_30px_rgba(14,165,233,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(14,165,233,0.25)]">
+
+    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-sky-200/30" />
+
+    <p className="text-lg font-bold text-[#102033]">
+      UPI Payments
     </p>
+
+    <p className="mt-2 text-[#607287]">
+      Google Pay, PhonePe, Paytm, BHIM
+    </p>
+
+    <div className="mt-4 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-sky-700">
+      Instant Payment
+    </div>
+
   </div>
-) : null}
+
+  {/* CARDS */}
+
+  <div className="group relative overflow-hidden rounded-3xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-5 shadow-[0_10px_30px_rgba(99,102,241,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(99,102,241,0.25)]">
+
+    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-indigo-200/30" />
+
+    <p className="text-lg font-bold text-[#102033]">
+      Credit / Debit Cards
+    </p>
+
+    <p className="mt-2 text-[#607287]">
+      Visa, Mastercard, RuPay
+    </p>
+
+    <div className="mt-4 inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700">
+      Secure Cards
+    </div>
+
+  </div>
+
+  {/* NET BANKING */}
+
+  <div className="group relative overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-green-50 p-5 shadow-[0_10px_30px_rgba(16,185,129,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(16,185,129,0.25)]">
+
+    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-200/30" />
+
+    <p className="text-lg font-bold text-[#102033]">
+      Net Banking
+    </p>
+
+    <p className="mt-2 text-[#607287]">
+      50+ Banks Supported
+    </p>
+
+    <div className="mt-4 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+      Trusted Banks
+    </div>
+
+  </div>
+
+  {/* WALLETS */}
+
+  <div className="group relative overflow-hidden rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-50 p-5 shadow-[0_10px_30px_rgba(245,158,11,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(245,158,11,0.25)]">
+
+    <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-200/30" />
+
+    <p className="text-lg font-bold text-[#102033]">
+      Wallets
+    </p>
+
+    <p className="mt-2 text-[#607287]">
+      Paytm Wallet, Mobikwik
+    </p>
+
+    <div className="mt-4 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
+      Fast Checkout
+    </div>
+
+  </div>
+
+</div>
+
+          <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4">
+            <p className="font-semibold text-green-700">
+              Secure Payment Protection
+            </p>
+
+            <p className="mt-1 text-sm text-green-600">
+              All transactions are encrypted and processed securely through Razorpay.
+            </p>
+          </div>
+        </>
+      )}
+
+    </div>
+  </div>
+</div>
+
+      <div className="mt-5 rounded-xl border border-[#bfd7f5] bg-[#f8fbff] p-4">
+        <div className="mb-3 flex items-center gap-2 font-bold">
+          <CreditCard size={18} />
+          Secure Razorpay Payment
+        </div>
+
+        <p>✔ UPI</p>
+        <p>✔ Credit Card</p>
+        <p>✔ Debit Card</p>
+        <p>✔ Net Banking</p>
+        <p>✔ Wallets</p>
+      </div>
     </section>
   );
 }

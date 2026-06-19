@@ -21,6 +21,8 @@ const homeDecorInfoRoutes = require("./routes/homeDecorInfoRoutes");
 
 // CRM
 const crmRoutes = require("./modules/crm/routes/crmRoutes");
+const crmContactRoutes = require("./modules/crm/routes/crmContactRoutes");
+const crmFollowUpRoutes = require("./modules/crm/routes/crmFollowUpRoutes");
 
 dotenv.config();
 
@@ -145,6 +147,7 @@ app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 
+
 app.use("/api/categories", categoryRoutes);
 app.use("/api/hero-slides", require("./routes/heroRoutes"));
 app.use("/api/home-sections", require("./routes/homeSectionRoutes"));
@@ -173,6 +176,8 @@ app.use("/api/upload", require("./routes/uploadRoutes"));
 // CRM
 
 app.use("/api/crm", crmRoutes);
+app.use("/api/crm/contacts", crmContactRoutes);
+app.use("/api/crm/followups", crmFollowUpRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

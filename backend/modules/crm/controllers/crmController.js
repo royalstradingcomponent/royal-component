@@ -140,3 +140,77 @@ exports.seedData = async (req, res) => {
 
   }
 };
+
+exports.sendMessage = async (req, res) => {
+  try {
+
+    const {
+      conversationId,
+      message,
+    } = req.body;
+
+    if (
+      !conversationId ||
+      !message
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Conversation ID and message are required",
+      });
+    }
+
+    const conversation =
+      await CrmConversation.findById(
+        conversationId
+      );
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Conversation not found",
+      });
+    }
+
+    const newMessage =
+      await CrmMessage.create({
+        conversation:
+          conversationId,
+
+        contact:
+          conversation.contact,
+
+        direction:
+          "outgoing",
+
+        message,
+      });
+
+    conversation.lastMessage =
+      message;
+
+    conversation.lastMessageAt =
+      new Date();
+
+    await conversation.save();
+
+    res.status(201).json({
+      success: true,
+      messageData:
+        newMessage,
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message:
+        error.message,
+    });
+
+  }
+};
+

@@ -77,24 +77,8 @@ export default function CheckoutPaymentPage() {
     }
 
     const orderData = await createRazorpayOrder({
-      buyer: {
-        fullName: selectedAddress.fullName,
-        phone: selectedAddress.phone,
-        email: user?.email || "",
-      },
-
-      shippingAddress: {
-        address: selectedAddress.addressLine,
-        addressLine2: selectedAddress.landmark || "",
-        city: selectedAddress.city,
-        state: selectedAddress.state,
-        pincode: selectedAddress.pincode,
-        country: "India",
-      },
-
-      note: form.note,
-    });
-
+  amount: Number(cartSummary?.grandTotal || 0),
+});
     if (!window.Razorpay) {
       toast.error("Razorpay SDK not loaded");
       return;
@@ -103,11 +87,12 @@ export default function CheckoutPaymentPage() {
     const razorpay = new window.Razorpay({
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
 
-      amount: orderData.razorpayOrder.amount,
+     amount: orderData.order.amount,
+
 
       currency: "INR",
 
-      order_id: orderData.razorpayOrder.id,
+      order_id: orderData.order.id,
 
       name: "Royal Component",
 
@@ -156,7 +141,11 @@ export default function CheckoutPaymentPage() {
     return (
       <div className="min-h-screen bg-[#f3f7fb]">
         <Navbar />
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+        <Script
+  id="razorpay-checkout"
+  src="https://checkout.razorpay.com/v1/checkout.js"
+  strategy="beforeInteractive"
+/>
         <div className="py-20 text-center text-[#607287]">
           Loading payment...
         </div>
@@ -188,6 +177,12 @@ export default function CheckoutPaymentPage() {
 
   return (
     <div className="min-h-screen bg-[#f3f7fb] text-[#1f2937]">
+
+      <Script
+  id="razorpay-checkout"
+  src="https://checkout.razorpay.com/v1/checkout.js"
+  strategy="afterInteractive"
+/>
       <Navbar />
 
       <main className="mx-auto max-w-[1360px] px-4 py-8 lg:px-6">
