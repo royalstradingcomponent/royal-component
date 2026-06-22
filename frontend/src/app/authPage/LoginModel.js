@@ -494,9 +494,11 @@ export default function LoginModal({ isOpen, onClose, openRegister }) {
               <button
                 type="button"
                 onClick={forgotPassword}
-                className="text-sm font-medium text-[#2454b5] transition hover:text-[#1d4698]"
+                disabled={loading}
               >
-                Forgot Password?
+                {loading && activeAction === "forgotPassword"
+                  ? "Sending OTP..."
+                  : "Forgot Password?"}
               </button>
             </div>
 
@@ -539,7 +541,7 @@ export default function LoginModal({ isOpen, onClose, openRegister }) {
               type="button"
               onClick={resendLoginOtp}
               disabled={loading}
-              >
+            >
               {loading && activeAction === "resendLoginOtp"
                 ? "Resending OTP..."
                 : "Resend OTP"}
@@ -574,7 +576,7 @@ export default function LoginModal({ isOpen, onClose, openRegister }) {
               onClick={resendForgotOtp}
               disabled={loading}
               className="text-sm font-medium text-[#2454b5] transition hover:text-[#1d4698] disabled:opacity-60"
-              >
+            >
               {loading && activeAction === "resendForgotOtp"
                 ? "Resending OTP..."
                 : "Resend OTP"}
