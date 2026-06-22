@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { API_BASE } from "@/lib/api";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function AdminAuthPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function AdminAuthPage() {
   const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
 
   const [timer, setTimer] = useState(60);
+  const [showPassword, setShowPassword] = useState(false);
 
   const signin = async (e) => {
     e.preventDefault();
@@ -202,18 +204,28 @@ export default function AdminAuthPage() {
                   Password
                 </label>
 
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                    }))
-                  }
-                  className="w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-[#2454b5] focus:ring-2 focus:ring-[#2454b5]/15"
-                  placeholder="Enter password"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
+                    className="w-full rounded-xl border px-4 py-3 pr-12 text-sm outline-none focus:border-[#2454b5] focus:ring-2 focus:ring-[#2454b5]/15"
+                    placeholder="Enter password"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -309,11 +321,10 @@ export default function AdminAuthPage() {
                 type="button"
                 disabled={timer > 0}
                 onClick={resendOtp}
-                className={`w-full rounded-2xl py-4 text-sm font-bold ${
-                  timer > 0
-                    ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                    : "bg-blue-600 text-white"
-                }`}
+                className={`w-full rounded-2xl py-4 text-sm font-bold ${timer > 0
+                  ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  : "bg-blue-600 text-white"
+                  }`}
               >
                 {timer > 0 ? `Resend OTP in ${timer}s` : "Resend OTP"}
               </button>

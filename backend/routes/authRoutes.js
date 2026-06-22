@@ -19,6 +19,7 @@ const {
    adminLoginHistory,
    adminSessions,
    adminActivities,
+   changeAdminPassword,
 } = require("../controllers/authController");
 const { protect, admin } = require("../middleware/authMiddleware");
 
@@ -36,6 +37,7 @@ router.post("/login", loginWithPassword);
 router.post("/admin/send-otp", adminSendOtp);
 router.post("/admin/resend-otp", adminResendOtp);
 router.post("/admin/verify-otp", adminVerifyOtp);
+router.get("/admin/change-password", changeAdminPassword);
 router.get("/admin/me", adminMe);
 router.get("/admin/login-history", adminLoginHistory);
 router.get("/admin/sessions", adminSessions);
