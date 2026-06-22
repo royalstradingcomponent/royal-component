@@ -131,6 +131,56 @@ Exchange requests must be raised within the return window and are subject to sto
       metaKeywords: ["exchange policy", "replacement policy"],
     },
   },
+
+  {
+  title: "Terms & Conditions",
+  slug: "terms-and-conditions",
+
+  shortDescription:
+    "Terms and conditions for using Royal Trading Component.",
+
+  content: `Royal Trading Component is a B2B supplier of electronic, electrical, mechanical and industrial components.
+
+By using our website and services you agree to these terms and conditions.
+
+COD is not available.
+
+Orders are processed only after successful payment confirmation.`,
+
+  sections: [
+    {
+      heading: "Business Nature",
+      content:
+        "We operate as a B2B electronics and industrial components supplier.",
+      order: 0,
+    },
+    {
+      heading: "Payment Terms",
+      content:
+        "Orders are processed only after successful payment.",
+      order: 1,
+    },
+  ],
+
+  faqs: [
+    {
+      question: "Do you offer COD?",
+      answer: "No. COD is not available.",
+    },
+  ],
+
+  seo: {
+    metaTitle:
+      "Terms & Conditions | Royal Trading Component",
+    metaDescription:
+      "Terms and conditions of Royal Trading Component.",
+    metaKeywords: [
+      "terms and conditions",
+      "electronics supplier",
+      "industrial components",
+    ],
+  },
+},
 ];
 
 exports.seedPolicies = async (req, res) => {

@@ -48,16 +48,16 @@ export default function SupplierHistory({ request }) {
             request?.items?.[0]?.quantity || 1;
 
           const usdPrice =
-            Number(form.usdPrice || 0);
+  Number(supplier.usdPrice || 0);
 
-          const usdRate =
-            Number(form.usdRate || 85);
+const usdRate =
+  Number(supplier.usdRate || 85);
 
-          const purchasePrice =
-            usdPrice > 0
-              ? usdPrice * usdRate
-              : Number(form.purchasePrice || 0);
-
+const purchasePrice =
+  usdPrice > 0
+    ? usdPrice * usdRate
+    : Number(supplier.purchasePrice || 0);
+    
           const purchaseTotal =
             purchasePrice * quantity;
 
