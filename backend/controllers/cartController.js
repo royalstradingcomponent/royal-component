@@ -116,14 +116,16 @@ exports.getCart = async (req, res) => {
     );
 
 
-    let shipping = 0;
+    // let shipping = 0;
+
+    const shipping = 0;
 
     // 🔥 DELIVERY RULE
-    if (subtotalExGst < 5000) {
-      shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
-    } else {
-      shipping = 0;
-    }
+    // if (subtotalExGst < 5000) {
+    //   shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
+    // } else {
+    //   shipping = 0;
+    // }
     const itemCount = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
 
     const discount = cart.coupon?.isApplied
@@ -142,10 +144,13 @@ exports.getCart = async (req, res) => {
         shipping,
         discount,
         grandTotal,
-        deliveryMessage:
-          subtotalExGst >= 5000
-            ? "FREE delivery"
-            : "₹150 delivery charge (Free above ₹5000)",
+
+        deliveryMessage: "FREE delivery",
+
+        // deliveryMessage:
+        //   subtotalExGst >= 5000
+        //     ? "FREE delivery"
+        //     : "₹150 delivery charge (Free above ₹5000)",
         coupon: cart.coupon || null,
       },
     });

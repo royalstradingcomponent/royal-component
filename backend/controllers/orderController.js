@@ -2010,6 +2010,11 @@ exports.verifyRazorpayPayment = async (req, res) => {
       orderId,
     } = req.body;
 
+    console.log("VERIFY BODY =>", req.body);
+console.log("USER =>", req.user?._id);
+console.log("ORDER ID RECEIVED =>", orderId);
+
+
     const generatedSignature = crypto
       .createHmac(
         "sha256",
@@ -2036,6 +2041,8 @@ exports.verifyRazorpayPayment = async (req, res) => {
       _id: orderId,
       userId: req.user._id,
     });
+
+    console.log("FOUND ORDER =>", order);
 
     if (!order) {
       return res.status(404).json({

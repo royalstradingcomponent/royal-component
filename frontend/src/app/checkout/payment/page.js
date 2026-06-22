@@ -70,82 +70,94 @@ export default function CheckoutPaymentPage() {
   );
 
   const handlePlaceOrder = async () => {
-  try {
-    if (!selectedAddress) {
-      toast.error("Please select delivery address");
-      return;
+    try {
+      if (!selectedAddress) {
+        toast.error("Please select delivery address");
+        return;
+      }
+
+      const orderData = await placeOrder({
+        buyer: {
+          fullName: selectedAddress.fullName,
+          phone: selectedAddress.phone,
+          email: user?.email || "",
+          companyName: "",
+          gstNumber: "",
+        },
+
+        shippingAddress: {
+          address: selectedAddress.addressLine,
+          city: selectedAddress.city,
+          state: selectedAddress.state,
+          pincode: selectedAddress.pincode,
+          country: "India",
+        },
+
+        paymentMethod: "razorpay",
+        note: form.note,
+      });
+      if (!window.Razorpay) {
+        toast.error("Razorpay SDK not loaded");
+        return;
+      }
+
+      const razorpay = new window.Razorpay({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+
+        amount: orderData.razorpayOrder.amount,
+
+        currency: "INR",
+
+        order_id: orderData.razorpayOrder.id,
+
+        name: "Royal Trading Component",
+
+        description: "Order Payment",
+
+        prefill: {
+          name: selectedAddress.fullName,
+          email: user?.email || "",
+          contact: selectedAddress.phone,
+        },
+
+        theme: {
+          color: "#2454b5",
+        },
+
+        handler: async function (response) {
+          const verifyData = await verifyRazorpayPayment({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            orderId: orderData.order._id,
+          });
+
+          if (verifyData.success) {
+            await fetchCart();
+
+            toast.success("Payment Successful");
+
+            router.push(
+              `/checkout/success/${orderData.order._id}`
+            );
+          } else {
+            toast.error("Payment Verification Failed");
+          }
+        },
+      });
+
+      razorpay.open();
+
+    } catch (error) {
+      toast.error(error.message || "Payment failed");
     }
+  };
 
-    const orderData = await createRazorpayOrder({
-  amount: Number(cartSummary?.grandTotal || 0),
-});
-    if (!window.Razorpay) {
-      toast.error("Razorpay SDK not loaded");
-      return;
-    }
-
-    const razorpay = new window.Razorpay({
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-
-     amount: orderData.order.amount,
-
-
-      currency: "INR",
-
-      order_id: orderData.order.id,
-
-      name: "Royal Component",
-
-      description: "Order Payment",
-
-      prefill: {
-        name: selectedAddress.fullName,
-        email: user?.email || "",
-        contact: selectedAddress.phone,
-      },
-
-      theme: {
-        color: "#2454b5",
-      },
-
-      handler: async function (response) {
-        const verifyData = await verifyRazorpayPayment({
-          razorpay_order_id: response.razorpay_order_id,
-          razorpay_payment_id: response.razorpay_payment_id,
-          razorpay_signature: response.razorpay_signature,
-          orderId: orderData.order._id,
-        });
-
-        if (verifyData.success) {
-          await fetchCart();
-
-          toast.success("Payment Successful");
-
-          router.push(
-            `/checkout/success/${orderData.order._id}`
-          );
-        } else {
-          toast.error("Payment Verification Failed");
-        }
-      },
-    });
-
-    razorpay.open();
-
-  } catch (error) {
-    toast.error(error.message || "Payment failed");
-  }
-};
-  
   if (authLoading || cartLoading) {
     return (
       <div className="min-h-screen bg-[#f3f7fb]">
         <Navbar />
-        <Script
-  id="razorpay-checkout"
-  src="https://checkout.razorpay.com/v1/checkout.js"
-  strategy="beforeInteractive"
-/>
+
         <div className="py-20 text-center text-[#607287]">
           Loading payment...
         </div>
@@ -179,10 +191,10 @@ export default function CheckoutPaymentPage() {
     <div className="min-h-screen bg-[#f3f7fb] text-[#1f2937]">
 
       <Script
-  id="razorpay-checkout"
-  src="https://checkout.razorpay.com/v1/checkout.js"
-  strategy="afterInteractive"
-/>
+        id="razorpay-checkout"
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+      />
       <Navbar />
 
       <main className="mx-auto max-w-[1360px] px-4 py-8 lg:px-6">
