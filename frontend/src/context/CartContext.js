@@ -126,17 +126,27 @@ function buildGuestSummary(items) {
   const normalizedItems = items.map(normalizeGuestItem);
   const subtotalExGst = normalizedItems.reduce((sum, item) => sum + item.lineSubtotal, 0);
   const gstTotal = normalizedItems.reduce((sum, item) => sum + item.gstAmount, 0);
-  const shipping = 0;
+  let shipping = 0;
+
+if (subtotalExGst < 5000) {
+  shipping = 150;
+} else {
+  shipping = 0;
+}
   const grandTotal = subtotalExGst + gstTotal + shipping;
   const itemCount = normalizedItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return {
-    itemCount,
-    subtotalExGst,
-    gstTotal,
-    shipping,
-    grandTotal,
-  };
+  itemCount,
+  subtotalExGst,
+  gstTotal,
+  shipping,
+  grandTotal,
+  deliveryMessage:
+    subtotalExGst >= 5000
+      ? "FREE delivery"
+      : "₹150 delivery charge (Free above ₹5000)",
+};
 }
 
 export function CartProvider({ children }) {

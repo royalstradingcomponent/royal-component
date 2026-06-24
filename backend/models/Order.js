@@ -125,58 +125,58 @@ const orderSchema = new mongoose.Schema(
 
     /* ================= PAYMENT ================= */
     payment: {
-  method: {
-    type: String,
-    enum: ["RAZORPAY"],
-    default: "RAZORPAY",
-  },
+      method: {
+        type: String,
+        enum: ["RAZORPAY", "COD"],
+        default: "RAZORPAY",
+      },
 
 
-  status: {
-  type: String,
-  enum: [
-    "Pending",
-    "Paid",
-    "Failed",
-    "Refund Pending",
-    "Refund Processing",
-    "Refunded",
-  ],
-  default: "Pending",
-},
+      status: {
+        type: String,
+        enum: [
+          "Pending",
+          "Paid",
+          "Failed",
+          "Refund Pending",
+          "Refund Processing",
+          "Refunded",
+        ],
+        default: "Pending",
+      },
 
-  paymentId: { type: String, default: "" },
-  transactionId: { type: String, default: "" },
+      paymentId: { type: String, default: "" },
+      transactionId: { type: String, default: "" },
 
-  razorpayOrderId: {
-  type: String,
-  default: "",
-},
+      razorpayOrderId: {
+        type: String,
+        default: "",
+      },
 
-razorpayPaymentId: {
-  type: String,
-  default: "",
-},
+      razorpayPaymentId: {
+        type: String,
+        default: "",
+      },
 
-razorpaySignature: {
-  type: String,
-  default: "",
-},
+      razorpaySignature: {
+        type: String,
+        default: "",
+      },
 
-  amountPaid: { type: Number, default: 0 },
-  paidAt: { type: Date, default: null },
+      amountPaid: { type: Number, default: 0 },
+      paidAt: { type: Date, default: null },
 
-  verifiedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    default: null,
-  },
-  verifiedAt: { type: Date, default: null },
-  adminNote: { type: String, default: "" },
+      verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      verifiedAt: { type: Date, default: null },
+      adminNote: { type: String, default: "" },
 
-  paymentChanged: { type: Boolean, default: false },
-  paymentChangedAt: { type: Date, default: null },
-},
+      paymentChanged: { type: Boolean, default: false },
+      paymentChangedAt: { type: Date, default: null },
+    },
 
     /* ================= SHIPMENT ================= */
     shipment: {
@@ -197,21 +197,21 @@ razorpaySignature: {
     },
 
     timeline: [
-  {
-    status: {
-      type: String,
-    },
+      {
+        status: {
+          type: String,
+        },
 
-    message: {
-      type: String,
-    },
+        message: {
+          type: String,
+        },
 
-    time: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-],
+        time: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
 
     /* ================= ORDER LEVEL CANCEL ================= */
     cancellation: {
@@ -221,61 +221,135 @@ razorpaySignature: {
     },
 
     refund: {
+      status: {
+        type: String,
+        enum: ["Not Requested", "Requested", "Approved", "Rejected", "Processing", "Refunded"],
+        default: "Not Requested",
+        index: true,
+      },
+
+      amount: { type: Number, default: 0 },
+
+      reason: { type: String, default: "" },
+      comment: { type: String, default: "" },
+
+      method: {
+        type: String,
+        enum: ["RAZORPAY", "COD"],
+        default: "RAZORPAY",
+      },
+
+      upi: {
+        upiId: { type: String, default: "" },
+        phone: { type: String, default: "" },
+      },
+
+      bank: {
+        accountHolderName: { type: String, default: "" },
+        accountNumber: { type: String, default: "" },
+        ifsc: { type: String, default: "" },
+        bankName: { type: String, default: "" },
+      },
+
+      card: {
+        last4: { type: String, default: "" },
+        transactionId: { type: String, default: "" },
+      },
+
+      admin: {
+        note: { type: String, default: "" },
+        processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+        refundReferenceId: { type: String, default: "" },
+      },
+
+      requestedAt: { type: Date, default: null },
+      approvedAt: { type: Date, default: null },
+      rejectedAt: { type: Date, default: null },
+      processedAt: { type: Date, default: null },
+      refundedAt: { type: Date, default: null },
+
+      history: [
+        {
+          status: { type: String, default: "" },
+          message: { type: String, default: "" },
+          date: { type: Date, default: Date.now },
+        },
+      ],
+    },
+
+    returnRequest: {
   status: {
     type: String,
-    enum: ["Not Requested", "Requested", "Approved", "Rejected", "Processing", "Refunded"],
+    enum: [
+      "Not Requested",
+      "Requested",
+      "Approved",
+      "Rejected",
+      "Pickup Scheduled",
+      "Picked Up",
+      "Refund Eligible",
+      "Completed",
+    ],
     default: "Not Requested",
-    index: true,
   },
 
-  amount: { type: Number, default: 0 },
+  reason: {
+    type: String,
+    default: "",
+  },
 
-  reason: { type: String, default: "" },
-  comment: { type: String, default: "" },
+  comment: {
+    type: String,
+    default: "",
+  },
 
-  method: {
-  type: String,
-  enum: ["RAZORPAY"],
-  default: "RAZORPAY",
+  requestedAt: Date,
+  approvedAt: Date,
+  pickupAt: Date,
+  completedAt: Date,
 },
 
-  upi: {
-    upiId: { type: String, default: "" },
-    phone: { type: String, default: "" },
+    exchange: {
+  status: {
+    type: String,
+    enum: [
+      "Not Requested",
+      "Requested",
+      "Approved",
+      "Rejected",
+      "Replacement Shipped",
+      "Completed",
+    ],
+    default: "Not Requested",
   },
 
-  bank: {
-    accountHolderName: { type: String, default: "" },
-    accountNumber: { type: String, default: "" },
-    ifsc: { type: String, default: "" },
-    bankName: { type: String, default: "" },
+  reason: {
+    type: String,
+    default: "",
   },
 
-  card: {
-    last4: { type: String, default: "" },
-    transactionId: { type: String, default: "" },
+  comment: {
+    type: String,
+    default: "",
   },
 
-  admin: {
-    note: { type: String, default: "" },
-    processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    refundReferenceId: { type: String, default: "" },
+  requestedAt: {
+    type: Date,
+    default: null,
   },
 
-  requestedAt: { type: Date, default: null },
-  approvedAt: { type: Date, default: null },
-  rejectedAt: { type: Date, default: null },
-  processedAt: { type: Date, default: null },
-  refundedAt: { type: Date, default: null },
+  approvedAt: {
+    type: Date,
+    default: null,
+  },
 
-  history: [
-    {
-      status: { type: String, default: "" },
-      message: { type: String, default: "" },
-      date: { type: Date, default: Date.now },
-    },
-  ],
+  completedAt: {
+    type: Date,
+    default: null,
+  },
 },
+
+
 
     canEditAddress: { type: Boolean, default: true },
     canEditPhone: { type: Boolean, default: true },

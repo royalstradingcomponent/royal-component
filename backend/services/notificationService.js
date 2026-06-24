@@ -408,6 +408,81 @@ Industrial Components | Bulk Supply | Trusted Support`;
   }
 }
 
+async function sendOrderStatusNotification(order, status) {
+  const email = order?.userInfo?.email;
+
+  if (!email) return;
+
+  const trackingUrl =
+    `${FRONTEND_URL}/checkout/order/${order._id}`;
+
+  const productsHtml = (order.products || [])
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #eee;">
+          ${escapeHtml(item.name)}
+        </td>
+        <td style="padding:10px;border-bottom:1px solid #eee;">
+          ${item.quantity}
+        </td>
+        <td style="padding:10px;border-bottom:1px solid #eee;">
+          ${formatCurrency(item.lineTotal)}
+        </td>
+      </tr>
+    `
+    )
+    .join("");
+
+  await sendEmail({
+    to: email,
+
+    subject: `${status} - ${order.orderNumber}`,
+
+    html: `
+      <div style="font-family:Arial;padding:20px;background:#f4f7fb;">
+        <div style="max-width:700px;margin:auto;background:#fff;border-radius:12px;padding:25px;">
+
+          <h2 style="color:#2454b5;">
+            Order Status Updated
+          </h2>
+
+          <p>
+            Dear ${escapeHtml(order.userInfo?.name || "Customer")},
+          </p>
+
+          <p>
+            Your order status has been updated.
+          </p>
+
+          <div style="background:#f8fafc;padding:15px;border-radius:10px;">
+            <p><b>Order No:</b> ${order.orderNumber}</p>
+            <p><b>Status:</b> ${status}</p>
+            <p><b>Payment:</b> ${order.payment?.status}</p>
+            <p><b>Total:</b> ${formatCurrency(order.pricing?.totalAmount)}</p>
+          </div>
+
+          <h3>Products</h3>
+
+          <table width="100%" cellspacing="0" cellpadding="0">
+            ${productsHtml}
+          </table>
+
+          <div style="margin-top:25px;text-align:center;">
+            <a
+              href="${trackingUrl}"
+              style="background:#2454b5;color:#fff;padding:12px 24px;text-decoration:none;border-radius:8px;"
+            >
+              Track Order
+            </a>
+          </div>
+
+        </div>
+      </div>
+    `,
+  });
+}
+
 // ===============================
 // EXPORTS
 // ===============================
@@ -415,4 +490,5 @@ module.exports = {
   sendOrderPlacedNotification,
   sendOrderDeliveredNotification,
   sendOrderCancelNotification,
+  sendOrderStatusNotification,
 };

@@ -12,7 +12,9 @@ const auditService = require("../services/auditService");
 const securityAlertService = require("../services/securityAlertService");
 const {
   sendOrderPlacedNotification,
+  sendOrderStatusNotification,
 } = require("../services/notificationService");
+
 const PDFDocument = require("pdfkit");
 const SHIPPING_CHARGE = 0;
 const PLATFORM_FEE = 0;
@@ -23,7 +25,11 @@ const generateOrderNumber = () => {
   return `RC-${date}-${random}`;
 };
 
-const mapPaymentMethod = () => {
+const mapPaymentMethod = (method) => {
+  if (String(method).toLowerCase() === "cod") {
+    return "COD";
+  }
+
   return "RAZORPAY";
 };
 
@@ -171,9 +177,23 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    const subtotal = products.reduce((sum, item) => sum + item.lineSubtotal, 0);
-    const tax = products.reduce((sum, item) => sum + item.gstAmount, 0);
-    const totalAmount = subtotal + tax + SHIPPING_CHARGE + PLATFORM_FEE;
+    const subtotal = products.reduce(
+      (sum, item) => sum + item.lineSubtotal,
+      0
+    );
+
+    const tax = products.reduce(
+      (sum, item) => sum + item.gstAmount,
+      0
+    );
+
+    const shippingCharge =
+      subtotal < 5000 ? 150 : 0;
+
+    const totalAmount =
+      subtotal +
+      tax +
+      shippingCharge;
     const itemCount = products.reduce((sum, item) => sum + item.quantity, 0);
 
     const order = await Order.create({
@@ -209,8 +229,8 @@ exports.createOrder = async (req, res) => {
         subtotal,
         productDiscount: 0,
         couponDiscount: 0,
-        shippingCharge: SHIPPING_CHARGE,
-        platformFee: PLATFORM_FEE,
+        shippingCharge,
+        platformFee: 0,
         tax,
         totalAmount,
         itemCount,
@@ -231,6 +251,40 @@ exports.createOrder = async (req, res) => {
       orderStatus: "Order Placed",
       note,
     });
+
+    if (mapPaymentMethod(paymentMethod) === "COD") {
+
+      for (const item of order.products) {
+
+        const product = await Product.findById(item.productId);
+
+        if (!product) continue;
+
+        product.stock = Math.max(
+          0,
+          Number(product.stock || 0) -
+          Number(item.quantity || 0)
+        );
+
+        await product.save({
+          validateBeforeSave: false,
+        });
+      }
+
+      cart.items = [];
+      await cart.save();
+
+      await sendOrderPlacedNotification(order);
+
+      return res.status(201).json({
+        success: true,
+        message: "COD Order Placed Successfully",
+        order: serializeOrder(order),
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        totalAmount,
+      });
+    }
 
     // Razorpay Order Create
     if (mapPaymentMethod(paymentMethod) === "RAZORPAY") {
@@ -542,6 +596,18 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
 
+    try {
+  await sendOrderStatusNotification(
+    order,
+    status
+  );
+} catch (err) {
+  console.log(
+    "Status Email Error:",
+    err.message
+  );
+}
+
     if (req.user?.role === "admin") {
 
       await logAdminActivity({
@@ -638,6 +704,13 @@ exports.cancelOrder = async (req, res) => {
     order.cancellation.cancelReason = reason;
     order.cancellation.cancelComment = comment;
     order.cancellation.cancelledAt = new Date();
+
+    if (
+  order.payment.method === "RAZORPAY" &&
+  order.payment.status === "Paid"
+) {
+  order.payment.status = "Refund Pending";
+}
 
     order.products.forEach((item) => {
       item.itemStatus = "Cancelled";
@@ -1028,7 +1101,10 @@ exports.requestRefund = async (req, res) => {
       });
     }
 
-    if (!["Delivered", "Cancelled"].includes(order.orderStatus)) {
+  if (
+  order.orderStatus !== "Cancelled" &&
+  order?.returnRequest?.status !== "Refund Eligible"
+) {
       return res.status(400).json({
         success: false,
         message:
@@ -1205,6 +1281,18 @@ exports.adminUpdateRefund = async (req, res) => {
     });
 
     await order.save();
+
+    try {
+  await sendOrderStatusNotification(
+    order,
+    `Refund ${status}`
+  );
+} catch (err) {
+  console.log(
+    "Refund Email Error:",
+    err.message
+  );
+}
 
     await logAdminActivity({
       req,
@@ -2011,8 +2099,8 @@ exports.verifyRazorpayPayment = async (req, res) => {
     } = req.body;
 
     console.log("VERIFY BODY =>", req.body);
-console.log("USER =>", req.user?._id);
-console.log("ORDER ID RECEIVED =>", orderId);
+    console.log("USER =>", req.user?._id);
+    console.log("ORDER ID RECEIVED =>", orderId);
 
 
     const generatedSignature = crypto
@@ -2207,7 +2295,7 @@ const numberToWords = (num) => {
   return "";
 };
 
-  exports.downloadTaxInvoice = async (req, res) => {
+exports.downloadTaxInvoice = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
@@ -2262,7 +2350,7 @@ const numberToWords = (num) => {
         align: "center",
       });
 
-    
+
 
     // =====================================
     // SELLER BOX
@@ -2297,8 +2385,7 @@ const numberToWords = (num) => {
       .font("Helvetica-Bold")
       .fontSize(11)
       .text(
-        `Invoice No : ${
-          order.invoiceNumber || order.orderNumber
+        `Invoice No : ${order.invoiceNumber || order.orderNumber
         }`,
         305,
         100
@@ -2313,16 +2400,14 @@ const numberToWords = (num) => {
     );
 
     doc.text(
-      `Payment Status : ${
-        order.payment?.status || "-"
+      `Payment Status : ${order.payment?.status || "-"
       }`,
       305,
       150
     );
 
     doc.text(
-      `Order Status : ${
-        order.orderStatus || "-"
+      `Order Status : ${order.orderStatus || "-"
       }`,
       305,
       175
@@ -2357,16 +2442,14 @@ const numberToWords = (num) => {
     );
 
     doc.text(
-      `${order.userInfo?.city || ""}, ${
-        order.userInfo?.state || ""
+      `${order.userInfo?.city || ""}, ${order.userInfo?.state || ""
       } - ${order.userInfo?.pincode || ""}`,
       40,
       344
     );
 
     doc.text(
-      `GST : ${
-        order.userInfo?.gstNumber || "-"
+      `GST : ${order.userInfo?.gstNumber || "-"
       }`,
       320,
       290
@@ -2566,4 +2649,279 @@ const numberToWords = (num) => {
       message: "Invoice generation failed",
     });
   }
+};
+
+exports.requestExchange = async (req, res) => {
+  try {
+    const { reason, comment = "" } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        message: "Exchange reason is required",
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.orderStatus !== "Delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Exchange allowed only for delivered orders",
+      });
+    }
+
+    if (
+      ["Requested", "Approved", "Replacement Shipped"].includes(
+        order.exchange.status
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Exchange request already exists",
+      });
+    }
+
+    order.exchange.status = "Requested";
+    order.exchange.reason = reason;
+    order.exchange.comment = comment;
+    order.exchange.requestedAt = new Date();
+
+    order.timeline.push({
+      status: "Exchange Requested",
+      message: `Customer requested exchange. Reason: ${reason}`,
+      time: new Date(),
+    });
+
+    await order.save();
+
+    try {
+  await sendOrderStatusNotification(
+    order,
+    "Exchange Requested"
+  );
+} catch (err) {
+  console.log(
+    "Exchange Email Error:",
+    err.message
+  );
+}
+
+    // Email
+    try {
+      const { sendExchangeRequestEmail } = require("../services/notificationService");
+
+      await sendExchangeRequestEmail(order);
+    } catch (e) {
+      console.log("Exchange Email Error:", e.message);
+    }
+
+    return res.json({
+      success: true,
+      message: "Exchange request submitted successfully",
+      order,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+
+exports.adminUpdateExchange = async (req, res) => {
+  try {
+    const { status, adminNote = "" } = req.body;
+
+    const allowedStatuses = [
+      "Approved",
+      "Rejected",
+      "Replacement Shipped",
+      "Completed",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid exchange status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    const oldData = JSON.parse(JSON.stringify(order));
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    order.exchange.status = status;
+
+    if (status === "Approved") {
+      order.exchange.approvedAt = new Date();
+    }
+
+    if (status === "Completed") {
+      order.exchange.completedAt = new Date();
+    }
+
+    order.timeline.push({
+      status: `Exchange ${status}`,
+      message:
+        adminNote ||
+        `Exchange status changed to ${status}`,
+      time: new Date(),
+    });
+
+    await order.save();
+
+    try {
+  await sendOrderStatusNotification(
+    order,
+    `Exchange ${status}`
+  );
+} catch (err) {
+  console.log(
+    "Exchange Email Error:",
+    err.message
+  );
+}
+
+    await logAdminActivity({
+      req,
+      admin: req.user,
+      action: "UPDATE",
+      module: "EXCHANGE",
+      targetId: order._id,
+      details: {
+        description: `Exchange changed to ${status}`,
+      },
+    });
+
+    await auditService({
+      req,
+      admin: req.user,
+      module: "EXCHANGE",
+      action: "UPDATE",
+      targetId: order._id,
+      oldData,
+      newData: order.toObject(),
+    });
+
+    await securityAlertService({
+      adminId: req.user._id,
+      type: "SUSPICIOUS_LOGIN",
+      title: "Exchange Updated",
+      message: `${req.user.name} changed exchange status to ${status}`,
+      ipAddress:
+        req.headers["x-forwarded-for"] ||
+        req.socket.remoteAddress,
+    });
+
+    // Email
+    try {
+      const { sendExchangeStatusEmail } = require("../services/notificationService");
+
+      await sendExchangeStatusEmail(order, status);
+    } catch (e) {
+      console.log("Exchange Email Error:", e.message);
+    }
+
+    return res.json({
+      success: true,
+      message: "Exchange updated successfully",
+      order,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+exports.requestReturn = async (req, res) => {
+  const { reason, comment } = req.body;
+
+  const order = await Order.findOne({
+    _id: req.params.id,
+    userId: req.user._id,
+  });
+
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: "Order not found",
+    });
+  }
+
+  if (order.orderStatus !== "Delivered") {
+    return res.status(400).json({
+      success: false,
+      message: "Return allowed only after delivery",
+    });
+  }
+
+  order.returnRequest.status = "Requested";
+  order.returnRequest.reason = reason;
+  order.returnRequest.comment = comment;
+  order.returnRequest.requestedAt = new Date();
+
+  await order.save();
+
+  res.json({
+    success: true,
+    message: "Return request submitted",
+  });
+};
+
+exports.adminUpdateReturn = async (req, res) => {
+  const { status } = req.body;
+
+  const order = await Order.findById(req.params.id);
+
+  if (!order) {
+    return res.status(404).json({
+      success: false,
+      message: "Order not found",
+    });
+  }
+
+  order.returnRequest.status = status;
+
+  if (status === "Approved") {
+    order.returnRequest.approvedAt = new Date();
+  }
+
+  if (status === "Picked Up") {
+    order.returnRequest.pickupAt = new Date();
+
+    if (
+      order.payment.method === "RAZORPAY" &&
+      order.payment.status === "Paid"
+    ) {
+      order.refund.status = "Not Requested";
+    }
+  }
+
+  await order.save();
+
+  res.json({
+    success: true,
+    message: "Return updated",
+  });
 };

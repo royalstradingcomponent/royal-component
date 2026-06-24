@@ -183,13 +183,16 @@ export default function CheckoutOrderDetailPage() {
     country: "India",
   });
   const [addressLoading, setAddressLoading] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentFile, setPaymentFile] = useState(null);
-  const [paymentUtr, setPaymentUtr] = useState("");
-  const [paymentNote, setPaymentNote] = useState("");
+
+
 
   const [showRefundModal, setShowRefundModal] = useState(false);
+
+  const [showExchangeModal, setShowExchangeModal] =
+    useState(false);
+
+  const [exchangeReason, setExchangeReason] =
+    useState("");
   const [refundLoading, setRefundLoading] = useState(false);
 
   useEffect(() => {
@@ -293,19 +296,71 @@ export default function CheckoutOrderDetailPage() {
     order?.payment?.method || order?.paymentMethod || "bank-transfer";
 
   const paymentStatus = order?.payment?.status || "Pending";
-  const canUploadPaymentProof = ["Pending", "Failed"].includes(paymentStatus);
+
 
   const refundStatus = order?.refund?.status || "Not Requested";
 
-  const canRequestRefund = (() => {
-    const status = String(getStatus(order)).toLowerCase();
-    const refund = String(refundStatus).toLowerCase();
+  const orderStatus =
+    String(getStatus(order)).toLowerCase();
 
-    return (
-      (status.includes("delivered") || status.includes("cancel")) &&
-      !["requested", "approved", "processing", "refunded"].includes(refund)
+  const canCancel =
+    [
+      "order placed",
+      "processing",
+      "packed",
+    ].includes(orderStatus);
+
+  const canReturnExchange = true;
+  orderStatus === "delivered" &&
+    (!order?.returnRequest?.status ||
+      order?.returnRequest?.status === "Not Requested") &&
+    (!order?.exchange?.status ||
+      order?.exchange?.status === "Not Requested");
+
+  const canRequestRefund =
+    orderStatus === "cancelled" &&
+    paymentStatus === "Paid" &&
+    refundStatus === "Not Requested";
+
+  console.log({
+    orderStatus,
+    paymentStatus,
+    refundStatus,
+    canCancel,
+    canReturnExchange,
+    canRequestRefund,
+  });
+
+  const handleExchangeRequest = async () => {
+
+    const user = JSON.parse(
+      localStorage.getItem("user") || "{}"
     );
-  })();
+
+    const token = user?.token;
+
+    const res = await fetch(
+      `${API_BASE}/api/orders/exchange/${id}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reason: exchangeReason,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+      toast.success("Exchange request submitted");
+      loadOrder();
+    }
+  };
+
   const handleStartOrderChat = async () => {
     try {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -478,54 +533,6 @@ export default function CheckoutOrderDetailPage() {
     }
   };
 
-  const handlePaymentProofSubmit = async () => {
-    if (!paymentUtr.trim() && !paymentFile) {
-      toast.error("Please upload screenshot or enter UTR / transaction ID");
-      return;
-    }
-
-    try {
-      setPaymentLoading(true);
-
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const token = user?.token;
-
-      if (!token) {
-        toast.error("Please login again");
-        return;
-      }
-
-      const formData = new FormData();
-      if (paymentFile) formData.append("image", paymentFile);
-      formData.append("utr", paymentUtr);
-      formData.append("note", paymentNote);
-
-      const res = await fetch(`${API_BASE}/api/orders/payment-proof/${id}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || data?.success === false) {
-        throw new Error(data?.message || "Payment proof submit failed");
-      }
-
-      toast.success("Payment proof submitted successfully");
-      setShowPaymentModal(false);
-      setPaymentFile(null);
-      setPaymentUtr("");
-      setPaymentNote("");
-      await loadOrder();
-    } catch (error) {
-      toast.error(error.message || "Payment proof submit failed");
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
 
   const handleUpdateAddress = async () => {
     if (
@@ -641,8 +648,8 @@ export default function CheckoutOrderDetailPage() {
 
         <section className="mb-6 overflow-hidden rounded-[28px] border border-[#dbe5f0] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
           <div className="bg-gradient-to-r from-[#eaf4ff] via-[#f8fbff] to-[#edf7ff] px-6 py-8 md:px-9">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-center gap-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              <div className="flex flex-1 items-center gap-8">
                 <div className="flex h-[380px] w-[380px] items-center justify-center overflow-hidden rounded-[24px] border border-[#dbe5f0] bg-white p-8 shadow-sm">
                   {heroImage ? (
                     <img
@@ -686,49 +693,151 @@ export default function CheckoutOrderDetailPage() {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-[#dbe5f0] bg-white p-5 shadow-sm">
-                <p className="text-sm font-bold text-[#607287]">Item Total</p>
+              <div
+                className="w-full max-w-[420px] rounded-[20px] border border-[#dbe5f0] bg-white p-4 shadow-md"
+              >
+                <div className="rounded-[20px] border border-[#dbe5f0] bg-gradient-to-r from-[#f8fbff] to-[#eef6ff] p-4 shadow-sm">
 
-                <p className="mt-1 text-3xl font-black text-[#102033]">
-                  {formatCurrency(selectedItemSubtotal)}
-                </p>
+                  <p className="text-sm font-bold uppercase tracking-wider text-[#64748b]">
+                    Item Total
+                  </p>
 
-                <div className="mt-3 rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-[#0284c7]">
-                    Payment Status
-                  </p>
-                  <p className="mt-1 text-lg font-black text-[#102033]">
-                    {paymentStatus}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Method: {formatPaymentMethod(paymentMethod)}
-                  </p>
+                  <div className="mt-3 flex items-end justify-between">
+
+                    <div>
+                      <p className="text-[34px] leading-none font-black text-[#102033]">
+                        {formatCurrency(itemTotal)}
+                      </p>
+
+                      <p className="mt-2 text-sm text-[#64748b]">
+                        Total amount paid for this item
+                      </p>
+                    </div>
+
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2454b5]/10">
+                      <ReceiptText
+                        size={22}
+                        className="text-[#2454b5]"
+                      />
+                    </div>
+
+                  </div>
+
                 </div>
 
-                {canUploadPaymentProof ? (
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="mt-3 inline-flex h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] px-4 font-extrabold text-white transition hover:bg-[#0369a1]"
-                  >
-                    <UploadCloud size={17} />
-                    Upload Payment Proof
-                  </button>
-                ) : null}
+                <div className="my-3 h-[1px] bg-[#e5edf5]" />
 
-                {orderCanCancel ? (
-                  <button
-                    onClick={() => setShowCancelModal(true)}
-                    className="mt-4 inline-flex h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#ef4444] bg-white px-4 font-extrabold text-[#ef4444] transition hover:bg-[#fff1f1]"
-                  >
-                    <Ban size={17} />
+                <div className="space-y-2.5">
+
+                  {/* ORDER STATUS */}
+                  <div className="flex items-center gap-4 rounded-2xl border border-green-200 bg-green-50 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                      <Truck size={28} className="text-green-600" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-bold text-slate-500">
+                        Order Status
+                      </p>
+
+                      <p className="text-3xl font-black text-green-600">
+                        {heroItem?.itemStatus || getStatus(order)}
+                      </p>
+
+                      <p className="text-sm text-slate-500">
+                        Ordered on {formatDate(order?.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* PAYMENT */}
+                  <div className="flex items-center gap-4 rounded-3xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                      <CreditCard size={28} className="text-blue-600" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-bold text-slate-500">
+                        Payment Method
+                      </p>
+
+                      <p className="text-2xl font-black text-[#102033]">
+                        {formatPaymentMethod(paymentMethod)}
+                      </p>
+
+                      <p className="text-sm">
+                        Payment Status :
+                        <span className="ml-1 font-bold text-green-600">
+                          {paymentStatus}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+                {canCancel ? (
+                  <button>
                     Cancel Order
                   </button>
                 ) : null}
 
+
+
+                {canRequestRefund ? (
+                  <button>
+                    Request Refund
+                  </button>
+                ) : null}
+
+                {order?.exchange?.status &&
+                  order?.exchange?.status !== "Not Requested" ? (
+                  <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 p-3">
+                    <p className="text-xs font-bold text-orange-600">
+                      Exchange Status
+                    </p>
+
+                    <p className="font-black text-[#102033]">
+                      {order.exchange.status}
+                    </p>
+                  </div>
+                ) : null}
+
+                {canReturnExchange && (
+                  <button
+                    onClick={() => setShowExchangeModal(true)}
+                    className="mt-5 flex h-[48px] w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-lg font-black text-white shadow-lg transition hover:scale-[1.02]"
+                  >
+                    <RefreshCcw size={22} />
+                    Return & Exchange
+                  </button>
+
+
+                )}
+
+                <div className="mt-3 space-y-2">
+
+                  <button
+                    onClick={handleStartOrderChat}
+                    className="flex h-[48px] w-full items-center justify-center gap-3 rounded-2xl border border-red-300 bg-white text-base font-black text-red-500 transition hover:bg-red-50"
+                  >
+                    <CircleHelp size={22} />
+                    Need Help?
+                  </button>
+
+                  <a
+                    href="tel:+919871147666"
+                    className="flex h-[48px] w-full items-center justify-center gap-3 rounded-2xl border border-[#2454b5] bg-white text-base font-black text-[#2454b5] transition hover:bg-[#eaf3ff]"
+                  >
+                    <Phone size={22} />
+                    Contact Support
+                  </a>
+
+                </div>
+
                 {canRequestRefund ? (
                   <button
                     onClick={() => setShowRefundModal(true)}
-                    className="mt-3 inline-flex h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#0284c7] px-4 font-extrabold text-white transition hover:bg-[#0369a1]"
+                    className="mt-3 inline-flex h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 font-extrabold text-white hover:bg-green-700"
                   >
                     <RefreshCcw size={17} />
                     Request Refund
@@ -754,9 +863,9 @@ export default function CheckoutOrderDetailPage() {
           </div>
         </section>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-          <div className="space-y-6">
-            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm md:p-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-4 shadow-sm md:p-6">
               <div className="mb-6 flex items-center gap-3">
                 <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
                   <Truck size={24} />
@@ -819,7 +928,7 @@ export default function CheckoutOrderDetailPage() {
               ) : null}
             </section>
 
-            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm md:p-6">
+            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-4 shadow-sm md:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
                   <ClipboardList size={24} />
@@ -839,7 +948,7 @@ export default function CheckoutOrderDetailPage() {
                   Item details are not available.
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {items.map((item, index) => {
                     const image = getItemImage(item);
                     const qty = item?.quantity || item?.qty || 1;
@@ -972,7 +1081,7 @@ export default function CheckoutOrderDetailPage() {
             </section>
           </div>
 
-          <aside className="space-y-5 lg:sticky lg:top-4 lg:self-start">
+          <aside className="space-y-5 lg:col-span-1">
             <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm">
               <h2 className="mb-5 text-2xl font-black text-[#102033]">
                 Buyer Details
@@ -1119,109 +1228,6 @@ export default function CheckoutOrderDetailPage() {
         </div>
       </main>
 
-      {showPaymentModal ? (
-        <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
-          <div className="my-8 w-full max-w-[620px] rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
-              <div>
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#e0f5ff] text-[#0284c7]">
-                  <UploadCloud size={24} />
-                </div>
-
-                <h2 className="text-2xl font-black text-[#102033]">
-                  Upload Payment Proof
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-[#607287]">
-                  Payment karne ke baad UTR / transaction ID ya payment
-                  screenshot upload karein. Admin verify karne ke baad payment
-                  status Paid ho jayega.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowPaymentModal(false)}
-                className="rounded-full bg-[#f3f7fb] p-2 text-[#607287]"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4">
-                <p className="text-sm font-black text-[#102033]">
-                  Order Amount: {formatCurrency(getTotal(order))}
-                </p>
-                <p className="mt-1 text-sm text-[#075985]">
-                  Method: {formatPaymentMethod(paymentMethod)}
-                </p>
-              </div>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-black text-[#102033]">
-                  Payment Screenshot
-                </span>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
-                  className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-bold outline-none focus:border-[#0284c7]"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-black text-[#102033]">
-                  UTR / Transaction ID
-                </span>
-                <input
-                  value={paymentUtr}
-                  onChange={(e) => setPaymentUtr(e.target.value)}
-                  placeholder="Enter UTR / transaction reference"
-                  className="h-12 w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 font-bold outline-none focus:border-[#0284c7]"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-2 block text-sm font-black text-[#102033]">
-                  Payment Note
-                </span>
-                <textarea
-                  rows={4}
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder="Example: Paid from SBI UPI at 11:30 AM"
-                  className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0284c7]"
-                />
-              </label>
-
-              <div className="rounded-2xl border border-[#bae6fd] bg-[#f0f9ff] p-4 text-sm leading-7 text-[#075985]">
-                Proof submit hone ke baad payment status “Awaiting Verification”
-                ho jayega. Royal Component team manually verify karegi.
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPaymentModal(false)}
-                  className="h-[50px] flex-1 rounded-xl border border-[#dbe5f0] bg-white font-black text-[#334155]"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handlePaymentProofSubmit}
-                  disabled={paymentLoading}
-                  className="h-[50px] flex-1 rounded-xl bg-[#0284c7] font-black text-white hover:bg-[#0369a1] disabled:opacity-60"
-                >
-                  {paymentLoading ? "Submitting..." : "Submit Proof"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {showRefundModal ? (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
@@ -1250,7 +1256,7 @@ export default function CheckoutOrderDetailPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               <select
                 value={refundForm.reason}
                 onChange={(e) =>
@@ -1435,6 +1441,120 @@ export default function CheckoutOrderDetailPage() {
                 {refundLoading ? "Submitting..." : "Submit Refund"}
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showExchangeModal ? (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[rgba(15,23,42,0.45)] px-4 backdrop-blur-sm">
+        <div className="my-8 w-full max-w-[560px] rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
+
+              <div>
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                  <RefreshCcw size={24} />
+                </div>
+
+                <h2 className="text-[28px] font-black text-[#102033]">
+                  Exchange Request
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-[#64748b]">
+                  Submit a request if you received a damaged item, incorrect product,
+                  manufacturing defect, or a product that does not match the ordered specifications.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowExchangeModal(false)}
+                className="rounded-full bg-[#f3f7fb] p-2 text-[#607287]"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            <div className="space-y-5">
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[#102033]">
+                  Exchange Reason *
+                </label>
+
+                <select
+                  value={exchangeReason}
+                  onChange={(e) => setExchangeReason(e.target.value)}
+                  className="h-14 w-full rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] px-4 text-[15px] font-semibold text-[#102033] outline-none focus:border-orange-500"
+                >
+                  <option value="">Select Exchange Reason</option>
+
+                  <option value="Wrong Product Delivered">
+                    Wrong Product Delivered
+                  </option>
+
+                  <option value="Damaged Product">
+                    Damaged Product
+                  </option>
+
+                  <option value="Defective Product">
+                    Defective Product
+                  </option>
+
+                  <option value="Received Different Specification">
+                    Received Different Specification
+                  </option>
+
+                  <option value="Other">
+                    Other
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-bold text-[#102033]">
+                  Additional Details
+                </label>
+
+                <textarea
+                  rows={4}
+                  placeholder="Provide additional details about the issue (optional)"
+                  value={cancelComment}
+                  onChange={(e) => setCancelComment(e.target.value)}
+                  className="w-full rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] px-4 py-3 text-sm outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <p className="text-sm font-semibold text-blue-800">
+                  Your request will be reviewed by our support team.
+                </p>
+
+                <p className="mt-1 text-sm text-blue-700">
+                  Once approved, replacement instructions and shipment updates will be shared with you.
+                </p>
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowExchangeModal(false)}
+                  className="h-[52px] flex-1 rounded-xl border border-[#dbe5f0] bg-white font-black text-[#334155]"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!exchangeReason}
+                  onClick={handleExchangeRequest}
+                  className="h-[52px] flex-1 rounded-xl bg-[#2454b5] font-black text-white hover:bg-[#1e4695] disabled:opacity-50"                >
+                  Submit Exchange Request
+                </button>
+              </div>
+
+            </div>
+
           </div>
         </div>
       ) : null}

@@ -23,6 +23,12 @@ const {
   getRevenueAnalytics,
   createRazorpayOrder,
   verifyRazorpayPayment,
+
+  requestExchange,
+adminUpdateExchange,
+requestReturn,
+adminUpdateReturn,
+
 } = require("../controllers/orderController");
 
 const { protect, admin } = require("../middleware/authMiddleware");
@@ -55,6 +61,32 @@ router.get(
 router.put("/update-address/:id", protect, updateOrderAddress);
 router.put("/update-phone/:id", protect, updateOrderPhone);
 router.put("/update-payment/:id", protect, updatePayment);
+
+router.post(
+  "/exchange/:id",
+  protect,
+  requestExchange
+);
+
+router.put(
+  "/admin/exchange/:id",
+  protect,
+  admin,
+  adminUpdateExchange
+);
+
+router.post(
+  "/return/:id",
+  protect,
+  requestReturn
+);
+
+router.put(
+  "/admin/return/:id",
+  protect,
+  admin,
+  adminUpdateReturn
+);
 
 router.get("/:id", protect, getOrderById);
 

@@ -93,9 +93,23 @@ export default function CheckoutPaymentPage() {
           country: "India",
         },
 
-        paymentMethod: "razorpay",
+        paymentMethod: form.paymentMethod,
         note: form.note,
       });
+
+      if (form.paymentMethod === "cod") {
+
+        await fetchCart();
+
+        toast.success("Order Placed Successfully");
+
+        router.push(
+          `/checkout/success/${orderData.order._id}`
+        );
+
+        return;
+      }
+
       if (!window.Razorpay) {
         toast.error("Razorpay SDK not loaded");
         return;
@@ -265,7 +279,9 @@ export default function CheckoutPaymentPage() {
             >
               {actionLoading
                 ? "Processing..."
-                : "Pay Now"}
+                : form.paymentMethod === "cod"
+                  ? "Place COD Order"
+                  : "Pay Now"}
             </button>
           </div>
 

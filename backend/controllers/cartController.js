@@ -81,6 +81,8 @@ const formatCartItem = (item, liveProduct) => {
 };
 
 exports.getCart = async (req, res) => {
+
+  console.log("🔥 GET CART HIT");
   try {
     const cart = await Cart.findOne({ user: req.user._id }).populate(
       "items.product",
@@ -116,16 +118,18 @@ exports.getCart = async (req, res) => {
     );
 
 
-    // let shipping = 0;
+    let shipping = 0;
 
-    const shipping = 0;
 
-    // 🔥 DELIVERY RULE
-    // if (subtotalExGst < 5000) {
-    //   shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
-    // } else {
-    //   shipping = 0;
-    // }
+
+
+    if (subtotalExGst < 5000) {
+      shipping = 150; // 👈 tum change kar sakti ho (₹100 / ₹200)
+    } else {
+      shipping = 0;
+    }
+    console.log("SUBTOTAL =", subtotalExGst);
+    console.log("SHIPPING =", shipping);
     const itemCount = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
 
     const discount = cart.coupon?.isApplied
@@ -145,12 +149,12 @@ exports.getCart = async (req, res) => {
         discount,
         grandTotal,
 
-        deliveryMessage: "FREE delivery",
 
-        // deliveryMessage:
-        //   subtotalExGst >= 5000
-        //     ? "FREE delivery"
-        //     : "₹150 delivery charge (Free above ₹5000)",
+
+        deliveryMessage:
+          subtotalExGst >= 5000
+            ? "FREE delivery"
+            : "₹150 delivery charge (Free above ₹5000)",
         coupon: cart.coupon || null,
       },
     });
@@ -204,19 +208,19 @@ exports.addItemToCart = async (req, res) => {
     );
 
     const requestedQty = existingItem
-  ? existingItem.qty + Math.max(1, toNumber(qty, 1))
-  : Math.max(1, toNumber(qty, 1));
+      ? existingItem.qty + Math.max(1, toNumber(qty, 1))
+      : Math.max(1, toNumber(qty, 1));
 
-if (
-  !product.allowBackorder &&
-  requestedQty > Number(product.stock || 0)
-) {
-  return res.status(400).json({
-    success: false,
-    availableStock: Number(product.stock || 0),
-    message: `Only ${product.stock} pcs available in stock.`
-  });
-}
+    if (
+      !product.allowBackorder &&
+      requestedQty > Number(product.stock || 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        availableStock: Number(product.stock || 0),
+        message: `Only ${product.stock} pcs available in stock.`
+      });
+    }
 
     if (existingItem) {
       existingItem.qty += Math.max(1, toNumber(qty, 1));
@@ -225,15 +229,15 @@ if (
     }
 
     cart.coupon = {
-  couponId: null,
-  code: "",
-  title: "",
-  discountType: "",
-  discountValue: 0,
-  discountAmount: 0,
-  isApplied: false,
-  appliedAt: null,
-};
+      couponId: null,
+      code: "",
+      title: "",
+      discountType: "",
+      discountValue: 0,
+      discountAmount: 0,
+      isApplied: false,
+      appliedAt: null,
+    };
 
     await cart.save();
 
@@ -340,30 +344,30 @@ exports.updateQty = async (req, res) => {
 
     const product = await Product.findById(item.product);
 
-if (
-  product &&
-  !product.allowBackorder &&
-  qty > Number(product.stock || 0)
-) {
-  return res.status(400).json({
-    success: false,
-    availableStock: Number(product.stock || 0),
-    message: `Only ${product.stock} pcs available in stock.`
-  });
-}
+    if (
+      product &&
+      !product.allowBackorder &&
+      qty > Number(product.stock || 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        availableStock: Number(product.stock || 0),
+        message: `Only ${product.stock} pcs available in stock.`
+      });
+    }
 
     item.qty = qty;
 
     cart.coupon = {
-  couponId: null,
-  code: "",
-  title: "",
-  discountType: "",
-  discountValue: 0,
-  discountAmount: 0,
-  isApplied: false,
-  appliedAt: null,
-};
+      couponId: null,
+      code: "",
+      title: "",
+      discountType: "",
+      discountValue: 0,
+      discountAmount: 0,
+      isApplied: false,
+      appliedAt: null,
+    };
 
     await cart.save();
 
@@ -397,15 +401,15 @@ exports.deleteItemFromCart = async (req, res) => {
 
 
     cart.coupon = {
-  couponId: null,
-  code: "",
-  title: "",
-  discountType: "",
-  discountValue: 0,
-  discountAmount: 0,
-  isApplied: false,
-  appliedAt: null,
-};
+      couponId: null,
+      code: "",
+      title: "",
+      discountType: "",
+      discountValue: 0,
+      discountAmount: 0,
+      isApplied: false,
+      appliedAt: null,
+    };
     await cart.save();
 
     return res.status(200).json({
@@ -435,15 +439,15 @@ exports.clearCart = async (req, res) => {
     cart.items = [];
 
     cart.coupon = {
-  couponId: null,
-  code: "",
-  title: "",
-  discountType: "",
-  discountValue: 0,
-  discountAmount: 0,
-  isApplied: false,
-  appliedAt: null,
-};
+      couponId: null,
+      code: "",
+      title: "",
+      discountType: "",
+      discountValue: 0,
+      discountAmount: 0,
+      isApplied: false,
+      appliedAt: null,
+    };
     await cart.save();
 
     return res.status(200).json({
