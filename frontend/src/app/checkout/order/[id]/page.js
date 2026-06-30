@@ -1335,159 +1335,9 @@ export default function CheckoutOrderDetailPage() {
               </section>
             )}
 
-            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-4 shadow-sm md:p-6">
-              <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
-                  <ClipboardList size={24} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-[#102033]">
-                    Items in this order
-                  </h2>
-                  <p className="text-sm text-[#607287]">
-                    {items.length} product(s) included in this order.
-                  </p>
-                </div>
-              </div>
 
 
 
-              {items.length === 0 ? (
-                <p className="text-[#607287]">
-                  Item details are not available.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {items.map((item, index) => {
-                    const image = getItemImage(item);
-                    const qty = item?.quantity || item?.qty || 1;
-
-                    const price =
-                      item?.lineTotal ||
-                      item?.total ||
-                      item?.lineSubtotal ||
-                      item?.price ||
-                      item?.sellingPrice ||
-                      0;
-
-                    return (
-                      <div
-                        key={item?._id || item?.id || index}
-                        className="grid gap-6 rounded-2xl border border-[#dbe5f0] bg-[#fbfdff] p-6 transition hover:border-[#bcd5f5] hover:bg-white md:grid-cols-[180px_1fr_180px]"
-                      >
-                        <div className="flex h-[80px] w-[80px] items-center justify-center rounded-2xl bg-[#eaf3ff]">
-                          <Boxes className="text-[#2454b5]" size={40} />
-                        </div>
-
-                        <div>
-                          <h3 className="text-3xl font-black text-[#102033] leading-tight">
-                            {getItemName(item)}
-                          </h3>
-
-                          <div className="mt-2 flex flex-wrap gap-2 text-sm text-[#607287]">
-                            {item?.brand ? (
-                              <span>Brand: {item.brand}</span>
-                            ) : null}
-                            {item?.sku ? <span>SKU: {item.sku}</span> : null}
-                            {item?.mpn ? <span>MPN: {item.mpn}</span> : null}
-                            <span>Qty: {qty}</span>
-                          </div>
-
-                          <p
-                            className={`mt-3 w-fit rounded-full px-3 py-1 text-sm font-extrabold
-                              ${item?.itemStatus === "Cancelled"
-                                ? "bg-red-100 text-red-600"
-                                : item?.itemStatus === "Delivered"
-                                  ? "bg-green-100 text-green-600"
-                                  : "bg-blue-100 text-blue-600"
-                              }`}
-                          >
-                            {item?.itemStatus || getStatus(order)}
-                          </p>
-                        </div>
-
-                        <div className="text-left md:text-right">
-                          <p className="text-sm font-bold text-[#607287]">
-                            Line Total
-                          </p>
-                          <p className="mt-1 text-2xl font-black text-[#102033]">
-                            {formatCurrency(price)}
-                          </p>
-
-                          <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                            <button className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white">
-                              Track Item
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm md:p-6">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <h2 className="text-2xl font-black text-[#102033]">
-                    Need help with this order?
-                  </h2>
-                  <p className="mt-2 max-w-3xl text-[#607287]">
-                    Ask about dispatch timeline, GST invoice, alternate part,
-                    bulk quotation, delivery update or product technical
-                    details.
-                  </p>
-                </div>
-
-                <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-[420px]">
-                  <button
-                    type="button"
-                    onClick={handleStartOrderChat}
-                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-5 font-black text-white shadow-sm hover:bg-[#1e4695]"
-                  >
-                    <MessageCircle size={18} />
-                    Chat Support
-                  </button>
-
-                  <a
-                    href="tel:+919871147666"
-                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white px-5 font-black text-[#2454b5] hover:bg-[#eaf3ff]"
-                  >
-                    <Phone size={18} />
-                    Call Support
-                  </a>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
-                  <CircleHelp className="mb-3 text-[#2454b5]" size={26} />
-                  <p className="font-extrabold text-[#102033]">Order Support</p>
-                  <p className="mt-1 text-sm text-[#607287]">
-                    Dispatch, delivery and tracking help.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
-                  <ShieldCheck className="mb-3 text-[#2454b5]" size={26} />
-                  <p className="font-extrabold text-[#102033]">GST Invoice</p>
-                  <p className="mt-1 text-sm text-[#607287]">
-                    Business billing and tax invoice support.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
-                  <Clock3 className="mb-3 text-[#2454b5]" size={26} />
-                  <p className="font-extrabold text-[#102033]">
-                    Procurement Timeline
-                  </p>
-                  <p className="mt-1 text-sm text-[#607287]">
-                    Stock verification and dispatch confirmation.
-                  </p>
-                </div>
-              </div>
-            </section>
           </div>
 
 
@@ -1615,6 +1465,160 @@ export default function CheckoutOrderDetailPage() {
                   <PackageCheck className="shrink-0 text-[#2454b5]" size={20} />
                   {getStatus(order)}
                 </p>
+              </div>
+            </section>
+
+            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-4 shadow-sm md:p-6">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
+                  <ClipboardList size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-[#102033]">
+                    Items in this order
+                  </h2>
+                  <p className="text-sm text-[#607287]">
+                    {items.length} product(s) included in this order.
+                  </p>
+                </div>
+              </div>
+
+
+
+              {items.length === 0 ? (
+                <p className="text-[#607287]">
+                  Item details are not available.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {items.map((item, index) => {
+                    const image = getItemImage(item);
+                    const qty = item?.quantity || item?.qty || 1;
+
+                    const price =
+                      item?.lineTotal ||
+                      item?.total ||
+                      item?.lineSubtotal ||
+                      item?.price ||
+                      item?.sellingPrice ||
+                      0;
+
+                    return (
+                      <div
+                        key={item?._id || item?.id || index}
+                        className="grid grid-cols-1 gap-5 rounded-2xl border border-[#dbe5f0] bg-[#fbfdff] p-5 transition hover:border-[#bcd5f5] hover:bg-white lg:grid-cols-[90px_minmax(0,1fr)]"                      >
+                        <div className="flex h-[80px] w-[80px] items-center justify-center rounded-2xl bg-[#eaf3ff]">
+                          <Boxes className="text-[#2454b5]" size={40} />
+                        </div>
+
+                        <div>
+                         <h3 className="break-words text-xl font-black leading-tight text-[#102033] lg:text-2xl">
+                            {getItemName(item)}
+                          </h3>
+
+                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#607287] break-all">
+                            {item?.brand ? (
+                              <span>Brand: {item.brand}</span>
+                            ) : null}
+                            {item?.sku ? <span>SKU: {item.sku}</span> : null}
+                            {item?.mpn ? <span>MPN: {item.mpn}</span> : null}
+                            <span>Qty: {qty}</span>
+                          </div>
+
+                          <p
+                            className={`mt-3 w-fit rounded-full px-3 py-1 text-sm font-extrabold
+                              ${item?.itemStatus === "Cancelled"
+                                ? "bg-red-100 text-red-600"
+                                : item?.itemStatus === "Delivered"
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-blue-100 text-blue-600"
+                              }`}
+                          >
+                            {item?.itemStatus || getStatus(order)}
+                          </p>
+                        </div>
+
+                       <div className="mt-3 flex items-center justify-between border-t border-[#e5edf5] pt-3 lg:mt-0 lg:block lg:border-0 lg:pt-0">
+                          <p className="text-sm font-bold text-[#607287]">
+                            Line Total
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-[#102033]">
+                            {formatCurrency(price)}
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap gap-2 justify-end">
+                            <button className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-bold text-white">
+                              Track Item
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+
+            <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm md:p-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-[#102033]">
+                    Need help with this order?
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-[#607287]">
+                    Ask about dispatch timeline, GST invoice, alternate part,
+                    bulk quotation, delivery update or product technical
+                    details.
+                  </p>
+                </div>
+
+                <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-[420px]">
+                  <button
+                    type="button"
+                    onClick={handleStartOrderChat}
+                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-5 font-black text-white shadow-sm hover:bg-[#1e4695]"
+                  >
+                    <MessageCircle size={18} />
+                    Chat Support
+                  </button>
+
+                  <a
+                    href="tel:+919871147666"
+                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white px-5 font-black text-[#2454b5] hover:bg-[#eaf3ff]"
+                  >
+                    <Phone size={18} />
+                    Call Support
+                  </a>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
+                  <CircleHelp className="mb-3 text-[#2454b5]" size={26} />
+                  <p className="font-extrabold text-[#102033]">Order Support</p>
+                  <p className="mt-1 text-sm text-[#607287]">
+                    Dispatch, delivery and tracking help.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
+                  <ShieldCheck className="mb-3 text-[#2454b5]" size={26} />
+                  <p className="font-extrabold text-[#102033]">GST Invoice</p>
+                  <p className="mt-1 text-sm text-[#607287]">
+                    Business billing and tax invoice support.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#e0eaf5] bg-[#f8fbff] p-5">
+                  <Clock3 className="mb-3 text-[#2454b5]" size={26} />
+                  <p className="font-extrabold text-[#102033]">
+                    Procurement Timeline
+                  </p>
+                  <p className="mt-1 text-sm text-[#607287]">
+                    Stock verification and dispatch confirmation.
+                  </p>
+                </div>
               </div>
             </section>
 
