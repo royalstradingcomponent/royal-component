@@ -20,13 +20,54 @@ import { adminRequest } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 
 const statuses = [
-  "Order Placed",
-  "Processing",
-  "Packed",
-  "Shipped",
-  "Out for Delivery",
-  "Delivered",
-  "Cancelled",
+  {
+    label: "ORDER STATUS",
+    options: [
+      "Order Placed",
+      "Processing",
+      "Packed",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+      "Cancelled",
+    ],
+  },
+
+  {
+    label: "RETURN",
+    options: [
+      "Return Requested",
+      "Return Approved",
+      "Return Rejected",
+      "Pickup Scheduled",
+      "Picked Up",
+      "Quality Checking",
+      "Refund Approved",
+      "Return Completed",
+    ],
+  },
+
+  {
+    label: "EXCHANGE",
+    options: [
+      "Exchange Requested",
+      "Exchange Approved",
+      "Exchange Rejected",
+      "Replacement Packed",
+      "Replacement Shipped",
+      "Exchange Completed",
+    ],
+  },
+
+  {
+    label: "REFUND",
+    options: [
+      "Refund Requested",
+      "Refund Approved",
+      "Refund Processing",
+      "Refunded",
+    ],
+  },
 ];
 
 const paymentStatuses = [
@@ -228,22 +269,32 @@ export default function AdminOrdersPage() {
             />
           </div>
 
-          <select
-            value={status}
-            onChange={(e) => {
-              setPage(1);
-              setStatus(e.target.value);
-            }}
-            className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[#2454b5]"
-          >
-            <option value="">All Status</option>
-            <option value="Unfulfilled">Unfulfilled</option>
-            {statuses.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+       <select
+  value={status}
+  onChange={(e) => {
+    setPage(1);
+    setStatus(e.target.value);
+  }}
+  className="rounded-xl border px-4 py-3 text-sm outline-none focus:border-[#2454b5]"
+>
+  <option value="">All Status</option>
+
+  {statuses.map((group) => (
+    <optgroup
+      key={group.label}
+      label={group.label}
+    >
+      {group.options.map((item) => (
+        <option
+          key={item}
+          value={item}
+        >
+          {item}
+        </option>
+      ))}
+    </optgroup>
+  ))}
+</select>
         </div>
       </div>
 
@@ -264,11 +315,10 @@ export default function AdminOrdersPage() {
               return (
                 <div
                   key={rowKey}
-                  className={`rounded-[28px] border border-[#dbe5f0] bg-[#ffffff] p-6 shadow-[0_12px_40px_rgba(2,6,23,0.08)] transition-all hover:shadow-[0_10px_40px_rgba(15,23,42,0.08)] ${
-                    hasChanges
-                      ? "border-blue-300 ring-2 ring-blue-100"
-                      : "border-slate-200"
-                  }`}
+                  className={`rounded-[28px] border border-[#dbe5f0] bg-[#ffffff] p-6 shadow-[0_12px_40px_rgba(2,6,23,0.08)] transition-all hover:shadow-[0_10px_40px_rgba(15,23,42,0.08)] ${hasChanges
+                    ? "border-blue-300 ring-2 ring-blue-100"
+                    : "border-slate-200"
+                    }`}
                 >
                   {/* TOP */}
                   <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -475,6 +525,60 @@ export default function AdminOrdersPage() {
                           Order Status
                         </p>
 
+                        <div className="mt-4 space-y-2">
+
+                          {order.returnRequest?.status &&
+                            order.returnRequest.status !== "Not Requested" && (
+                              <div className="flex items-center justify-between rounded-xl bg-orange-50 border border-orange-200 px-3 py-2">
+                                <span className="text-xs font-bold text-orange-700">
+                                  Return Request
+                                </span>
+
+                                <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white">
+                                  {order.returnRequest.status}
+                                </span>
+                              </div>
+                            )}
+
+                          {order.exchange?.status &&
+                            order.exchange.status !== "Not Requested" && (
+                              <div className="flex items-center justify-between rounded-xl bg-blue-50 border border-blue-200 px-3 py-2">
+                                <span className="text-xs font-bold text-blue-700">
+                                  Exchange Request
+                                </span>
+
+                                <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+                                  {order.exchange.status}
+                                </span>
+                              </div>
+                            )}
+
+                          {order.cancellation?.status && (
+                            <div className="flex items-center justify-between rounded-xl bg-red-50 border border-red-200 px-3 py-2">
+                              <span className="text-xs font-bold text-red-700">
+                                Cancellation
+                              </span>
+
+                              <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                                {order.cancellation.status}
+                              </span>
+                            </div>
+                          )}
+
+                          {order.refund?.status && (
+                            <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2">
+                              <span className="text-xs font-bold text-emerald-700">
+                                Refund
+                              </span>
+
+                              <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">
+                                {order.refund.status}
+                              </span>
+                            </div>
+                          )}
+
+                        </div>
+
                         <select
                           value={getValue(order, "status")}
                           onChange={(e) =>
@@ -482,10 +586,20 @@ export default function AdminOrdersPage() {
                           }
                           className="mt-3 w-full rounded-2xl border border-[#c9d5e2] bg-[#ffffff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#2454b5]"
                         >
-                          {statuses.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
+                          {statuses.map((group) => (
+                            <optgroup
+                              key={group.label}
+                              label={group.label}
+                            >
+                              {group.options.map((item) => (
+                                <option
+                                  key={item}
+                                  value={item}
+                                >
+                                  {item}
+                                </option>
+                              ))}
+                            </optgroup>
                           ))}
                         </select>
 

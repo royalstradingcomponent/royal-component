@@ -22,6 +22,7 @@ import {
   ArrowUpRight,
   ChevronRight,
   Truck,
+  RefreshCcw,
 } from "lucide-react";
 
 import CountUp from "react-countup";
@@ -101,6 +102,8 @@ export default function AdminDashboardPage() {
     todayOrders: 0,
     totalProducts: 0,
     totalCustomers: 0,
+    returnRequestCount: 0,
+exchangeRequestCount: 0,
     recentOrders: [],
     recentProducts: [],
     lowStock: [],
@@ -451,6 +454,26 @@ export default function AdminDashboardPage() {
             router.push("/admin/order-status/cancelled")
           }
         />
+
+        <StatCard
+  title="Return Requests"
+  value={stats.returnRequestCount || 0}
+  icon={RefreshCcw}
+  note="Customer return requests"
+  onClick={() =>
+    router.push("/admin/returns")
+  }
+/>
+
+<StatCard
+  title="Exchange Requests"
+  value={stats.exchangeRequestCount || 0}
+  icon={RefreshCcw}
+  note="Customer exchange requests"
+  onClick={() =>
+  router.push("/admin/exchanges")
+}
+/>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

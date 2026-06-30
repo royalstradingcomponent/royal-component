@@ -2,8 +2,9 @@ const Order = require("../models/Order");
 const Cart = require("../models/cart");
 const User = require("../models/User");
 const Product = require("../models/Product");
+const ReturnReason = require("../models/ReturnReason");
 const razorpay = require("../config/razorpay");
-const crypto = require("crypto");
+const path = require("path");
 
 const logAdminActivity = require("../utils/logAdminActivity");
 
@@ -18,6 +19,14 @@ const {
 const PDFDocument = require("pdfkit");
 const SHIPPING_CHARGE = 0;
 const PLATFORM_FEE = 0;
+
+const getUploadUrl = (file) => {
+  if (!file) return "";
+
+  const folder = path.basename(path.dirname(file.path));
+
+  return `/uploads/${folder}/${file.filename}`;
+};
 
 const generateOrderNumber = () => {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -498,14 +507,39 @@ exports.updateOrderStatus = async (req, res) => {
       req.body;
 
     const allowedStatuses = [
-      "Order Placed",
-      "Processing",
-      "Packed",
-      "Shipped",
-      "Out for Delivery",
-      "Delivered",
-      "Cancelled",
-    ];
+  // Order
+  "Order Placed",
+  "Processing",
+  "Packed",
+  "Shipped",
+  "Out for Delivery",
+  "Delivered",
+  "Cancelled",
+
+  // Return
+  "Return Requested",
+  "Return Approved",
+  "Return Rejected",
+  "Pickup Scheduled",
+  "Picked Up",
+  "Quality Checking",
+  "Refund Approved",
+  "Return Completed",
+
+  // Exchange
+  "Exchange Requested",
+  "Exchange Approved",
+  "Exchange Rejected",
+  "Replacement Packed",
+  "Replacement Shipped",
+  "Exchange Completed",
+
+  // Refund
+  "Refund Requested",
+  "Refund Approved",
+  "Refund Processing",
+  "Refunded",
+];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
@@ -597,16 +631,16 @@ exports.updateOrderStatus = async (req, res) => {
     await order.save();
 
     try {
-  await sendOrderStatusNotification(
-    order,
-    status
-  );
-} catch (err) {
-  console.log(
-    "Status Email Error:",
-    err.message
-  );
-}
+      await sendOrderStatusNotification(
+        order,
+        status
+      );
+    } catch (err) {
+      console.log(
+        "Status Email Error:",
+        err.message
+      );
+    }
 
     if (req.user?.role === "admin") {
 
@@ -706,11 +740,11 @@ exports.cancelOrder = async (req, res) => {
     order.cancellation.cancelledAt = new Date();
 
     if (
-  order.payment.method === "RAZORPAY" &&
-  order.payment.status === "Paid"
-) {
-  order.payment.status = "Refund Pending";
-}
+      order.payment.method === "RAZORPAY" &&
+      order.payment.status === "Paid"
+    ) {
+      order.payment.status = "Refund Pending";
+    }
 
     order.products.forEach((item) => {
       item.itemStatus = "Cancelled";
@@ -1101,10 +1135,10 @@ exports.requestRefund = async (req, res) => {
       });
     }
 
-  if (
-  order.orderStatus !== "Cancelled" &&
-  order?.returnRequest?.status !== "Refund Eligible"
-) {
+    if (
+      order.orderStatus !== "Cancelled" &&
+      order?.returnRequest?.status !== "Refund Eligible"
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -1283,16 +1317,16 @@ exports.adminUpdateRefund = async (req, res) => {
     await order.save();
 
     try {
-  await sendOrderStatusNotification(
-    order,
-    `Refund ${status}`
-  );
-} catch (err) {
-  console.log(
-    "Refund Email Error:",
-    err.message
-  );
-}
+      await sendOrderStatusNotification(
+        order,
+        `Refund ${status}`
+      );
+    } catch (err) {
+      console.log(
+        "Refund Email Error:",
+        err.message
+      );
+    }
 
     await logAdminActivity({
       req,
@@ -2651,11 +2685,76 @@ exports.downloadTaxInvoice = async (req, res) => {
   }
 };
 
+const EXCHANGE_ACTIVE_STATUSES = [
+  "Requested",
+  "Approved",
+  "Pickup Scheduled",
+  "Picked Up",
+  "Quality Checking",
+  "Replacement Packed",
+  "Replacement Shipped",
+  "Out for Delivery",
+];
+
+const EXCHANGE_ADMIN_STATUSES = [
+  "Approved",
+  "Rejected",
+  "Pickup Scheduled",
+  "Picked Up",
+  "Quality Checking",
+  "Replacement Packed",
+  "Replacement Shipped",
+  "Out for Delivery",
+  "Completed",
+];
+
+
+const stampExchangeDate = (exchange, status) => {
+  const fieldMap = {
+    Approved: "approvedAt",
+    Rejected: "rejectedAt",
+    "Pickup Scheduled": "pickupScheduledAt",
+    "Picked Up": "pickedUpAt",
+    "Quality Checking": "qualityCheckedAt",
+    "Replacement Packed": "replacementPackedAt",
+    "Replacement Shipped": "replacementShippedAt",
+    "Out for Delivery": "outForDeliveryAt",
+    Completed: "completedAt",
+  };
+
+  if (fieldMap[status]) {
+    exchange[fieldMap[status]] = new Date();
+  }
+};
+
+const makePickupAddress = (order, payload = {}) => ({
+  name: payload.name || order.userInfo?.name || "",
+  phone: payload.phone || order.userInfo?.phone || "",
+  addressLine1: payload.addressLine1 || order.userInfo?.addressLine1 || "",
+  addressLine2: payload.addressLine2 || order.userInfo?.addressLine2 || "",
+  city: payload.city || order.userInfo?.city || "",
+  state: payload.state || order.userInfo?.state || "",
+  pincode: payload.pincode || order.userInfo?.pincode || "",
+  country: payload.country || order.userInfo?.country || "India",
+});
+
+
 exports.requestExchange = async (req, res) => {
   try {
-    const { reason, comment = "" } = req.body;
+    const {
+      itemId,
+      reasonId,
+      reasonTitle,
+      reason,
+      subReason,
+      description = "",
+      comment = "",
+      pickupAddress = {},
+    } = req.body;
 
-    if (!reason) {
+    const finalReasonTitle = reasonTitle || reason || "";
+
+    if (!finalReasonTitle) {
       return res.status(400).json({
         success: false,
         message: "Exchange reason is required",
@@ -2681,57 +2780,72 @@ exports.requestExchange = async (req, res) => {
       });
     }
 
-    if (
-      ["Requested", "Approved", "Replacement Shipped"].includes(
-        order.exchange.status
-      )
-    ) {
+    if (itemId && !order.products.id(itemId)) {
+      return res.status(404).json({
+        success: false,
+        message: "Order item not found",
+      });
+    }
+
+    if (EXCHANGE_ACTIVE_STATUSES.includes(order.exchange?.status)) {
       return res.status(400).json({
         success: false,
         message: "Exchange request already exists",
       });
     }
 
-    order.exchange.status = "Requested";
-    order.exchange.reason = reason;
-    order.exchange.comment = comment;
-    order.exchange.requestedAt = new Date();
+    const photos =
+      req.files?.photos?.map(getUploadUrl) || [];
+
+    const videos =
+      req.files?.videos?.map(getUploadUrl) || [];
+
+    const parsedPickupAddress =
+      typeof pickupAddress === "string"
+        ? JSON.parse(pickupAddress || "{}")
+        : pickupAddress;
+
+    order.exchange = {
+      ...(order.exchange || {}),
+      status: "Requested",
+      itemId: itemId || null,
+      reasonId: reasonId || null,
+      reasonTitle: finalReasonTitle,
+      subReason: subReason || "",
+      description: description || comment || "",
+      comment: comment || description || "",
+      pickupAddress: makePickupAddress(order, parsedPickupAddress),
+      evidence: {
+        photos,
+        videos,
+      },
+      requestedAt: new Date(),
+      history: [
+        ...(order.exchange?.history || []),
+        {
+          status: "Requested",
+          message: `Customer requested exchange: ${finalReasonTitle}`,
+          by: "Customer",
+          date: new Date(),
+        },
+      ],
+    };
 
     order.timeline.push({
       status: "Exchange Requested",
-      message: `Customer requested exchange. Reason: ${reason}`,
+      message: finalReasonTitle,
       time: new Date(),
     });
-
     await order.save();
-
-    try {
-  await sendOrderStatusNotification(
-    order,
-    "Exchange Requested"
-  );
-} catch (err) {
-  console.log(
-    "Exchange Email Error:",
-    err.message
-  );
-}
-
-    // Email
-    try {
-      const { sendExchangeRequestEmail } = require("../services/notificationService");
-
-      await sendExchangeRequestEmail(order);
-    } catch (e) {
-      console.log("Exchange Email Error:", e.message);
-    }
 
     return res.json({
       success: true,
       message: "Exchange request submitted successfully",
-      order,
+      order: serializeOrder(order),
     });
   } catch (err) {
+    console.log("EXCHANGE REQUEST ERROR:", err);
+
     return res.status(500).json({
       success: false,
       message: err.message,
@@ -2740,27 +2854,75 @@ exports.requestExchange = async (req, res) => {
 };
 
 
-exports.adminUpdateExchange = async (req, res) => {
+exports.getAllExchangeRequests = async (req, res) => {
   try {
-    const { status, adminNote = "" } = req.body;
+    const { search = "", status = "" } = req.query;
 
-    const allowedStatuses = [
-      "Approved",
-      "Rejected",
-      "Replacement Shipped",
-      "Completed",
-    ];
+    const filter = {
+      "exchange.status": {
+        $ne: "Not Requested",
+      },
+    };
 
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid exchange status",
-      });
+    if (status && status !== "ALL") {
+      filter["exchange.status"] = status;
     }
 
-    const order = await Order.findById(req.params.id);
+    if (search) {
+      filter.$or = [
+        {
+          orderNumber: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          "userInfo.name": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          "userInfo.phone": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          "exchange.reasonTitle": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          "products.name": {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
 
-    const oldData = JSON.parse(JSON.stringify(order));
+    const orders = await Order.find(filter).sort({
+      "exchange.requestedAt": -1,
+    });
+
+    return res.json({
+      success: true,
+      total: orders.length,
+      requests: orders.map(serializeOrder),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.getExchangeRequestDetails = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({
@@ -2769,84 +2931,152 @@ exports.adminUpdateExchange = async (req, res) => {
       });
     }
 
+    return res.json({
+      success: true,
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.getExchangeRequestDetails = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.adminUpdateExchange = async (req, res) => {
+  try {
+    const {
+      status,
+      adminNote = "",
+      replacementSku = "",
+      replacementProductName = "",
+      pickupShipment = {},
+      replacementShipment = {},
+    } = req.body;
+
+    if (!EXCHANGE_ADMIN_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid exchange status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    const oldData = JSON.parse(JSON.stringify(order));
+
     order.exchange.status = status;
 
-    if (status === "Approved") {
-      order.exchange.approvedAt = new Date();
+    order.exchange.adminReview = {
+      reviewNote: adminNote,
+      reviewedBy: req.user?._id || null,
+      reviewedAt: new Date(),
+    };
+
+    if (replacementSku) {
+      order.exchange.replacementSku = replacementSku;
     }
 
-    if (status === "Completed") {
-      order.exchange.completedAt = new Date();
+    if (replacementProductName) {
+      order.exchange.replacementProductName = replacementProductName;
     }
+
+    order.exchange.pickupShipment = {
+      ...(order.exchange.pickupShipment || {}),
+      ...pickupShipment,
+    };
+
+    order.exchange.replacementShipment = {
+      ...(order.exchange.replacementShipment || {}),
+      ...replacementShipment,
+    };
+
+    stampExchangeDate(order.exchange, status);
+
+    order.exchange.history.push({
+      status,
+      message: adminNote || `Exchange moved to ${status}`,
+      by: "Admin",
+      date: new Date(),
+    });
 
     order.timeline.push({
       status: `Exchange ${status}`,
-      message:
-        adminNote ||
-        `Exchange status changed to ${status}`,
+      message: adminNote || `Exchange status changed to ${status}`,
       time: new Date(),
     });
 
     await order.save();
 
     try {
-  await sendOrderStatusNotification(
-    order,
-    `Exchange ${status}`
-  );
-} catch (err) {
-  console.log(
-    "Exchange Email Error:",
-    err.message
-  );
-}
+      await logAdminActivity({
+        req,
+        admin: req.user,
+        action: "UPDATE",
+        module: "EXCHANGE",
+        targetId: order._id,
+        details: {
+          description: `Exchange changed to ${status}`,
+        },
+      });
+    } catch (err) {
+      console.log("Activity Log Error:", err.message);
+    }
 
-    await logAdminActivity({
-      req,
-      admin: req.user,
-      action: "UPDATE",
-      module: "EXCHANGE",
-      targetId: order._id,
-      details: {
-        description: `Exchange changed to ${status}`,
-      },
-    });
-
-    await auditService({
-      req,
-      admin: req.user,
-      module: "EXCHANGE",
-      action: "UPDATE",
-      targetId: order._id,
-      oldData,
-      newData: order.toObject(),
-    });
-
-    await securityAlertService({
-      adminId: req.user._id,
-      type: "SUSPICIOUS_LOGIN",
-      title: "Exchange Updated",
-      message: `${req.user.name} changed exchange status to ${status}`,
-      ipAddress:
-        req.headers["x-forwarded-for"] ||
-        req.socket.remoteAddress,
-    });
-
-    // Email
     try {
-      const { sendExchangeStatusEmail } = require("../services/notificationService");
-
-      await sendExchangeStatusEmail(order, status);
-    } catch (e) {
-      console.log("Exchange Email Error:", e.message);
+      await auditService({
+        req,
+        admin: req.user,
+        module: "EXCHANGE",
+        action: "UPDATE",
+        targetId: order._id,
+        oldData,
+        newData: order.toObject(),
+      });
+    } catch (err) {
+      console.log("Audit Error:", err.message);
     }
 
     return res.json({
       success: true,
       message: "Exchange updated successfully",
-      order,
+      order: serializeOrder(order),
     });
   } catch (err) {
+    console.log("ADMIN EXCHANGE UPDATE ERROR:", err);
+
     return res.status(500).json({
       success: false,
       message: err.message,
@@ -2854,74 +3084,837 @@ exports.adminUpdateExchange = async (req, res) => {
   }
 };
 
+
+
 exports.requestReturn = async (req, res) => {
-  const { reason, comment } = req.body;
+  try {
+    const {
+      itemId,
+      reasonId,
+      reasonTitle,
+      reason,
+      subReason,
+      description = "",
+      comment = "",
+    } = req.body;
 
-  const order = await Order.findOne({
-    _id: req.params.id,
-    userId: req.user._id,
-  });
+    const finalReasonTitle = reasonTitle || reason || "";
+    const finalDescription = String(description || comment || "").trim();
+    const refundData = parseJsonBodyField(req.body.refundData, {});
+    const refundMethod = String(refundData.refundMethod || "").toUpperCase();
 
-  if (!order) {
-    return res.status(404).json({
+    if (!finalReasonTitle) {
+      return res.status(400).json({
+        success: false,
+        message: "Return reason is required",
+      });
+    }
+
+    if (!subReason) {
+      return res.status(400).json({
+        success: false,
+        message: "Return issue is required",
+      });
+    }
+
+    if (finalDescription.length < 15) {
+      return res.status(400).json({
+        success: false,
+        message: "Please describe the issue in at least 15 characters",
+      });
+    }
+
+    if (!["BANK", "WALLET"].includes(refundMethod)) {
+      return res.status(400).json({
+        success: false,
+        message: "Refund method is required",
+      });
+    }
+
+    if (refundMethod === "BANK") {
+      const bankError = validateBankRefund(refundData);
+
+      if (bankError) {
+        return res.status(400).json({
+          success: false,
+          message: bankError,
+        });
+      }
+    }
+
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.orderStatus !== "Delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Return allowed only for delivered orders",
+      });
+    }
+
+    const item = itemId ? order.products.id(itemId) : order.products[0];
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: "Order item not found",
+      });
+    }
+
+    if (RETURN_ACTIVE_STATUSES.includes(order.returnRequest?.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Return request already exists",
+      });
+    }
+
+    const photos =
+      req.files?.photos?.map(getUploadUrl) || [];
+
+    const videos =
+      req.files?.videos?.map(getUploadUrl) || [];
+
+    if (!photos.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload at least one product image",
+      });
+    }
+
+    const now = new Date();
+
+    order.returnRequest = {
+      ...(order.returnRequest || {}),
+      status: "Requested",
+      itemId: item._id,
+      reasonId: reasonId || null,
+      reasonTitle: finalReasonTitle,
+      subReason: subReason || "",
+      description: finalDescription,
+      comment: finalDescription,
+      evidence: {
+        photos,
+        videos,
+      },
+      refundPreference: {
+        method: refundMethod,
+        accountHolder: refundData.accountHolder || "",
+        bankName: refundData.bankName || "",
+        accountNumber: refundData.accountNumber || "",
+        ifsc: String(refundData.ifsc || "").toUpperCase(),
+        upi: refundData.upi || "",
+        walletStatus: refundMethod === "WALLET" ? "Selected" : "",
+        walletValidityMonths: refundMethod === "WALLET" ? 12 : 0,
+      },
+      requestedAt: now,
+      updatedAt: now,
+      adminRemark: "",
+      customerMessage: "",
+      invalidFields: [],
+      history: [
+        ...(order.returnRequest?.history || []),
+        {
+          status: "Requested",
+          message: `Customer requested return: ${finalReasonTitle}`,
+          by: "Customer",
+          date: now,
+        },
+      ],
+    };
+
+    order.timeline.push({
+      status: "Return Requested",
+      message: `Return requested for ${item.name}: ${finalReasonTitle}`,
+      time: now,
+    });
+
+    await order.save();
+
+    try {
+      await sendOrderStatusNotification(order, "Return Requested");
+    } catch (err) {
+      console.log("Return Email Error:", err.message);
+    }
+
+    return res.json({
+      success: true,
+      message: "Return request submitted successfully",
+      order: serializeOrder(order),
+    });
+  } catch (err) {
+    console.log("RETURN REQUEST ERROR:", err);
+
+    return res.status(500).json({
       success: false,
-      message: "Order not found",
+      message: err.message,
     });
   }
+};
 
-  if (order.orderStatus !== "Delivered") {
-    return res.status(400).json({
+const RETURN_ACTIVE_STATUSES = [
+  "Requested",
+  "Approved",
+  "Pickup Scheduled",
+  "Picked Up",
+  "Quality Checking",
+  "Refund Approved",
+];
+
+const RETURN_ADMIN_STATUSES = [
+  "Requested",
+  "Approved",
+  "Rejected",
+  "Pickup Scheduled",
+  "Picked Up",
+  "Quality Checking",
+  "Refund Approved",
+  "Completed",
+];
+
+const stampReturnDate = (returnRequest, status) => {
+  const fieldMap = {
+    Approved: "approvedAt",
+    Rejected: "rejectedAt",
+    "Pickup Scheduled": "pickupScheduledAt",
+    "Picked Up": "pickedUpAt",
+    "Quality Checking": "qualityCheckedAt",
+    "Refund Approved": "refundApprovedAt",
+    Completed: "completedAt",
+  };
+
+  if (fieldMap[status]) {
+    returnRequest[fieldMap[status]] = new Date();
+  }
+};
+
+const parseJsonBodyField = (value, fallback = {}) => {
+  if (!value) return fallback;
+  if (typeof value === "object") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
+const validateBankRefund = (refundData) => {
+  const accountNumber = String(refundData.accountNumber || "").trim();
+  const confirmAccountNumber = String(refundData.confirmAccountNumber || "").trim();
+  const ifsc = String(refundData.ifsc || "").trim().toUpperCase();
+
+  if (!refundData.accountHolder?.trim()) return "Account holder name is required";
+  if (!refundData.bankName?.trim()) return "Bank name is required";
+  if (!accountNumber || accountNumber.length < 9) return "Valid account number is required";
+  if (accountNumber !== confirmAccountNumber) return "Account number does not match";
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) return "Valid IFSC code is required";
+
+  return "";
+};
+
+// exports.requestReturn = async (req, res) => {
+//   try {
+//     const {
+//       itemId,
+//       reasonId,
+//       reasonTitle,
+//       reason,
+//       subReason,
+//       description = "",
+//       comment = "",
+//     } = req.body;
+
+//     const finalReasonTitle = reasonTitle || reason || "";
+
+//     if (!finalReasonTitle) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Return reason is required",
+//       });
+//     }
+
+//     const order = await Order.findOne({
+//       _id: req.params.id,
+//       userId: req.user._id,
+//     });
+
+//     if (!order) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Order not found",
+//       });
+//     }
+
+//     if (order.orderStatus !== "Delivered") {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Return allowed only for delivered orders",
+//       });
+//     }
+
+//     if (itemId && !order.products.id(itemId)) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Order item not found",
+//       });
+//     }
+
+//     if (RETURN_ACTIVE_STATUSES.includes(order.returnRequest?.status)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Return request already exists",
+//       });
+//     }
+
+//     const photos =
+//       req.files?.photos?.map((file) => `/uploads/${file.filename}`) || [];
+
+//     const videos =
+//       req.files?.videos?.map((file) => `/uploads/${file.filename}`) || [];
+
+//     const refundData = parseJsonBodyField(req.body.refundData, {});
+
+//     order.returnRequest = {
+//       ...(order.returnRequest || {}),
+//       status: "Requested",
+//       itemId: itemId || null,
+//       reasonId: reasonId || null,
+//       reasonTitle: finalReasonTitle,
+//       subReason: subReason || "",
+//       description: description || comment || "",
+//       comment: comment || description || "",
+//       evidence: {
+//         photos,
+//         videos,
+//       },
+//       refundPreference: {
+//         method: refundData.refundMethod || "",
+//         accountHolder: refundData.accountHolder || "",
+//         bankName: refundData.bankName || "",
+//         accountNumber: refundData.accountNumber || "",
+//         ifsc: refundData.ifsc || "",
+//         upi: refundData.upi || "",
+//       },
+//       requestedAt: new Date(),
+//       updatedAt: new Date(),
+//       history: [
+//         ...(order.returnRequest?.history || []),
+//         {
+//           status: "Requested",
+//           message: `Customer requested return: ${finalReasonTitle}`,
+//           by: "Customer",
+//           date: new Date(),
+//         },
+//       ],
+//     };
+
+//     order.timeline.push({
+//       status: "Return Requested",
+//       message: finalReasonTitle,
+//       time: new Date(),
+//     });
+
+//     await order.save();
+
+//     try {
+//       await sendOrderStatusNotification(order, "Return Requested");
+//     } catch (err) {
+//       console.log("Return Email Error:", err.message);
+//     }
+
+//     return res.json({
+//       success: true,
+//       message: "Return request submitted successfully",
+//       order: serializeOrder(order),
+//     });
+//   } catch (err) {
+//     console.log("RETURN REQUEST ERROR:", err);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// };
+
+
+
+exports.getAllReturnRequests = async (req, res) => {
+  try {
+    const { search = "", status = "" } = req.query;
+
+    const filter = {
+      "returnRequest.status": {
+        $ne: "Not Requested",
+      },
+    };
+
+    if (status && status !== "ALL") {
+      filter["returnRequest.status"] = status;
+    }
+
+    if (search) {
+      filter.$or = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { "userInfo.name": { $regex: search, $options: "i" } },
+        { "userInfo.phone": { $regex: search, $options: "i" } },
+        { "returnRequest.reasonTitle": { $regex: search, $options: "i" } },
+        { "products.name": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const orders = await Order.find(filter).sort({
+      "returnRequest.requestedAt": -1,
+    });
+
+    return res.json({
+      success: true,
+      total: orders.length,
+      requests: orders.map(serializeOrder),
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Return allowed only after delivery",
+      message: error.message,
     });
   }
+};
 
-  order.returnRequest.status = "Requested";
-  order.returnRequest.reason = reason;
-  order.returnRequest.comment = comment;
-  order.returnRequest.requestedAt = new Date();
+exports.getReturnRequestDetails = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
 
-  await order.save();
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
 
-  res.json({
-    success: true,
-    message: "Return request submitted",
-  });
+    return res.json({
+      success: true,
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+exports.adminUpdateReturnStatus = async (req, res) => {
+  try {
+    const {
+      status,
+      adminRemark = "",
+      customerMessage = "",
+      invalidFields = [],
+    } = req.body;
+
+    if (!RETURN_ADMIN_STATUSES.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid return status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (!order.returnRequest) {
+      order.returnRequest = {};
+    }
+
+    if (!order.returnRequest.history) {
+      order.returnRequest.history = [];
+    }
+
+    const message =
+      customerMessage ||
+      adminRemark ||
+      `Return status changed to ${status}`;
+
+    order.returnRequest.status = status;
+    order.returnRequest.adminRemark = adminRemark;
+    order.returnRequest.customerMessage = customerMessage;
+    order.returnRequest.invalidFields = invalidFields;
+    order.returnRequest.updatedAt = new Date();
+
+    order.returnRequest.adminReview = {
+      reviewNote: adminRemark || customerMessage,
+      reviewedBy: req.user?._id || null,
+      reviewedAt: new Date(),
+    };
+
+    stampReturnDate(order.returnRequest, status);
+
+    order.returnRequest.history.push({
+      status,
+      message,
+      date: new Date(),
+      by: "Admin",
+    });
+
+    order.timeline.push({
+      status: `Return ${status}`,
+      message,
+      time: new Date(),
+    });
+
+    await order.save();
+
+    try {
+      await logAdminActivity({
+        req,
+        admin: req.user,
+        action: "UPDATE",
+        module: "RETURN",
+        targetId: order._id,
+        details: {
+          description: `Return changed to ${status}`,
+        },
+      });
+    } catch (err) {
+      console.log("Activity Log Error:", err.message);
+    }
+
+    return res.json({
+      success: true,
+      message: "Return status updated successfully",
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 exports.adminUpdateReturn = async (req, res) => {
-  const { status } = req.body;
+  try {
+    const { status, adminNote = "" } = req.body;
 
-  const order = await Order.findById(req.params.id);
+    ```
+const order = await Order.findById(req.params.id);
 
-  if (!order) {
-    return res.status(404).json({
+if (!order) {
+  return res.status(404).json({
+    success: false,
+    message: "Order not found",
+  });
+}
+
+// SAFE OBJECT CREATION
+if (!order.returnRequest) {
+  order.returnRequest = {};
+}
+
+if (!order.returnRequest.adminReview) {
+  order.returnRequest.adminReview = {
+    reviewNote: "",
+    reviewedBy: null,
+    reviewedAt: null,
+  };
+}
+
+order.returnRequest.status = status;
+
+if (status === "Approved") {
+  order.returnRequest.approvedAt = new Date();
+
+  order.returnRequest.adminReview.reviewNote =
+    adminNote;
+
+  order.returnRequest.adminReview.reviewedBy =
+    req.user?._id || null;
+
+  order.returnRequest.adminReview.reviewedAt =
+    new Date();
+
+  order.timeline.push({
+    status: "Return Approved",
+    message:
+      adminNote ||
+      "Return request approved by admin",
+    time: new Date(),
+  });
+}
+
+if (status === "Rejected") {
+  order.timeline.push({
+    status: "Return Rejected",
+    message:
+      adminNote ||
+      "Return request rejected by admin",
+    time: new Date(),
+  });
+}
+
+if (status === "Pickup Scheduled") {
+  order.returnRequest.pickupAt =
+    new Date();
+
+  order.timeline.push({
+    status: "Return Pickup Scheduled",
+    message:
+      adminNote ||
+      "Pickup scheduled for return",
+    time: new Date(),
+  });
+}
+
+if (status === "Picked Up") {
+  order.returnRequest.pickupAt =
+    new Date();
+
+  order.timeline.push({
+    status: "Return Picked Up",
+    message:
+      adminNote ||
+      "Returned item picked up",
+    time: new Date(),
+  });
+
+  if (
+    order.payment.method === "RAZORPAY" &&
+    order.payment.status === "Paid"
+  ) {
+    order.refund.status =
+      "Not Requested";
+  }
+}
+
+if (status === "Refund Eligible") {
+  order.timeline.push({
+    status: "Refund Eligible",
+    message:
+      adminNote ||
+      "Customer can now request refund",
+    time: new Date(),
+  });
+}
+
+if (status === "Completed") {
+  order.returnRequest.completedAt =
+    new Date();
+
+  order.timeline.push({
+    status: "Return Completed",
+    message:
+      adminNote ||
+      "Return process completed",
+    time: new Date(),
+  });
+}
+
+await order.save();
+
+res.json({
+  success: true,
+  message: "Return updated successfully",
+  order,
+});
+```
+
+  } catch (error) {
+    console.log(
+      "ADMIN RETURN UPDATE ERROR:",
+      error
+    );
+
+    ```
+return res.status(500).json({
+  success: false,
+  message: error.message,
+});
+```
+
+  }
+};
+
+/* =====================================================
+   ADMIN RETURN REQUESTS LIST
+===================================================== */
+
+exports.getAllReturnRequests = async (req, res) => {
+  try {
+    const { search = "", status = "" } = req.query;
+
+    const filter = {
+      "returnRequest.status": {
+        $ne: "Not Requested",
+      },
+    };
+
+    if (status && status !== "ALL") {
+      filter["returnRequest.status"] = status;
+    }
+
+    if (search) {
+      filter.$or = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { "userInfo.name": { $regex: search, $options: "i" } },
+        { "userInfo.phone": { $regex: search, $options: "i" } },
+        { "returnRequest.reasonTitle": { $regex: search, $options: "i" } },
+        { "products.name": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const orders = await Order.find(filter).sort({
+      "returnRequest.requestedAt": -1,
+    });
+
+    return res.json({
+      success: true,
+      total: orders.length,
+      requests: orders.map(serializeOrder),
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: "Order not found",
+      message: error.message,
     });
   }
+};
 
-  order.returnRequest.status = status;
+/* =====================================================
+   ADMIN RETURN REQUEST DETAILS
+===================================================== */
 
-  if (status === "Approved") {
-    order.returnRequest.approvedAt = new Date();
-  }
+exports.getReturnRequestDetails = async (req, res) => {
+  try {
 
-  if (status === "Picked Up") {
-    order.returnRequest.pickupAt = new Date();
+    const order = await Order.findById(req.params.id);
 
-    if (
-      order.payment.method === "RAZORPAY" &&
-      order.payment.status === "Paid"
-    ) {
-      order.refund.status = "Not Requested";
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
     }
+
+    res.json({
+      success: true,
+      order,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
   }
+};
 
-  await order.save();
+/* =====================================================
+   ADMIN UPDATE RETURN STATUS
+===================================================== */
 
-  res.json({
-    success: true,
-    message: "Return updated",
-  });
+exports.adminUpdateReturnStatus = async (req, res) => {
+  try {
+    const { status, adminRemark = "" } = req.body;
+
+    const allowedStatuses = [
+      "Requested",
+      "Approved",
+      "Rejected",
+      "Pickup Scheduled",
+      "Picked Up",
+      "Quality Checking",
+      "Refund Approved",
+      "Completed",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid return status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (!order.returnRequest) {
+      order.returnRequest = {};
+    }
+
+    if (!order.returnRequest.history) {
+      order.returnRequest.history = [];
+    }
+
+    if (!order.returnRequest.adminReview) {
+      order.returnRequest.adminReview = {
+        reviewNote: "",
+        reviewedBy: null,
+        reviewedAt: null,
+      };
+    }
+
+    order.returnRequest.status = status;
+    order.returnRequest.adminRemark = adminRemark;
+    order.returnRequest.updatedAt = new Date();
+
+    order.returnRequest.adminReview.reviewNote = adminRemark;
+    order.returnRequest.adminReview.reviewedBy = req.user?._id || null;
+    order.returnRequest.adminReview.reviewedAt = new Date();
+
+    if (status === "Approved") order.returnRequest.approvedAt = new Date();
+    if (status === "Rejected") order.returnRequest.rejectedAt = new Date();
+    if (status === "Pickup Scheduled") order.returnRequest.pickupScheduledAt = new Date();
+    if (status === "Picked Up") order.returnRequest.pickedUpAt = new Date();
+    if (status === "Quality Checking") order.returnRequest.qualityCheckedAt = new Date();
+    if (status === "Completed") order.returnRequest.completedAt = new Date();
+
+    order.returnRequest.history.push({
+      status,
+      message: adminRemark || `Return status changed to ${status}`,
+      date: new Date(),
+      by: "Admin",
+    });
+
+    order.timeline.push({
+      status: `Return ${status}`,
+      message: adminRemark || `Return status changed to ${status}`,
+      time: new Date(),
+    });
+
+    await order.save();
+
+    return res.json({
+      success: true,
+      message: "Return status updated successfully",
+      order: serializeOrder(order),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };

@@ -38,8 +38,12 @@ const refundStatuses = ["Approved", "Rejected", "Processing", "Refunded"];
 
 function resolveImage(src) {
   if (!src) return "";
-  if (src.startsWith("http")) return src;
-  return `${API_BASE}${src}`;
+
+  if (src.startsWith("http")) {
+    return src;
+  }
+
+  return `${API_BASE}/${String(src).replace(/^\/+/, "")}`;
 }
 
 function money(value) {
@@ -298,6 +302,34 @@ export default function AdminOrderDetailPage() {
           <FileText size={18} />
           Download GST Invoice
         </button>
+
+        {selectedItem && (
+          <>
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  `/admin/returns/${id}?itemId=${selectedItem._id}`
+                )
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white hover:bg-orange-600"
+            >
+              Return Details
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  `/admin/exchanges/${id}?itemId=${selectedItem._id}`
+                )
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+            >
+              Exchange Details
+            </button>
+          </>
+        )}
       </div>
 
       <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -1058,6 +1090,69 @@ export default function AdminOrderDetailPage() {
             </div>
           </div>
 
+          {/* RETURN / EXCHANGE DETAILS */}
+
+          {(order?.returnRequest?.status !== "Not Requested" ||
+            order?.exchange?.status !== "Not Requested") && (
+              <div className="overflow-hidden rounded-[24px] border border-[#dbe7f3] bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
+                <div className="border-b border-[#e5edf7] bg-gradient-to-r from-[#fff7ed] via-white to-[#eef6ff] px-5 py-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-600">
+                        Customer Request Evidence
+                      </p>
+                      <h2 className="mt-1 text-[20px] font-black text-[#102033]">
+                        Return / Exchange Complete Details
+                      </h2>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        Reason, selected issue, description, refund details, uploaded proof and status history.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {order?.returnRequest?.status !== "Not Requested" ? (
+                        <StatusPill tone="orange" label={`Return: ${order.returnRequest.status}`} />
+                      ) : null}
+
+                      {order?.exchange?.status !== "Not Requested" ? (
+                        <StatusPill tone="blue" label={`Exchange: ${order.exchange.status}`} />
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5 p-5">
+                  {order?.returnRequest?.status !== "Not Requested" ? (
+                    <RequestPanel
+                      title="Return Request"
+                      tone="orange"
+                      request={order.returnRequest}
+                      product={
+                        (order.products || []).find(
+                          (item) => String(item._id) === String(order.returnRequest?.itemId)
+                        ) || selectedItem
+                      }
+                      type="RETURN"
+                    />
+                  ) : null}
+
+                  {order?.exchange?.status !== "Not Requested" ? (
+                    <RequestPanel
+                      title="Exchange Request"
+                      tone="blue"
+                      request={order.exchange}
+                      product={
+                        (order.products || []).find(
+                          (item) => String(item._id) === String(order.exchange?.itemId)
+                        ) || selectedItem
+                      }
+                      type="EXCHANGE"
+                    />
+                  ) : null}
+                </div>
+              </div>
+            )}
+
           {/* PAYMENT VERIFICATION */}
           <div className="sticky top-5 overflow-hidden rounded-[32px] border border-[#d9e6f5] bg-gradient-to-br from-white via-[#f8fbff] to-[#eef5ff] shadow-[0_15px_50px_rgba(15,23,42,0.08)]">
 
@@ -1305,4 +1400,352 @@ function Summary({ label, value, strong }) {
       <span>{value}</span>
     </div>
   );
+}
+
+function StatusPill({ label, tone = "slate" }) {
+  const toneClass = {
+    orange: "border-orange-200 bg-orange-50 text-orange-700",
+    blue: "border-blue-200 bg-blue-50 text-blue-700",
+    green: "border-green-200 bg-green-50 text-green-700",
+    red: "border-red-200 bg-red-50 text-red-700",
+    slate: "border-slate-200 bg-slate-50 text-slate-700",
+  };
+
+  return (
+    <span
+      className={`rounded-full border px-3 py-1 text-[11px] font-black ${toneClass[tone] || toneClass.slate}`}
+    >
+      {label || "-"}
+    </span>
+  );
+}
+
+function DetailBox({ label, value, children }) {
+  return (
+    <div className="rounded-[14px] border border-[#e2e8f0] bg-[#f8fbff] p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+        {label}
+      </p>
+      {children || (
+        <p className="mt-2 break-words text-sm font-black text-[#102033]">
+          {value || "-"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function RequestPanel({ title, tone, request, product, type }) {
+  const isReturn = type === "RETURN";
+  const photos = request?.evidence?.photos || request?.photos || [];
+  console.log("REQUEST =", request);
+console.log("PHOTOS =", photos);
+  const videos = request?.evidence?.videos || request?.videos || [];
+  const refund = request?.refundPreference || {};
+  const history = request?.history || [];
+  const toneText = tone === "orange" ? "text-orange-600" : "text-blue-600";
+  const toneBorder = tone === "orange" ? "border-orange-200" : "border-blue-200";
+  const toneBg = tone === "orange" ? "bg-orange-50" : "bg-blue-50";
+
+  return (
+    <section className={`overflow-hidden rounded-[20px] border ${toneBorder} bg-white`}>
+      <div className={`border-b ${toneBorder} ${toneBg} px-5 py-4`}>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h3 className={`text-lg font-black ${toneText}`}>{title}</h3>
+            <p className="mt-1 text-sm font-semibold text-slate-600">
+              Submitted data visible for admin review.
+            </p>
+          </div>
+
+          <StatusPill
+            tone={tone}
+            label={request?.status || "Not Requested"}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-5 p-5">
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+          <div className="rounded-[16px] border border-[#e2e8f0] bg-white p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+              Product
+            </p>
+
+            <div className="mt-3 flex gap-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-[#dbe7f3] bg-[#f8fbff] p-2">
+                {product?.img ? (
+                  <img
+                    src={resolveImage(product.img)}
+                    alt={product?.name || "Product"}
+                    className="h-full w-full object-contain"
+                  />
+                ) : (
+                  <Package size={28} className="text-slate-400" />
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <h4 className="text-sm font-black text-[#102033]">
+                  {product?.name || "Product not found"}
+                </h4>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <StatusPill label={`SKU: ${product?.sku || "-"}`} />
+                  <StatusPill label={`Qty: ${product?.quantity || 1}`} />
+                  <StatusPill label={`Amount: ${money(product?.lineTotal || product?.price || 0)}`} tone="green" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <DetailBox label="Requested At" value={formatRequestDate(request?.requestedAt)} />
+            <DetailBox label="Last Updated" value={formatRequestDate(request?.updatedAt)} />
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-3">
+          <DetailBox label="Main Reason" value={request?.reasonTitle} />
+          <DetailBox label="Selected Issue / Sub Reason" value={request?.subReason} />
+          <DetailBox label="Admin Review Note" value={request?.adminReview?.reviewNote || request?.adminRemark} />
+        </div>
+
+        <DetailBox label="Customer Description">
+          <p className="mt-2 whitespace-pre-wrap rounded-[12px] bg-white p-3 text-sm font-semibold leading-6 text-slate-700">
+            {request?.description || request?.comment || "-"}
+          </p>
+        </DetailBox>
+
+        {request?.customerMessage ? (
+          <DetailBox label="Message Sent To Customer">
+            <p className="mt-2 whitespace-pre-wrap rounded-[12px] border border-green-200 bg-green-50 p-3 text-sm font-bold leading-6 text-green-800">
+              {request.customerMessage}
+            </p>
+          </DetailBox>
+        ) : null}
+
+        {request?.invalidFields?.length ? (
+          <DetailBox label="Fields Marked Wrong By Admin">
+            <div className="mt-2 flex flex-wrap gap-2">
+              {request.invalidFields.map((field) => (
+                <StatusPill key={field} tone="red" label={field} />
+              ))}
+            </div>
+          </DetailBox>
+        ) : null}
+
+        {isReturn ? (
+          <RefundPreferenceBlock refund={refund} />
+        ) : (
+          <ExchangeLogisticsBlock request={request} />
+        )}
+
+        <EvidenceBlock photos={photos} videos={videos} title={`${title} Uploaded Evidence`} />
+
+        <HistoryBlock history={history} />
+      </div>
+    </section>
+  );
+}
+
+function RefundPreferenceBlock({ refund }) {
+  return (
+    <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">
+            Refund Preference
+          </p>
+          <h4 className="mt-1 text-lg font-black text-emerald-800">
+            {refund?.method || "-"}
+          </h4>
+        </div>
+        {refund?.method === "WALLET" ? (
+          <StatusPill tone="green" label={`Wallet Validity: ${refund.walletValidityMonths || 12} months`} />
+        ) : null}
+      </div>
+
+      {refund?.method === "BANK" ? (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <DetailBox label="Account Holder" value={refund.accountHolder} />
+          <DetailBox label="Bank Name" value={refund.bankName} />
+          <DetailBox label="Account Number" value={refund.accountNumber} />
+          <DetailBox label="IFSC" value={refund.ifsc} />
+          <DetailBox label="UPI Optional" value={refund.upi} />
+        </div>
+      ) : null}
+
+      {refund?.method === "WALLET" ? (
+        <p className="mt-3 rounded-[12px] border border-emerald-200 bg-white p-3 text-sm font-bold text-emerald-800">
+          Customer selected Royal Trading Wallet. Refund will be credited to wallet after approval.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function ExchangeLogisticsBlock({ request }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <DetailBox label="Replacement SKU" value={request?.replacementSku} />
+      <DetailBox label="Replacement Product" value={request?.replacementProductName} />
+
+      <DetailBox label="Pickup Address">
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
+          {[
+            request?.pickupAddress?.name,
+            request?.pickupAddress?.phone,
+            request?.pickupAddress?.addressLine1,
+            request?.pickupAddress?.addressLine2,
+            request?.pickupAddress?.city,
+            request?.pickupAddress?.state,
+            request?.pickupAddress?.pincode,
+          ]
+            .filter(Boolean)
+            .join(", ") || "-"}
+        </p>
+      </DetailBox>
+
+      <DetailBox label="Pickup Shipment">
+        <ShipmentText shipment={request?.pickupShipment} />
+      </DetailBox>
+
+      <DetailBox label="Replacement Shipment">
+        <ShipmentText shipment={request?.replacementShipment} />
+      </DetailBox>
+    </div>
+  );
+}
+
+function ShipmentText({ shipment }) {
+  return (
+    <div className="mt-2 space-y-1 text-sm font-semibold text-slate-700">
+      <p>Courier: {shipment?.courier || "-"}</p>
+      <p>Tracking ID: {shipment?.trackingId || "-"}</p>
+      {shipment?.trackingUrl ? (
+        <a
+          href={shipment.trackingUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 font-black text-[#2454b5]"
+        >
+          Open Tracking <ExternalLink size={14} />
+        </a>
+      ) : (
+        <p>Tracking URL: -</p>
+      )}
+    </div>
+  );
+}
+
+function EvidenceBlock({ photos = [], videos = [], title }) {
+  return (
+    <div className="rounded-[16px] border border-[#e2e8f0] bg-white p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+            {title}
+          </p>
+          <h4 className="mt-1 text-base font-black text-[#102033]">
+            {photos.length} Photos | {videos.length} Videos
+          </h4>
+        </div>
+      </div>
+
+      {photos.length ? (
+        <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+          {photos.map((photo, index) => (
+            <a
+              key={`${photo}-${index}`}
+              href={resolveImage(photo)}
+              target="_blank"
+              rel="noreferrer"
+              className="group overflow-hidden rounded-[14px] border border-[#dbe7f3] bg-[#f8fbff]"
+            >
+              <img
+                src={resolveImage(photo)}
+                alt={`Evidence ${index + 1}`}
+                className="h-36 w-full object-cover transition group-hover:scale-105"
+              />
+              <div className="border-t bg-white px-3 py-2 text-xs font-black text-[#2454b5]">
+                View Photo {index + 1}
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 rounded-[12px] bg-slate-50 p-3 text-sm font-bold text-slate-500">
+          No photos uploaded.
+        </p>
+      )}
+
+      {videos.length ? (
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          {videos.map((video, index) => (
+            <div key={`${video}-${index}`} className="rounded-[14px] border border-[#dbe7f3] bg-[#f8fbff] p-3">
+              <video controls className="w-full rounded-[12px] border bg-black">
+                <source src={resolveImage(video)} />
+              </video>
+              <a
+                href={resolveImage(video)}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-black text-[#2454b5]"
+              >
+                Open Video {index + 1} <ExternalLink size={13} />
+              </a>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function HistoryBlock({ history = [] }) {
+  return (
+    <div className="rounded-[16px] border border-[#e2e8f0] bg-white p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+        Status History
+      </p>
+
+      {history.length ? (
+        <div className="mt-4 space-y-3">
+          {history.map((entry, index) => (
+            <div
+              key={`${entry.status}-${index}`}
+              className="rounded-[14px] border border-[#dbe7f3] bg-[#f8fbff] p-3"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="font-black text-[#102033]">{entry.status || "-"}</p>
+                <StatusPill label={entry.by || "System"} />
+              </div>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+                {entry.message || "-"}
+              </p>
+              <p className="mt-2 text-xs font-black text-slate-400">
+                {formatRequestDate(entry.date)}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 rounded-[12px] bg-slate-50 p-3 text-sm font-bold text-slate-500">
+          No history available.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function formatRequestDate(value) {
+  if (!value) return "-";
+
+  return new Date(value).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

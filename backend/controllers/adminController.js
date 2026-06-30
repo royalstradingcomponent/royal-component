@@ -13,6 +13,7 @@ const SecurityAlert = require("../models/SecurityAlert");
 const AdminActivity = require("../models/AdminActivity");
 const AdminSession = require("../models/AdminSession");
 const logAdminActivity = require("../utils/logAdminActivity");
+const ReturnReason = require("../models/ReturnReason");
 
 let notificationService = {};
 try {
@@ -210,6 +211,8 @@ exports.getCounts = async (req, res) => {
       outForDeliveryCount,
       deliveredCount,
       cancelledCount,
+      returnRequestCount,
+      exchangeRequestCount,
     ] = await Promise.all([
       Order.aggregate([
         {
@@ -267,6 +270,18 @@ exports.getCounts = async (req, res) => {
       Order.countDocuments({
         orderStatus: "Cancelled",
       }),
+
+      Order.countDocuments({
+        "returnRequest.status": {
+          $ne: "Not Requested",
+        },
+      }),
+
+      Order.countDocuments({
+        "exchange.status": {
+          $ne: "Not Requested",
+        },
+      }),
     ]);
 
     res.json({
@@ -283,6 +298,8 @@ exports.getCounts = async (req, res) => {
       outForDeliveryCount,
       deliveredCount,
       cancelledCount,
+      returnRequestCount,
+      exchangeRequestCount,
       recentOrders: recentOrdersRaw.map((o) => ({
         id: o._id,
         orderNumber: o.orderNumber,

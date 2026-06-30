@@ -18,6 +18,10 @@ const storage = multer.diskStorage({
       folder = "uploads/categories";
     }
 
+    if (type === "requests") {
+  folder = "uploads/requests";
+}
+
     if (type === "documents") {
   folder = "uploads/documents";
 }

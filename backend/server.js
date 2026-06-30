@@ -3,7 +3,7 @@ const path = require("path");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const helmet = require("helmet");
-
+const returnReasonRoutes = require("./routes/returnReasonRoutes");
 const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const categoryRoutes = require("./routes/categoryRoutes");
@@ -108,6 +108,8 @@ app.use(
   }),
 );
 
+
+
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
     console.log(
@@ -118,7 +120,13 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+const uploadsPath = path.join(__dirname, "uploads");
+const publicUploadsPath = path.join(__dirname, "public", "uploads");
+
+app.use("/uploads", express.static(uploadsPath));
+app.use("/uploads", express.static(publicUploadsPath));
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -138,6 +146,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/auth", require("./routes/authRoutes"));
+
 app.use("/api/otp", require("./routes/otpRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/footer-page", footerPageRoutes);
@@ -151,7 +160,6 @@ app.use("/api/cart", (req, res, next) => {
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/wishlist", require("./routes/wishlistRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
-
 
 app.use("/api/categories", categoryRoutes);
 app.use("/api/hero-slides", require("./routes/heroRoutes"));
@@ -183,6 +191,7 @@ app.use("/api/upload", require("./routes/uploadRoutes"));
 app.use("/api/crm", crmRoutes);
 app.use("/api/crm/contacts", crmContactRoutes);
 app.use("/api/crm/followups", crmFollowUpRoutes);
+app.use("/api/return-reasons", returnReasonRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

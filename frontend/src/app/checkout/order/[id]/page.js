@@ -37,6 +37,10 @@ import Footer from "@/components/Footer";
 import { API_BASE } from "@/lib/api";
 import { useOrders } from "@/context/OrderContext";
 import AddressFormModal from "@/components/address/AddressFormModal";
+import ReturnModal from "@/components/orders/ReturnModal";
+import ExchangeModal from "@/components/orders/ExchangeModal";
+import ReturnExchangeTimeline from "@/components/orders/ReturnExchangeTimeline";
+import UserReturnExchangeStatusPanel from "@/components/orders/UserReturnExchangeStatusPanel";
 
 function formatCurrency(value) {
   return `₹ ${Number(value || 0).toLocaleString("en-IN", {
@@ -191,33 +195,83 @@ export default function CheckoutOrderDetailPage() {
   const [showExchangeModal, setShowExchangeModal] =
     useState(false);
 
+  const [showReturnModal, setShowReturnModal] =
+    useState(false);
+
+  const [showReturnPolicy, setShowReturnPolicy] = useState(false);
+
+  const [showExchangePolicy, setShowExchangePolicy] = useState(false);
+
+  const [policyAccepted, setPolicyAccepted] = useState(false);
+
+  const [returnReason, setReturnReason] =
+    useState("");
+
+  const [returnSubReason, setReturnSubReason] =
+    useState("");
+
+  const [selectedReasonObj, setSelectedReasonObj] =
+    useState(null);
+
+  const [returnComment, setReturnComment] =
+    useState("");
+
+  const [returnImages, setReturnImages] = useState([]);
+  const [returnVideo, setReturnVideo] = useState(null);
+
+  const [returnLoading, setReturnLoading] =
+    useState(false);
+
+  const [returnReasons, setReturnReasons] =
+    useState([]);
+
+  const [exchangeReasons, setExchangeReasons] =
+    useState([]);
+
   const [exchangeReason, setExchangeReason] =
     useState("");
+
+  const [exchangeComment, setExchangeComment] =
+    useState("");
+
+  const [exchangeLoading, setExchangeLoading] =
+    useState(false);
+
+  const [exchangeImages, setExchangeImages] =
+    useState([]);
+
+  const [exchangeVideo, setExchangeVideo] =
+    useState(null);
+
   const [refundLoading, setRefundLoading] = useState(false);
 
   useEffect(() => {
-    if (showCancelModal) {
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
+    const modalOpen =
+      showCancelModal ||
+      showReturnModal ||
+      showExchangeModal ||
+      showRefundModal ||
+      showAddressModal;
 
+    if (modalOpen) {
+      document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-
       document.documentElement.style.overflow = "";
     }
 
     return () => {
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-
       document.documentElement.style.overflow = "";
     };
-  }, [showCancelModal]);
+  }, [
+    showCancelModal,
+    showReturnModal,
+    showExchangeModal,
+    showRefundModal,
+    showAddressModal,
+  ]);
 
   const [refundForm, setRefundForm] = useState({
     reason: "",
@@ -232,6 +286,57 @@ export default function CheckoutOrderDetailPage() {
     cardLast4: "",
     cardTransactionId: "",
   });
+
+  const loadReturnReasons = async () => {
+
+
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/return-reasons?type=RETURN`
+      );
+
+      const data = await res.json();
+
+      console.log(
+        "RETURN API RESPONSE =>",
+        data
+      );
+
+      if (data?.success) {
+        setReturnReasons(
+          data.reasons || []
+        );
+
+        console.log(
+          "REASONS COUNT =>",
+          data.reasons?.length
+        );
+
+      }
+    } catch (err) {
+      console.log(
+        "Return Reasons Error",
+        err
+      );
+    }
+  };
+
+  const loadExchangeReasons = async () => {
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/return-reasons?type=EXCHANGE`
+      );
+
+      const data = await res.json();
+
+      if (data?.success) {
+        setExchangeReasons(data.reasons || []);
+      }
+    } catch (err) {
+      console.log("Exchange Reasons Error", err);
+    }
+  };
 
   const loadOrder = async () => {
     try {
@@ -263,7 +368,18 @@ export default function CheckoutOrderDetailPage() {
   };
 
   useEffect(() => {
-    if (id) loadOrder();
+    if (id) {
+      loadOrder();
+      loadReturnReasons();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadOrder();
+      loadReturnReasons();
+      loadExchangeReasons();
+    }
   }, [id]);
 
   const items = useMemo(() => {
@@ -310,8 +426,8 @@ export default function CheckoutOrderDetailPage() {
       "packed",
     ].includes(orderStatus);
 
-  const canReturnExchange = true;
-  orderStatus === "delivered" &&
+  const canReturnExchange =
+    orderStatus === "delivered" &&
     (!order?.returnRequest?.status ||
       order?.returnRequest?.status === "Not Requested") &&
     (!order?.exchange?.status ||
@@ -331,33 +447,212 @@ export default function CheckoutOrderDetailPage() {
     canRequestRefund,
   });
 
-  const handleExchangeRequest = async () => {
+  const handleReturnRequest = async (refundData = {}, returnItem = null) => {
+    if (!returnReason) {
+      toast.error("Please select return reason");
+      return;
+    }
 
-    const user = JSON.parse(
-      localStorage.getItem("user") || "{}"
-    );
+    if (!returnSubReason) {
+      toast.error("Please select issue");
+      return;
+    }
 
-    const token = user?.token;
+    if (!returnComment?.trim() || returnComment.trim().length < 15) {
+      toast.error("Please describe the issue in at least 15 characters");
+      return;
+    }
 
-    const res = await fetch(
-      `${API_BASE}/api/orders/exchange/${id}`,
-      {
+    if (!returnImages?.length) {
+      toast.error("Please upload at least one product image");
+      return;
+    }
+
+    if (!refundData?.refundMethod) {
+      toast.error("Please select refund method");
+      return;
+    }
+
+    if (refundData.refundMethod === "BANK") {
+      if (
+        !refundData.accountHolder?.trim() ||
+        !refundData.bankName?.trim() ||
+        !refundData.accountNumber?.trim() ||
+        !refundData.confirmAccountNumber?.trim() ||
+        !refundData.ifsc?.trim()
+      ) {
+        toast.error("Please fill all bank account details");
+        return;
+      }
+
+      if (refundData.accountNumber !== refundData.confirmAccountNumber) {
+        toast.error("Account number and confirm account number do not match");
+        return;
+      }
+
+      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(refundData.ifsc)) {
+        toast.error("Please enter a valid IFSC code");
+        return;
+      }
+    }
+
+    try {
+      setReturnLoading(true);
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = user?.token;
+
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append("itemId", returnItem?._id || itemId || "");
+      formData.append("reasonId", selectedReasonObj?._id || "");
+      formData.append("reasonTitle", returnReason);
+      formData.append("subReason", returnSubReason || "");
+      formData.append("description", returnComment.trim());
+      formData.append("comment", returnComment.trim());
+      formData.append("refundData", JSON.stringify(refundData || {}));
+
+      returnImages.forEach((file) => {
+        formData.append("photos", file);
+      });
+
+      if (returnVideo) {
+        formData.append("videos", returnVideo);
+      }
+
+      const res = await fetch(`${API_BASE}/api/orders/return/${id}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          reason: exchangeReason,
-        }),
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "Return request failed");
       }
-    );
 
-    const data = await res.json();
+      toast.success(data?.message || "Return request submitted successfully");
 
-    if (data.success) {
-      toast.success("Exchange request submitted");
-      loadOrder();
+      setShowReturnModal(false);
+      setReturnReason("");
+      setSelectedReasonObj(null);
+      setReturnSubReason("");
+      setReturnComment("");
+      setReturnImages([]);
+      setReturnVideo(null);
+
+      await loadOrder();
+    } catch (error) {
+      toast.error(error.message || "Return request failed");
+    } finally {
+      setReturnLoading(false);
+    }
+  };
+
+  const handleExchangeRequest = async () => {
+    if (!exchangeReason) {
+      toast.error("Please select exchange reason");
+      return;
+    }
+
+    try {
+      setExchangeLoading(true);
+
+      const user = JSON.parse(
+        localStorage.getItem("user") || "{}"
+      );
+
+      const token = user?.token;
+
+      const formData = new FormData();
+
+      const selectedExchangeReasonObj = exchangeReasons.find(
+        (item) => item.title === exchangeReason
+      );
+
+      formData.append("itemId", itemId || "");
+      formData.append("reasonId", selectedExchangeReasonObj?._id || "");
+      formData.append("reasonTitle", selectedExchangeReasonObj?.title || exchangeReason);
+      formData.append("subReason", selectedExchangeReasonObj?.subReasons?.[0]?.title || "");
+      formData.append("description", exchangeComment || "");
+      formData.append("comment", exchangeComment || "");
+
+      formData.append(
+        "pickupAddress",
+        JSON.stringify({
+          name: order?.userInfo?.name || "",
+          phone: order?.userInfo?.phone || "",
+          addressLine1: order?.userInfo?.addressLine1 || "",
+          addressLine2: order?.userInfo?.addressLine2 || "",
+          city: order?.userInfo?.city || "",
+          state: order?.userInfo?.state || "",
+          pincode: order?.userInfo?.pincode || "",
+          country: order?.userInfo?.country || "India",
+        })
+      );
+
+      exchangeImages.forEach((file) => {
+        formData.append(
+          "photos",
+          file
+        );
+      });
+
+      if (exchangeVideo) {
+        formData.append(
+          "videos",
+          exchangeVideo
+        );
+      }
+
+      const res = await fetch(
+        `${API_BASE}/api/orders/exchange/${id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.message ||
+          "Exchange request failed"
+        );
+      }
+
+      toast.success(
+        "Exchange request submitted successfully"
+      );
+
+      setShowExchangeModal(false);
+
+      setExchangeReason("");
+      setExchangeComment("");
+
+      setExchangeImages([]);
+      setExchangeVideo(null);
+
+      await loadOrder();
+    } catch (err) {
+      toast.error(
+        err.message ||
+        "Exchange request failed"
+      );
+    } finally {
+      setExchangeLoading(false);
     }
   };
 
@@ -789,29 +1084,30 @@ export default function CheckoutOrderDetailPage() {
                   </button>
                 ) : null}
 
-                {order?.exchange?.status &&
-                  order?.exchange?.status !== "Not Requested" ? (
-                  <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 p-3">
-                    <p className="text-xs font-bold text-orange-600">
-                      Exchange Status
-                    </p>
 
-                    <p className="font-black text-[#102033]">
-                      {order.exchange.status}
-                    </p>
-                  </div>
-                ) : null}
+
+
 
                 {canReturnExchange && (
-                  <button
-                    onClick={() => setShowExchangeModal(true)}
-                    className="mt-5 flex h-[48px] w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-lg font-black text-white shadow-lg transition hover:scale-[1.02]"
-                  >
-                    <RefreshCcw size={22} />
-                    Return & Exchange
-                  </button>
+                  <div className="mt-6 flex flex-col gap-5">
 
+                    <button
+                      onClick={() => {
+                        setShowReturnModal(true);
+                      }}
+                      className="flex h-[58px] w-full items-center justify-center gap-3 rounded-2xl border-2 border-orange-500 bg-orange-50 text-lg font-black text-orange-600 transition hover:bg-orange-100">                      <RefreshCcw size={22} />
+                      Return Product
+                    </button>
 
+                    <button
+                      onClick={() => {
+                        setShowExchangeModal(true);
+                      }}
+                      className="flex h-[58px] w-full items-center justify-center gap-3 rounded-2xl border-2 border-green-500 bg-green-50 text-lg font-black text-green-600 transition hover:bg-green-100">                      <RefreshCcw size={22} />
+                      Exchange Product
+                    </button>
+
+                  </div>
                 )}
 
                 <div className="mt-3 space-y-2">
@@ -928,6 +1224,117 @@ export default function CheckoutOrderDetailPage() {
               ) : null}
             </section>
 
+            {order?.returnRequest?.status &&
+              order?.returnRequest?.status !==
+              "Not Requested" && (
+                <ReturnExchangeTimeline
+                  type="RETURN"
+                  status={
+                    order.returnRequest.status
+                  }
+                  requestedAt={
+                    order.returnRequest.requestedAt
+                  }
+                  approvedAt={
+                    order.returnRequest.approvedAt
+                  }
+                  pickupAt={
+                    order.returnRequest.pickupAt
+                  }
+                  completedAt={
+                    order.returnRequest.completedAt
+                  }
+                  reason={
+                    order.returnRequest.reason
+                  }
+                  description={
+                    order.returnRequest.comment
+                  }
+                  adminNote={
+                    order?.returnRequest
+                      ?.adminReview?.reviewNote
+                  }
+                  photos={
+                    order?.returnRequest
+                      ?.evidence?.photos || []
+                  }
+                  videos={
+                    order?.returnRequest
+                      ?.evidence?.videos || []
+                  }
+                />
+              )}
+
+            {order?.exchange?.status &&
+              order?.exchange?.status !==
+              "Not Requested" && (
+                <ReturnExchangeTimeline
+                  type="EXCHANGE"
+                  status={order.exchange.status}
+                  requestedAt={
+                    order.exchange.requestedAt
+                  }
+                  approvedAt={
+                    order.exchange.approvedAt
+                  }
+                  completedAt={
+                    order.exchange.completedAt
+                  }
+                  reason={
+                    order.exchange.reason
+                  }
+                  description={
+                    order.exchange.comment
+                  }
+                  adminNote={
+                    order?.exchange?.adminReview
+                      ?.reviewNote
+                  }
+                  photos={
+                    order?.exchange?.evidence
+                      ?.photos || []
+                  }
+                  videos={
+                    order?.exchange?.evidence
+                      ?.videos || []
+                  }
+                />
+              )}
+
+            {order?.timeline?.length > 0 && (
+              <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-6 shadow-sm">
+
+                <h2 className="mb-5 text-2xl font-black text-[#102033]">
+                  Order Timeline
+                </h2>
+
+                <div className="space-y-4">
+
+                  {[...order.timeline]
+                    .reverse()
+                    .map((item, index) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-[#dbe5f0] p-4"
+                      >
+                        <p className="font-bold text-[#102033]">
+                          {item.status}
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-600">
+                          {item.message}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatDate(item.time)}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+
+              </section>
+            )}
+
             <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-4 shadow-sm md:p-6">
               <div className="mb-5 flex items-center gap-3">
                 <div className="rounded-full bg-[#eaf3ff] p-3 text-[#2454b5]">
@@ -942,6 +1349,8 @@ export default function CheckoutOrderDetailPage() {
                   </p>
                 </div>
               </div>
+
+
 
               {items.length === 0 ? (
                 <p className="text-[#607287]">
@@ -1080,6 +1489,8 @@ export default function CheckoutOrderDetailPage() {
               </div>
             </section>
           </div>
+
+
 
           <aside className="space-y-5 lg:col-span-1">
             <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm">
@@ -1229,6 +1640,7 @@ export default function CheckoutOrderDetailPage() {
       </main>
 
 
+      <UserReturnExchangeStatusPanel order={order} />
       {showRefundModal ? (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">
           <div className="my-8 w-full max-w-[760px] rounded-[28px] bg-white p-6 shadow-2xl">
@@ -1432,6 +1844,8 @@ export default function CheckoutOrderDetailPage() {
                 className="w-full rounded-xl border border-[#cbd5e1] bg-[#f8fbff] px-4 py-3 text-sm font-semibold outline-none focus:border-[#0284c7]"
               />
 
+
+
               <button
                 type="button"
                 onClick={handleRefundRequest}
@@ -1445,119 +1859,60 @@ export default function CheckoutOrderDetailPage() {
         </div>
       ) : null}
 
-      {showExchangeModal ? (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[rgba(15,23,42,0.45)] px-4 backdrop-blur-sm">
-        <div className="my-8 w-full max-w-[560px] rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4 border-b pb-4">
+      <ReturnModal
+        open={showReturnModal}
+        onClose={() => setShowReturnModal(false)}
+        item={heroItem}
+        order={order}
+        paymentMethod={order?.payment?.method}
 
-              <div>
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-600">
-                  <RefreshCcw size={24} />
-                </div>
+        returnReason={returnReason}
+        setReturnReason={setReturnReason}
 
-                <h2 className="text-[28px] font-black text-[#102033]">
-                  Exchange Request
-                </h2>
+        selectedReasonObj={selectedReasonObj}
+        setSelectedReasonObj={setSelectedReasonObj}
 
-                <p className="mt-2 text-sm leading-6 text-[#64748b]">
-                  Submit a request if you received a damaged item, incorrect product,
-                  manufacturing defect, or a product that does not match the ordered specifications.
-                </p>
-              </div>
+        returnSubReason={returnSubReason}
+        setReturnSubReason={setReturnSubReason}
 
-              <button
-                type="button"
-                onClick={() => setShowExchangeModal(false)}
-                className="rounded-full bg-[#f3f7fb] p-2 text-[#607287]"
-              >
-                <X size={18} />
-              </button>
+        returnComment={returnComment}
+        setReturnComment={setReturnComment}
 
-            </div>
+        returnImages={returnImages}
+        setReturnImages={setReturnImages}
 
-            <div className="space-y-5">
+        returnVideo={returnVideo}
+        setReturnVideo={setReturnVideo}
 
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[#102033]">
-                  Exchange Reason *
-                </label>
+        returnLoading={returnLoading}
+        handleReturnRequest={handleReturnRequest}
 
-                <select
-                  value={exchangeReason}
-                  onChange={(e) => setExchangeReason(e.target.value)}
-                  className="h-14 w-full rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] px-4 text-[15px] font-semibold text-[#102033] outline-none focus:border-orange-500"
-                >
-                  <option value="">Select Exchange Reason</option>
+        reasons={returnReasons}
+      />
 
-                  <option value="Wrong Product Delivered">
-                    Wrong Product Delivered
-                  </option>
+      <ExchangeModal
+        open={showExchangeModal}
+        onClose={() => setShowExchangeModal(false)}
+        item={heroItem}
+        order={order}
 
-                  <option value="Damaged Product">
-                    Damaged Product
-                  </option>
+        exchangeReason={exchangeReason}
+        setExchangeReason={setExchangeReason}
 
-                  <option value="Defective Product">
-                    Defective Product
-                  </option>
+        exchangeComment={exchangeComment}
+        setExchangeComment={setExchangeComment}
 
-                  <option value="Received Different Specification">
-                    Received Different Specification
-                  </option>
+        exchangeImages={exchangeImages}
+        setExchangeImages={setExchangeImages}
 
-                  <option value="Other">
-                    Other
-                  </option>
-                </select>
-              </div>
+        exchangeVideo={exchangeVideo}
+        setExchangeVideo={setExchangeVideo}
 
-              <div>
-                <label className="mb-2 block text-sm font-bold text-[#102033]">
-                  Additional Details
-                </label>
+        exchangeLoading={exchangeLoading}
+        handleExchangeRequest={handleExchangeRequest}
 
-                <textarea
-                  rows={4}
-                  placeholder="Provide additional details about the issue (optional)"
-                  value={cancelComment}
-                  onChange={(e) => setCancelComment(e.target.value)}
-                  className="w-full rounded-2xl border border-[#dbe5f0] bg-[#f8fbff] px-4 py-3 text-sm outline-none focus:border-orange-500"
-                />
-              </div>
-
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-semibold text-blue-800">
-                  Your request will be reviewed by our support team.
-                </p>
-
-                <p className="mt-1 text-sm text-blue-700">
-                  Once approved, replacement instructions and shipment updates will be shared with you.
-                </p>
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowExchangeModal(false)}
-                  className="h-[52px] flex-1 rounded-xl border border-[#dbe5f0] bg-white font-black text-[#334155]"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  disabled={!exchangeReason}
-                  onClick={handleExchangeRequest}
-                  className="h-[52px] flex-1 rounded-xl bg-[#2454b5] font-black text-white hover:bg-[#1e4695] disabled:opacity-50"                >
-                  Submit Exchange Request
-                </button>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-      ) : null}
+        reasons={exchangeReasons}
+      />
 
       {showAddressModal ? (
         <div className="fixed inset-0 z-[9999] flex items-start justify-center overflow-hidden bg-[rgba(15,23,42,0.45)] px-4 py-10 backdrop-blur-sm">

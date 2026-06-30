@@ -13,6 +13,48 @@ const ITEM_STATUS = [
   "Cancelled",
 ];
 
+const EXCHANGE_STATUS = [
+  "Not Requested",
+  "Requested",
+  "Approved",
+  "Rejected",
+  "Pickup Scheduled",
+  "Picked Up",
+  "Quality Checking",
+  "Replacement Packed",
+  "Replacement Shipped",
+  "Out for Delivery",
+  "Completed",
+];
+
+const requestHistorySchema = new mongoose.Schema(
+  {
+    status: { type: String, default: "" },
+    message: { type: String, default: "" },
+    date: { type: Date, default: Date.now },
+    by: {
+      type: String,
+      enum: ["Customer", "Admin", "System"],
+      default: "System",
+    },
+  },
+  { _id: false }
+);
+
+const pickupAddressSchema = new mongoose.Schema(
+  {
+    name: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    addressLine1: { type: String, default: "" },
+    addressLine2: { type: String, default: "" },
+    city: { type: String, default: "" },
+    state: { type: String, default: "" },
+    pincode: { type: String, default: "" },
+    country: { type: String, default: "India" },
+  },
+  { _id: false }
+);
+
 /* =====================================================
    ORDER ITEM SCHEMA
 ===================================================== */
@@ -127,7 +169,7 @@ const orderSchema = new mongoose.Schema(
     payment: {
       method: {
         type: String,
-        enum: ["RAZORPAY", "COD"],
+       enum: ["RAZORPAY", "COD", "BANK_TRANSFER"],
         default: "RAZORPAY",
       },
 
@@ -276,8 +318,10 @@ const orderSchema = new mongoose.Schema(
         },
       ],
     },
+   /* ================= RETURN ================= */
 
-    returnRequest: {
+/* ================= RETURN ================= */
+returnRequest: {
   status: {
     type: String,
     enum: [
@@ -287,70 +331,170 @@ const orderSchema = new mongoose.Schema(
       "Rejected",
       "Pickup Scheduled",
       "Picked Up",
-      "Refund Eligible",
+      "Quality Checking",
+      "Refund Approved",
       "Completed",
     ],
     default: "Not Requested",
+    index: true,
   },
 
-  reason: {
+  itemId: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: null,
+  },
+
+  reasonId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ReturnReason",
+    default: null,
+  },
+
+  reasonTitle: { type: String, default: "" },
+  subReason: { type: String, default: "" },
+  description: { type: String, default: "" },
+  comment: { type: String, default: "" },
+  adminRemark: { type: String, default: "" },
+
+  customerMessage: { type: String, default: "" },
+invalidFields: [{ type: String, default: "" }],
+
+  evidence: {
+    photos: [{ type: String, default: "" }],
+    videos: [{ type: String, default: "" }],
+  },
+
+  refundPreference: {
+  method: {
     type: String,
+    enum: ["", "BANK", "WALLET"],
     default: "",
   },
-
-  comment: {
-    type: String,
-    default: "",
-  },
-
-  requestedAt: Date,
-  approvedAt: Date,
-  pickupAt: Date,
-  completedAt: Date,
+  accountHolder: { type: String, default: "" },
+  bankName: { type: String, default: "" },
+  accountNumber: { type: String, default: "" },
+  ifsc: { type: String, default: "" },
+  upi: { type: String, default: "" },
+  walletStatus: { type: String, default: "" },
+  walletValidityMonths: { type: Number, default: 0 },
 },
 
-    exchange: {
+  adminReview: {
+    type: new mongoose.Schema(
+      {
+        reviewedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          default: null,
+        },
+        reviewNote: { type: String, default: "" },
+        reviewedAt: { type: Date, default: null },
+      },
+      { _id: false }
+    ),
+    default: () => ({}),
+  },
+
+  requestedAt: { type: Date, default: null },
+  approvedAt: { type: Date, default: null },
+  rejectedAt: { type: Date, default: null },
+  pickupScheduledAt: { type: Date, default: null },
+  pickedUpAt: { type: Date, default: null },
+  qualityCheckedAt: { type: Date, default: null },
+refundApprovedAt: { type: Date, default: null },
+completedAt: { type: Date, default: null },
+updatedAt: { type: Date, default: null },
+
+  history: { type: [requestHistorySchema], default: [] },
+},
+/* ================= EXCHANGE ================= */
+exchange: {
   status: {
     type: String,
-    enum: [
-      "Not Requested",
-      "Requested",
-      "Approved",
-      "Rejected",
-      "Replacement Shipped",
-      "Completed",
-    ],
+    enum: EXCHANGE_STATUS,
     default: "Not Requested",
+    index: true,
   },
 
-  reason: {
-    type: String,
-    default: "",
-  },
+  itemId: { type: mongoose.Schema.Types.ObjectId, default: null },
 
-  comment: {
-    type: String,
-    default: "",
-  },
-
-  requestedAt: {
-    type: Date,
+  reasonId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ReturnReason",
     default: null,
   },
 
-  approvedAt: {
-    type: Date,
-    default: null,
+  reasonTitle: { type: String, default: "" },
+  subReason: { type: String, default: "" },
+  description: { type: String, default: "" },
+  comment: { type: String, default: "" },
+
+  replacementSku: { type: String, default: "" },
+  replacementProductName: { type: String, default: "" },
+
+  pickupAddress: {
+    type: pickupAddressSchema,
+    default: () => ({}),
   },
 
-  completedAt: {
-    type: Date,
-    default: null,
-  },
+  pickupShipment: {
+  type: new mongoose.Schema(
+    {
+      courier: { type: String, default: "" },
+      trackingId: { type: String, default: "" },
+      trackingUrl: { type: String, default: "" },
+    },
+    { _id: false }
+  ),
+  default: () => ({}),
 },
 
+replacementShipment: {
+  type: new mongoose.Schema(
+    {
+      courier: { type: String, default: "" },
+      trackingId: { type: String, default: "" },
+      trackingUrl: { type: String, default: "" },
+      estimatedDelivery: { type: Date, default: null },
+    },
+    { _id: false }
+  ),
+  default: () => ({}),
+},
+  evidence: {
+    photos: [{ type: String, default: "" }],
+    videos: [{ type: String, default: "" }],
+  },
 
+adminReview: {
+  type: new mongoose.Schema(
+    {
+      reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      reviewNote: { type: String, default: "" },
+      reviewedAt: { type: Date, default: null },
+    },
+    { _id: false }
+  ),
+  default: () => ({}),
+},
 
+  requestedAt: { type: Date, default: null },
+  approvedAt: { type: Date, default: null },
+  rejectedAt: { type: Date, default: null },
+  pickupScheduledAt: { type: Date, default: null },
+  pickedUpAt: { type: Date, default: null },
+  qualityCheckedAt: { type: Date, default: null },
+  replacementPackedAt: { type: Date, default: null },
+  replacementShippedAt: { type: Date, default: null },
+  outForDeliveryAt: { type: Date, default: null },
+  completedAt: { type: Date, default: null },
+
+  history: { type: [requestHistorySchema], default: [] },
+},
     canEditAddress: { type: Boolean, default: true },
     canEditPhone: { type: Boolean, default: true },
 

@@ -29,6 +29,7 @@ import {
   CreditCard,
   Users,
   Truck,
+  RefreshCcw,
   X,
   ShieldCheck,
 } from "lucide-react";
@@ -109,6 +110,12 @@ const navItems = [
   icon: LayoutPanelTop,
 },
 
+{
+  title: "Exchange Requests",
+  href: "/admin/exchanges",
+  icon: RefreshCcw,
+},
+
   { title: "Inventory", href: "/admin/inventory", icon: Boxes },
   {
     title: "Out Of Stock",
@@ -116,6 +123,19 @@ const navItems = [
     icon: AlertTriangle,
   },
   { title: "Orders", href: "/admin/orders", icon: ShoppingCart },
+
+  {
+  title: "Returns",
+  href: "/admin/returns",
+  icon: RefreshCcw,
+},
+
+{
+  title: "Return Reasons",
+  href: "/admin/return-reasons",
+  icon: RefreshCcw,
+},
+
   { title: "Payments", href: "/admin/payments", icon: CreditCard },
 
   { title: "Customers", href: "/admin/customers", icon: Users },
