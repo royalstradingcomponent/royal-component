@@ -181,7 +181,7 @@ export default function AdminRequestDetail({ type = "RETURN" }) {
     const product = useMemo(() => getRequestItem(order, request, itemId), [order, request, itemId]);
     const photos = request?.evidence?.photos || request?.photos || [];
     console.log("REQUEST =", request);
-console.log("PHOTOS =", photos);
+    console.log("PHOTOS =", photos);
     const videos = request?.evidence?.videos || request?.videos || [];
     const statuses = isReturn ? RETURN_STATUSES : EXCHANGE_STATUSES;
     const pageTone = isReturn ? "orange" : "blue";
@@ -454,8 +454,8 @@ console.log("PHOTOS =", photos);
                                         type="button"
                                         onClick={() => setForm((prev) => ({ ...prev, status }))}
                                         className={`rounded-[12px] border px-3 py-2 text-xs font-black transition ${form.status === status
-                                                ? "border-[#2454b5] bg-[#2454b5] text-white"
-                                                : "border-[#d8e3f0] bg-white text-[#102033] hover:border-[#2454b5]"
+                                            ? "border-[#2454b5] bg-[#2454b5] text-white"
+                                            : "border-[#d8e3f0] bg-white text-[#102033] hover:border-[#2454b5]"
                                             }`}
                                     >
                                         {status}
@@ -524,12 +524,12 @@ console.log("PHOTOS =", photos);
                                 </>
                             )}
 
-                        <div className="mt-6 w-full">
-    <button
-        type="button"
-        onClick={saveStatus}
-        disabled={saving}
-        className="
+                            <div className="mt-6 w-full">
+                                <button
+                                    type="button"
+                                    onClick={saveStatus}
+                                    disabled={saving}
+                                    className="
             w-full
             h-[56px]
             flex
@@ -548,11 +548,11 @@ console.log("PHOTOS =", photos);
             disabled:opacity-50
             disabled:cursor-not-allowed
         "
-    >
-        <Save size={22} />
-        {saving ? "Saving..." : "Save Changes"}
-    </button>
-</div>
+                                >
+                                    <Save size={22} />
+                                    {saving ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
                         </div>
                     </Section>
 

@@ -3554,6 +3554,12 @@ exports.adminUpdateReturnStatus = async (req, res) => {
 
     await order.save();
 
+
+
+const freshOrder = await Order.findById(order._id);
+
+console.log("RETURN STATUS AFTER SAVE =>", freshOrder.returnRequest.status);
+
     try {
       await logAdminActivity({
         req,
@@ -3880,6 +3886,10 @@ exports.adminUpdateReturnStatus = async (req, res) => {
     });
 
     await order.save();
+
+const freshOrder = await Order.findById(order._id);
+
+console.log("RETURN STATUS AFTER SAVE =>", freshOrder.returnRequest.status);
 
     return res.json({
       success: true,

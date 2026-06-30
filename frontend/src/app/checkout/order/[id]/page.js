@@ -1071,7 +1071,12 @@ export default function CheckoutOrderDetailPage() {
 
                 </div>
                 {canCancel ? (
-                  <button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelModal(true)}
+                    className="mt-3 flex h-[48px] w-full items-center justify-center gap-3 rounded-2xl border border-green-600 bg-green-600 text-base font-black text-white transition-all duration-300 hover:bg-green-700 hover:border-green-700 hover:shadow-md"
+                  >
+                    <Ban size={22} />
                     Cancel Order
                   </button>
                 ) : null}
@@ -1512,11 +1517,11 @@ export default function CheckoutOrderDetailPage() {
                         </div>
 
                         <div>
-                         <h3 className="break-words text-xl font-black leading-tight text-[#102033] lg:text-2xl">
+                          <h3 className="break-words text-xl font-black leading-tight text-[#102033] lg:text-2xl">
                             {getItemName(item)}
                           </h3>
 
-                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#607287] break-all">
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-[#607287] break-all">
                             {item?.brand ? (
                               <span>Brand: {item.brand}</span>
                             ) : null}
@@ -1538,7 +1543,7 @@ export default function CheckoutOrderDetailPage() {
                           </p>
                         </div>
 
-                       <div className="mt-3 flex items-center justify-between border-t border-[#e5edf5] pt-3 lg:mt-0 lg:block lg:border-0 lg:pt-0">
+                        <div className="mt-3 flex items-center justify-between border-t border-[#e5edf5] pt-3 lg:mt-0 lg:block lg:border-0 lg:pt-0">
                           <p className="text-sm font-bold text-[#607287]">
                             Line Total
                           </p>
@@ -1561,8 +1566,8 @@ export default function CheckoutOrderDetailPage() {
 
 
             <section className="rounded-[24px] border border-[#dbe5f0] bg-white p-5 shadow-sm md:p-6">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div>
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+                <div className="min-w-0">
                   <h2 className="text-2xl font-black text-[#102033]">
                     Need help with this order?
                   </h2>
@@ -1573,23 +1578,25 @@ export default function CheckoutOrderDetailPage() {
                   </p>
                 </div>
 
-                <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-[420px]">
-                  <button
-                    type="button"
-                    onClick={handleStartOrderChat}
-                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-5 font-black text-white shadow-sm hover:bg-[#1e4695]"
-                  >
-                    <MessageCircle size={18} />
-                    Chat Support
-                  </button>
+                <div className="w-full xl:w-[340px]">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleStartOrderChat}
+                      className="flex h-[54px] items-center justify-center gap-2 rounded-xl bg-[#2454b5] px-4 text-[15px] font-bold text-white shadow hover:bg-[#1e4695]"
+                    >
+                      <MessageCircle size={18} className="shrink-0" />
+                      <span>Chat Support</span>
+                    </button>
 
-                  <a
-                    href="tel:+919871147666"
-                    className="inline-flex h-[52px] items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white px-5 font-black text-[#2454b5] hover:bg-[#eaf3ff]"
-                  >
-                    <Phone size={18} />
-                    Call Support
-                  </a>
+                    <a
+                      href="tel:+919871147666"
+                      className="flex h-[54px] items-center justify-center gap-2 rounded-xl border border-[#2454b5] bg-white px-4 text-[15px] font-bold text-[#2454b5] hover:bg-[#eef5ff]"
+                    >
+                      <Phone size={18} className="shrink-0" />
+                      <span>Call Support</span>
+                    </a>
+                  </div>
                 </div>
               </div>
 
