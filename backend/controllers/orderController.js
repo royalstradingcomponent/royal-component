@@ -507,39 +507,14 @@ exports.updateOrderStatus = async (req, res) => {
       req.body;
 
     const allowedStatuses = [
-  // Order
-  "Order Placed",
-  "Processing",
-  "Packed",
-  "Shipped",
-  "Out for Delivery",
-  "Delivered",
-  "Cancelled",
-
-  // Return
-  "Return Requested",
-  "Return Approved",
-  "Return Rejected",
-  "Pickup Scheduled",
-  "Picked Up",
-  "Quality Checking",
-  "Refund Approved",
-  "Return Completed",
-
-  // Exchange
-  "Exchange Requested",
-  "Exchange Approved",
-  "Exchange Rejected",
-  "Replacement Packed",
-  "Replacement Shipped",
-  "Exchange Completed",
-
-  // Refund
-  "Refund Requested",
-  "Refund Approved",
-  "Refund Processing",
-  "Refunded",
-];
+      "Order Placed",
+      "Processing",
+      "Packed",
+      "Shipped",
+      "Out for Delivery",
+      "Delivered",
+      "Cancelled",
+    ];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
