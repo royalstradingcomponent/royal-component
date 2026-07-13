@@ -108,8 +108,6 @@ app.use(
   }),
 );
 
-
-
 if (process.env.NODE_ENV !== "production") {
   app.use((req, res, next) => {
     console.log(
@@ -180,6 +178,11 @@ app.use("/api/blog-categories", blogCategoryRoutes);
 app.use("/api/blog-upload", blogUploadRoutes);
 app.use("/api/blog-page-setting", blogPageSettingRoutes);
 app.use("/api/theme", require("./routes/themeRoutes"));
+app.use("/api/warehouse", require("./routes/warehouseRoutes"));
+app.use("/api/warehouse-boxes", require("./routes/warehouseBoxRoutes"));
+app.use("/api/warehouse-sticks", require("./routes/warehouseStickRoutes"));
+app.use("/api/stock-locations", require("./routes/stockLocationRoutes"));
+app.use("/api/transfers", require("./routes/transferHistoryRoutes"));
 app.use("/api/home-decor-info", homeDecorInfoRoutes);
 app.use("/api/promo-banners", require("./routes/promoBannerRoutes"));
 app.use("/api/homepage-builder", require("./routes/homepageBuilderRoutes"));

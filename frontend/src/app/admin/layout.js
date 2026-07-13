@@ -5,10 +5,12 @@ import { useEffect, useState } from "react";
 import { ImagePlus, PackageSearch } from "lucide-react";
 import { ListTree, GitBranch, Navigation } from "lucide-react";
 import {
+  
   BarChart3,
   Boxes,
   AlertTriangle,
   ChevronRight,
+  ChevronDown,
   Contact,
   Building2,
   Palette,
@@ -169,6 +171,30 @@ const navItems = [
     href: "/admin/security",
     icon: ShieldCheck,
   },
+
+  {
+  title: "Warehouse",
+  href: "/admin/warehouse",
+  icon: Building2,
+},
+
+{
+  title: "Warehouse Boxes",
+  href: "/admin/warehouse/boxes",
+  icon: Boxes,
+},
+
+{
+  title: "Warehouse Sticks",
+  href: "/admin/warehouse/sticks",
+  icon: Package,
+},
+
+{
+  title: "Stock Locations",
+  href: "/admin/stock-locations",
+  icon: PackageSearch,
+},
 ];
 
 export default function AdminLayout({ children }) {
@@ -178,6 +204,14 @@ export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
+
+  const [warehouseOpen, setWarehouseOpen] =
+  useState(
+    pathname?.startsWith("/admin/warehouse") ||
+    pathname?.startsWith("/admin/stock-locations") ||
+    pathname?.startsWith("/admin/transfer-stock") ||
+    pathname?.startsWith("/admin/transfer-history")
+  );
   const isAuthPage = pathname?.startsWith("/admin/auth");
 
   useEffect(() => {
@@ -304,6 +338,149 @@ export default function AdminLayout({ children }) {
             const active =
               pathname === item.href ||
               (item.href !== "/admin" && pathname.startsWith(item.href));
+
+              if (item.title === "Inventory") {
+  return (
+    <div key="warehouse-management">
+
+      {/* Inventory */}
+
+      <Link
+        href={item.href}
+        onClick={() => setSidebarOpen(false)}
+        className={`mb-1 flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition ${
+          pathname === item.href
+            ? "bg-[#2454b5] text-white"
+            : "text-slate-300 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <span className="flex items-center gap-3">
+          <item.icon size={18} />
+          {item.title}
+        </span>
+
+        <ChevronRight size={16} />
+      </Link>
+
+      {/* Warehouse Management */}
+
+      <button
+        type="button"
+        onClick={() =>
+          setWarehouseOpen(!warehouseOpen)
+        }
+        className="mb-1 flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+      >
+        <span className="flex items-center gap-3">
+          <Building2 size={18} />
+          Warehouse Management
+        </span>
+
+        <ChevronDown
+          size={16}
+          className={`transition ${
+            warehouseOpen
+              ? "rotate-180"
+              : ""
+          }`}
+        />
+      </button>
+
+      {warehouseOpen && (
+        <div className="mb-2 ml-6 space-y-1 border-l border-white/10 pl-4">
+
+                 <Link
+            href="/admin/warehouse"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname === "/admin/warehouse"
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Dashboard
+          </Link>
+
+          <Link
+            href="/admin/warehouse"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname.startsWith("/admin/warehouse") &&
+              pathname !== "/admin/warehouse/boxes" &&
+              pathname !== "/admin/warehouse/sticks"
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Warehouses
+          </Link>
+
+          <Link
+            href="/admin/warehouse/boxes"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname.startsWith("/admin/warehouse/boxes")
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Boxes
+          </Link>
+
+          <Link
+            href="/admin/warehouse/sticks"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname.startsWith("/admin/warehouse/sticks")
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Sticks
+          </Link>
+
+          <Link
+            href="/admin/stock-locations"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname.startsWith("/admin/stock-locations")
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Stock Locations
+          </Link>
+
+          <Link
+            href="/admin/transfer-stock"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname.startsWith("/admin/transfer-stock")
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Transfer Stock
+          </Link>
+
+          <Link
+            href="/admin/transfer-history"
+            onClick={() => setSidebarOpen(false)}
+            className={`block rounded-lg px-3 py-2 text-sm transition ${
+              pathname.startsWith("/admin/transfer-history")
+                ? "bg-[#2454b5] text-white"
+                : "text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            Transfer History
+          </Link>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
 
             return (
               <Link
